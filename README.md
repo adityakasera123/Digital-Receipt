@@ -290,4 +290,308 @@ Medicine → Healthcare
 
 ---
 
+## Smart Search
 
+Natural Language Search
+
+Examples:
+
+* "Show my laptop receipt"
+* "Medicine receipts"
+* "Purchases from Amazon"
+
+---
+
+## Expense Analytics
+
+Graphs:
+
+* Monthly Spending
+* Category Spending
+* Yearly Spending
+
+Insights:
+
+* Highest Spending Category
+* Monthly Comparison
+* Expense Trend
+
+---
+
+## Spending Insights
+
+Examples:
+
+* You spent ₹18,000 on Electronics this month.
+* Your Food expenses increased by 25%.
+* Electronics account for 45% of your total spending.
+
+---
+
+## Purchase Lifecycle Tracker
+
+Every product ki complete lifecycle maintain hogi.
+
+Stages:
+
+* Ordered
+* Shipped
+* Delivered
+* Return Window Active
+* Warranty Active
+* Service / Repair
+* Warranty Expired
+* Sold / Disposed
+
+---
+
+## Product Status
+
+Every purchase ki current status dikhai jayegi.
+
+Examples:
+
+* Return Available
+* Warranty Active
+* Under Service
+* Warranty Expired
+* Sold
+
+---
+
+## Refund Tracker
+
+Users refund process bhi track kar sakenge.
+
+Status:
+
+* Refund Requested
+* Refund Approved
+* Refund Processing
+* Refund Completed
+
+---
+
+# Version 3 Features
+
+## AI Receipt Reader
+
+Receipt upload karte hi AI:
+
+* Product identify kare
+* Important fields extract kare
+* Missing information suggest kare
+
+---
+
+## AI Purchase Insights
+
+AI batayega:
+
+* Spending habits
+* Shopping behaviour
+* Purchase trends
+* Frequently purchased categories
+
+---
+
+## Smart Suggestions
+
+Examples:
+
+* Electronics spending is increasing.
+* Consider extending warranty for expensive devices.
+* You purchased similar products recently.
+
+---
+
+## Service History
+
+Every product ka complete repair aur service history maintain hoga.
+
+Example:
+
+* Purchased
+* Screen Replaced
+* Battery Replaced
+* Serviced
+* Cleaned
+
+---
+
+## Digital Locker
+
+Store:
+
+* Warranty Cards
+* Insurance Documents
+* Bills
+* Invoices
+* Service Receipts
+* Product Manuals
+
+---
+
+## Family Vault
+
+Features:
+
+* Invite Family Members
+* Shared Receipt Access
+* Shared Warranty Management
+
+---
+
+## Export Data
+
+Export:
+
+* PDF
+* CSV
+
+---
+
+# Future Premium Features
+
+* Cloud Backup
+* Multi-device Sync
+* AI Financial Reports
+* Product Resale Value Estimation
+* Price Drop Alerts
+* Purchase Reminder System
+* Service Reminder
+* Subscription Tracking
+* Box Storage Reminder
+* Refund History
+* Multiple Currency Support
+* Business Asset Management Mode
+
+---
+
+# Technology Stack
+
+## Frontend
+
+* React
+* Tailwind CSS
+
+Purpose:
+
+* User Interface
+* Dashboard
+* Responsive Design
+
+---
+
+## Authentication
+
+Firebase Authentication
+
+Purpose:
+
+* Secure Login
+* User Management
+
+---
+
+## Database
+
+Firebase Firestore
+
+Purpose:
+
+* Store Users
+* Store Receipt Metadata
+* Store Warranty Information
+* Store Return Window Details
+
+---
+
+## Storage
+
+Firebase Storage
+
+Purpose:
+
+* Receipt Images
+* PDF Files
+* Warranty Documents
+
+---
+
+## OCR
+
+Tesseract OCR
+
+Purpose:
+
+* Extract text from receipt images
+
+---
+
+## Backend (Future)
+
+* Node.js
+* Express.js
+
+Purpose:
+
+* APIs
+* Business Logic
+* Advanced Features
+
+---
+
+## Database Upgrade (Future)
+
+* MongoDB or PostgreSQL
+
+Purpose:
+
+* Scalable architecture
+* Better querying
+* Enterprise-level data management
+
+---
+
+## AI Integration
+
+Purpose:
+
+* OCR Enhancement
+* Purchase Analysis
+* Spending Insights
+* Smart Recommendations
+
+---
+
+# Long-Term Engineering Roadmap
+
+1. React
+2. Tailwind CSS
+3. Firebase Authentication
+4. Firestore
+5. Firebase Storage
+6. Build MVP
+7. OCR Integration
+8. AI Features
+9. Node.js
+10. Express.js
+11. MongoDB/PostgreSQL
+12. Product Optimization
+13. Docker
+14. CI/CD Pipelines
+15. System Design
+16. Operating Systems
+17. Memory Management
+18. Scalability & Software Architecture
+
+---
+
+# Final Goal
+
+Digital Receipt Vault ka goal sirf receipts ko store karna nahi hai.
+
+Ye ek intelligent **Personal Purchase Management System** banna chahta hai jo users ko unki purchases ko organize karne, return windows ko track karne, warranties ko manage karne, expenses ko understand karne aur important purchase-related documents ko secure aur easily accessible banane me help kare.
+
+Long-term vision ye hai ki Digital Receipt Vault ek trusted **Purchase Lifecycle Management Platform** bane jahan users apni har purchase ki complete digital history maintain kar sakein—from purchase to return, warranty, service, refund aur long-term ownership tak—aur AI ki help se apne spending behaviour aur purchase decisions ko aur behtar bana sakein.
