@@ -595,3 +595,329 @@ Digital Receipt Vault ka goal sirf receipts ko store karna nahi hai.
 Ye ek intelligent **Personal Purchase Management System** banna chahta hai jo users ko unki purchases ko organize karne, return windows ko track karne, warranties ko manage karne, expenses ko understand karne aur important purchase-related documents ko secure aur easily accessible banane me help kare.
 
 Long-term vision ye hai ki Digital Receipt Vault ek trusted **Purchase Lifecycle Management Platform** bane jahan users apni har purchase ki complete digital history maintain kar sakein—from purchase to return, warranty, service, refund aur long-term ownership tak—aur AI ki help se apne spending behaviour aur purchase decisions ko aur behtar bana sakein.
+1️⃣ Landing Page ⭐ (Reference)
+Primary
+
+✅ Lumiance (Dark Landing)
+
+Reason:
+
+Premium feel
+Apple type spacing
+Finance/SaaS vibe
+Perfect Digital Receipt Vault ke liye
+
+Hero
+Navbar
+Cards
+Pricing
+FAQ
+Footer
+
+sab isi se.
+
+⭐⭐⭐⭐⭐
+
+Secondary
+
+Alterfx
+
+Sirf
+
+Features section
+
+ke liye.
+
+Phone mockup nahi use karna.
+
+2️⃣ Login
+
+✅ Versa
+
+Reason
+
+Left branding
+
+Right login
+
+Simple
+
+Professional
+
+⭐⭐⭐⭐⭐
+
+3️⃣ Signup
+
+✅ Blue Signup
+
+(first name last name wala)
+
+Clean
+
+Modern
+
+Easy.
+
+4️⃣ Forgot Password
+
+✅ Arcana Login
+
+bas uska clean layout.
+
+5️⃣ Dashboard ⭐⭐⭐⭐⭐
+
+Ye sabse important.
+
+Final mix hoga
+
+Base Layout
+
+✅ HiveQ
+
+Kyun?
+
+Sidebar
+
+Topbar
+
+Spacing
+
+Cards
+
+Charts
+
+Everything balanced.
+
+Statistics Cards
+
+✅ Monetra
+
+Wallet cards
+
+Money cards
+
+Metrics cards
+
+Bahut premium.
+
+Charts
+
+✅ Prodly
+
+Bar chart
+
+Weekly graph
+
+AI insight card
+
+Timeline
+
+Analytics
+
+✅ Emitly
+
+Campaign charts
+
+Graphs
+
+Progress bars
+
+Tables
+
+✅ Prodexa
+
+Table
+
+Status badges
+
+Filters
+
+Result
+
+HiveQ
++
+Monetra
++
+Prodly
++
+Emitly
++
+Prodexa
+
+🔥🔥🔥
+
+6️⃣ Upload Receipt
+
+✅ Zendenta
+
+Product form
+
+Image upload
+
+Details
+
+Exactly wahi.
+
+Bas
+
+Product
+
+ko
+
+Receipt
+
+kar dena.
+
+7️⃣ Receipt Detail
+
+✅ Forge
+
+Receipt Preview
+
+Side Details
+
+Buttons
+
+Layout
+
+Perfect.
+
+8️⃣ OCR Result
+
+✅ Invoice Preview
+
+(Arto)
+
+Left
+
+Editable fields
+
+Right
+
+Receipt Preview
+
+Amazing.
+
+9️⃣ AI Assistant
+
+✅ Knowledge Base AI
+
+(upload document wala)
+
+Iska
+
+Right Chat Panel
+
+use hoga.
+
+🔟 Search
+
+✅ Smart Search
+
+Ye direct copy inspiration.
+
+1️⃣1️⃣ Warranty
+
+Mix
+
+Zendenta
+
+Forge
+
+Warranty card
+
+Expiry
+
+Purchase
+
+Vendor
+
+Bill
+
+Image
+
+1️⃣2️⃣ Analytics
+
+Prodly
+
+Emitly
+
+Charts
+
+AI cards
+
+Weekly report
+
+1️⃣3️⃣ AI Insights
+
+Prodly
+
+Right panel.
+
+1️⃣4️⃣ Settings
+
+Quantro
+
+Simple
+
+Clean
+
+White.
+
+1️⃣5️⃣ Contact
+
+Green Contact Form
+
+(first wala)
+
+Modern.
+
+1️⃣6️⃣ Empty States
+
+Projects Not Found
+
+Untitled UI
+
+1️⃣7️⃣ Modals
+
+Add Group
+
+Popup
+
+Dropdown
+
+Search
+
+1️⃣8️⃣ Tables
+
+Logoipsum Dashboard
+
+Subscription table
+
+Very clean.
+
+1️⃣9️⃣ Sidebar
+
+HiveQ
+
+100%
+
+2️⃣0️⃣ Navbar
+
+Lumiance
+
+2️⃣1️⃣ Cards
+
+Monetra
+
+2️⃣2️⃣ Buttons
+
+Lumiance
+
+Green gradient
+
+2️⃣3️⃣ Inputs
+
+Arcana
+
+Zendenta
