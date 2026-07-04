@@ -921,3 +921,121 @@ Green gradient
 Arcana
 
 Zendenta
+
+
+2️⃣4️⃣ Color Palette
+Background
+#0B0B0D
+
+Card
+#141416
+
+Border
+#232326
+
+Primary
+#36F2A2
+
+Hover
+#5CF5B5
+
+Text
+#FFFFFF
+
+Secondary
+#9CA3AF
+
+Error
+#EF4444
+
+Warning
+#FACC15
+
+Success
+#22C55E
+Font
+
+Inter
+
+Weight
+
+400
+
+500
+
+600
+
+700
+
+Border Radius
+Cards
+
+20px
+
+Buttons
+
+14px
+
+Input
+
+14px
+
+Modal
+
+24px
+Animation
+
+Framer Motion
+
+Hover
+
+Scale 1.02
+
+Fade
+
+Slide
+
+No crazy animations.
+
+FINAL TECH STACK
+
+React
+
+TypeScript
+
+Tailwind CSS
+
+Framer Motion
+
+Shadcn UI
+
+React Query
+
+Firebase Auth
+
+Cloudinary (later)
+
+Node + Express
+
+MongoDB
+
+📄 Pages We'll Build
+Landing Page
+Login
+Signup
+Forgot Password
+Dashboard
+Upload Receipt
+Receipt Details
+OCR Review
+Warranty Tracker
+Notifications
+AI Assistant
+Analytics
+Search
+Profile
+Settings
+Contact
+Pricing
+FAQ
+🔒 Final
