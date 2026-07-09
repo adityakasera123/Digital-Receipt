@@ -1,27 +1,27 @@
 function Navbar(){
     return (
         <header className="w-full">
-            <nav className="container-custom flex items-center justify-between py-6">
+      <nav className="container-custom flex h-20 items-center justify-between">
                 {/*logo */}
                 <div>
-                    <h1 className="text-2xl font-bold">
+                    <h1 className="text-2xl font-semi tracking-tight">
                         BILLVORA
                     </h1>
                 </div>
 
                 {/* navlinks */}
 
-                <ul className="hidden gap-10 text-sm text-zinc-300 md:flex">
-                    <li className="cursor-pointer hover:text-white">
+                <ul className="hidden items-center gap-10 text-sm text-zinc-400 md:flex">
+                    <li className="cursor-pointer text-zinc-400 transition-colors duration-300 hover:text-white">
                         Features
                     </li>
-                    <li className="cursor-pointer hover:text-white">
+                    <li className="cursor-pointer text-zinc-400 transition-colors duration-300 hover:text-white">
                         How it works
                     </li>
-                    <li className="cursor-pointer hover:text-white">
+                    <li className="cursor-pointer text-zinc-400 transition-colors duration-300 hover:text-white">
                         pricing
                     </li>
-                    <li className="cursor-pointer hover:text-white">
+                    <li className="cursor-pointer text-zinc-400 transition-colors duration-300 hover:text-white">
                       Resources
                     </li>
                 
@@ -29,18 +29,20 @@ function Navbar(){
 
                 {/* button */}
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-6">
                     <button className="text-sm text-zinc-300 hover:text-white"> 
                     Sign In
                     </button>
-                   <button className="rounded-full border border-zinc-700 px-5 py-2.5 text-sm text-white">
+                   <button className="rounded-full bg-white px-4 py-1.5 text-base font-semibold text-black transition-all duration-300 hover:scale-[1.02]">
   Get Started
 </button>
                 </div>
+           
 
             </nav>
 
         </header>
+        
     )
 }
 export default Navbar;
