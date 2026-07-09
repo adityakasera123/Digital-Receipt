@@ -1,6 +1,6 @@
 function Navbar(){
     return (
-        <header className="w-full">
+       <header className="absolute top-0 left-0 z-50 w-full">
       <nav className="container-custom flex h-20 items-center justify-between">
                 {/*logo */}
                 <div>

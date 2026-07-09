@@ -3,7 +3,7 @@ import Hero from "./Hero";
 
 function Landing() {
   return (
-    <div className="bg-[#0B0B0C] min-h-screen text-white">
+    <div className="min-h-screen text-white">
       <Navbar />
       <Hero />
     </div>
