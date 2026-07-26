@@ -9,9 +9,7 @@ html {
 body {
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family:
-    Inter,
-    sans-serif;
+ font-family: "Manrope", sans-serif;
 }
 .container-custom {
   width: 100%;
