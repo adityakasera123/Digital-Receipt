@@ -2,6 +2,7 @@ import Navbar from "../../components/layout/     Navbar";
 import CTA from "./CTA";
 import FAQ from "./FAQ";
 import Features from "./Features";
+import Footer from "./Footer";
 import Hero from "./Hero";
 import HowItWorks from "./HowItWorks";
 import ReceiptProblems from "./ReceiptProblems";
@@ -18,6 +19,7 @@ function Landing() {
       <ReceiptProblems />
       <FAQ />
       <CTA />
+      <Footer />
     </div>
   );
 }

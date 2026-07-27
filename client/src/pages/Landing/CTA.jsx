@@ -36,17 +36,6 @@ function CTA() {
           Free to start • Secure by design • No credit card required
         </p>
 
-            {/* Footer Transition */}
-
-<div className="mt-28 text-center">
-
-  <div className="mx-auto h-24 w-24 rounded-full bg-emerald-500/10 blur-3xl"></div>
-
-  <p className="-mt-12 text-sm uppercase tracking-[0.35em] text-emerald-300">
-    Built for life after checkout.
-  </p>
-
-</div>
       </div>
 
     </section>
