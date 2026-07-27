@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 function Navbar(){
     return (
        <header className="absolute top-0 left-0 z-50 w-full">
@@ -32,10 +33,13 @@ function Navbar(){
                 <div className="flex items-center gap-6">
                     <button className="text-sm text-zinc-300 hover:text-white"> 
                     Sign In
+
                     </button>
+                    <Link to = "/login">
                    <button className="rounded-full bg-white px-4 py-1.5 text-base font-semibold text-black transition-all duration-300 hover:scale-[1.02]">
-  Get Started
-</button>
+                 Get Started
+                </button>
+                </Link>
                 </div>
            
 

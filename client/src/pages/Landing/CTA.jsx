@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 function CTA() {
   return (
     <section className="container-custom py-32">
@@ -21,10 +22,11 @@ function CTA() {
         </p>
 
         <div className="mt-12 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-
-          <button className="rounded-full bg-white px-8 py-4 text-lg font-medium text-black transition">
+            <Link to = "/login">
+         <button className="rounded-full bg-white px-8 py-4 text-lg font-medium text-black transition">
             Get Started Free
           </button>
+          </Link>
 
           <button className="rounded-full border border-white/10 px-8 py-4 text-lg font-medium text-white">
             View Demo

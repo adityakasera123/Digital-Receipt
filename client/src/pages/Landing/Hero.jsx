@@ -1,4 +1,5 @@
 import HeroDashboard from "./hero-dashboard/HeroDashboard";
+import { Link } from "react-router-dom";
 
 function Hero() {
   return (
@@ -35,9 +36,11 @@ function Hero() {
 
           {/* Buttons */}
           <div className="mt-[56px] flex items-center gap-5">
-            <button className="rounded-full bg-white px-8 py-3 text-sm font-semibold text-black transition-all duration-300 hover:scale-[1.03]">
-              Get Started
-            </button>
+            <Link to = "/login">
+                   <button className="rounded-full bg-white px-4 py-1.5 text-base font-semibold text-black transition-all duration-300 hover:scale-[1.02]">
+                 Get Started
+                </button>
+                </Link>
 
             <button className="rounded-full border border-white/10 px-8 py-3 text-sm font-semibold text-white transition-all duration-300 hover:border-zinc-500 hover:bg-white/5">
               View Demo
