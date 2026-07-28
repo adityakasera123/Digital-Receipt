@@ -1,9 +1,23 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { LayoutDashboard, ArrowLeft } from "lucide-react";
 import { useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
+import { signOut } from "firebase/auth";
+import { auth } from "../../firebase/firebase";
+
 
 function Dashboard() {
+    const navigate = useNavigate();
+    const handleLogout = async () => {
+  try {
+    await signOut(auth);
+
+    navigate("/login");
+
+  } catch (error) {
+    console.log(error);
+  }
+};
     const { user, loading } = useContext(AuthContext);
 
 console.log("Loading:", loading);
@@ -33,7 +47,12 @@ console.log("Current User:", user);
           <ArrowLeft size={18} />
           Back to Home
         </Link>
-
+<button
+  onClick={handleLogout}
+  className="mt-4 w-full rounded-xl bg-red-600 px-6 py-3 text-white hover:bg-red-700 transition"
+>
+  Logout
+</button>
       </div>
     </div>
   );
