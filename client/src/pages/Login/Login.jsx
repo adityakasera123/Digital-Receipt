@@ -6,13 +6,13 @@ import AuthHeader from "../../components/auth/AuthHeader";
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full max-w-md -mt-4">
       <AuthHeader
         title="Welcome Back 👋"
         subtitle="Sign in to securely manage your receipts, warranties and purchase history."
       />
 
-      <form className="mt-10 space-y-6">
+      <form className="mt-5 space-y-5">
 
         {/* Email */}
         <div>

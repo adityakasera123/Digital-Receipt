@@ -13,12 +13,11 @@ const AuthLayout = () => {
      <div className="mx-auto flex h-[650px] w-[1120px] overflow-hidden rounded-[28px] bg-white shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
 
         {/* LEFT SIDE */}
-       <div className="flex w-full items-center justify-center px-10 py-10 lg:w-[40%]">
-          <div className="w-full max-w-sm">
-            <Outlet />
-          </div>
-        </div>
-
+       <div className="flex h-full w-full justify-center overflow-y-auto px-8 py-8 lg:w-[42%]">
+  <div className="w-full max-w-sm self-start py-8">
+    <Outlet />
+  </div>
+</div>
         {/* RIGHT SIDE */}
        <div className="relative hidden lg:flex lg:w-[60%] overflow-hidden bg-gradient-to-br from-[#0F172A] via-[#1E3A8A] to-[#4338CA] p-10 text-white">
 
