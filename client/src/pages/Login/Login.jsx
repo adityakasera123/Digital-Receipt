@@ -3,8 +3,79 @@ import { Link } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import AuthHeader from "../../components/auth/AuthHeader";
 
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../firebase/firebase";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
+
+const [email, setEmail] = useState("");
+const [password, setPassword] = useState("");
+
+const [loading, setLoading] = useState(false);
+
+const [errors, setErrors] = useState({
+  email: "",
+  password: "",
+});
+
+const navigate = useNavigate();
+  const validateForm = () => {
+  const newErrors = {
+    email: "",
+    password: "",
+  };
+
+  if (!email.trim()) {
+    newErrors.email = "Email is required.";
+  } else {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      newErrors.email = "Please enter a valid email address.";
+    }
+  }
+
+  if (!password.trim()) {
+    newErrors.password = "Password is required.";
+  }
+
+  setErrors(newErrors);
+
+  return Object.values(newErrors).every((error) => error === "");
+};
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!validateForm()) return;
+
+  try {
+    setLoading(true);
+
+    await signInWithEmailAndPassword(auth, email, password);
+
+    toast.success("Login successful!");
+
+    navigate("/dashboard");
+  } catch (error) {
+    if (
+      error.code === "auth/invalid-credential" ||
+      error.code === "auth/wrong-password" ||
+      error.code === "auth/user-not-found"
+    ) {
+      toast.error("Invalid email or password.");
+    } else {
+      toast.error("Something went wrong.");
+    }
+
+    console.log(error);
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="w-full max-w-md -mt-4">
       <AuthHeader
@@ -12,7 +83,7 @@ const Login = () => {
         subtitle="Sign in to securely manage your receipts, warranties and purchase history."
       />
 
-      <form className="mt-5 space-y-5">
+      <form onSubmit={handleSubmit} className="mt-5 space-y-5">
 
         {/* Email */}
         <div>
@@ -26,12 +97,32 @@ const Login = () => {
               className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
             />
 
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="h-14 w-full rounded-2xl border border-slate-300 bg-white pl-12 pr-4 text-slate-800 outline-none transition-all duration-300 placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-            />
+         <input
+  type="email"
+  value={email}
+  onChange={(e) => {
+    setEmail(e.target.value);
+
+    if (errors.email) {
+      setErrors((prev) => ({
+        ...prev,
+        email: "",
+      }));
+    }
+  }}
+  placeholder="Enter your email"
+  className={`h-14 w-full rounded-2xl bg-white pl-12 pr-4 text-slate-800 outline-none transition-all duration-300 placeholder:text-slate-400 ${
+    errors.email
+      ? "border border-red-500 focus:border-red-500"
+      : "border border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+  }`}
+/>
           </div>
+          {errors.email && (
+    <p className="mt-2 text-sm text-red-500">
+      {errors.email}
+    </p>
+  )}
         </div>
 
         {/* Password */}
@@ -46,11 +137,26 @@ const Login = () => {
               className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
             />
 
-            <input
-               type={showPassword ? "text" : "password"}
-              placeholder="Enter your password"
-              className="h-14 w-full rounded-2xl border border-slate-300 bg-white pl-12 pr-12 text-slate-800 outline-none transition-all duration-300 placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-            />
+          <input
+  type={showPassword ? "text" : "password"}
+  value={password}
+  onChange={(e) => {
+    setPassword(e.target.value);
+
+    if (errors.password) {
+      setErrors((prev) => ({
+        ...prev,
+        password: "",
+      }));
+    }
+  }}
+  placeholder="Enter your password"
+  className={`h-14 w-full rounded-2xl bg-white pl-12 pr-12 text-slate-800 outline-none transition-all duration-300 placeholder:text-slate-400 ${
+    errors.password
+      ? "border border-red-500 focus:border-red-500"
+      : "border border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+  }`}
+/>
 
            <button
   type="button"
@@ -60,6 +166,11 @@ const Login = () => {
   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
 </button>
           </div>
+          {errors.password && (
+  <p className="mt-2 text-sm text-red-500">
+    {errors.password}
+  </p>
+)}
         </div>
 
         {/* Remember + Forgot */}
@@ -81,11 +192,13 @@ const Login = () => {
         </div>
 
         {/* Continue */}
-        <button
-          className="h-14 w-full rounded-2xl bg-blue-600 font-semibold text-white shadow-lg shadow-blue-600/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30 active:translate-y-0"
-        >
-          Continue
-        </button>
+       <button
+  type="submit"
+  disabled={loading}
+  className="h-14 w-full rounded-2xl bg-blue-600 font-semibold text-white shadow-lg shadow-blue-600/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
+>
+  {loading ? "Signing In..." : "Continue"}
+</button>
 
         {/* Divider */}
         <div className="relative py-2">

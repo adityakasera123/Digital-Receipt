@@ -1,7 +1,13 @@
 import { Link } from "react-router-dom";
 import { LayoutDashboard, ArrowLeft } from "lucide-react";
+import { useContext } from "react";
+import { AuthContext } from "../../context/AuthContext";
 
 function Dashboard() {
+    const { user, loading } = useContext(AuthContext);
+
+console.log("Loading:", loading);
+console.log("Current User:", user);
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-6">
       <div className="max-w-xl w-full bg-white rounded-3xl shadow-lg p-10 text-center">
