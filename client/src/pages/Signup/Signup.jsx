@@ -1,10 +1,119 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../firebase/firebase.js";
+
+import { updateProfile } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+
 
 function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [fullName, setFullName] = useState("");
+const [email, setEmail] = useState("");
+const [password, setPassword] = useState("");
+const [confirmPassword, setConfirmPassword] = useState("");
+const [loading, setLoading] = useState(false);
+const [errors, setErrors] = useState({
+
+  
+    fullName: "",
+  email: "",
+   password: "",
+    confirmPassword: "",
+});
+const navigate = useNavigate();
+
+const validateForm = () => {
+  const newErrors = {
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  };
+
+  // Full Name
+  if (!fullName.trim()) {
+    newErrors.fullName = "Full name is required.";
+  } else if (fullName.trim().length < 3) {
+    newErrors.fullName = "Full name must be at least 3 characters.";
+  }
+
+  // Email
+  if (!email.trim()) {
+    newErrors.email = "Email is required.";
+  } else {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      newErrors.email = "Please enter a valid email address.";
+    }
+  }
+
+  // Password
+  if (!password.trim()) {
+    newErrors.password = "Password is required.";
+  } else if (password.length < 6) {
+    newErrors.password = "Password must be at least 6 characters.";
+  }
+
+  // Confirm Password
+  if (password !== confirmPassword) {
+    newErrors.confirmPassword = "Passwords do not match.";
+  }
+
+  setErrors(newErrors);
+
+  return Object.values(newErrors).every((error) => error === "");
+};
+
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!validateForm()) return;
+
+  try {
+    setLoading(true);
+
+   const userCredential = await createUserWithEmailAndPassword(
+  auth,
+  email,
+  password
+);
+
+// Full Name save
+await updateProfile(userCredential.user, {
+  displayName: fullName,
+});
+
+// Success Toast
+toast.success("Account created successfully!");
+
+// Redirect
+navigate("/login");
+
+  } 
+  catch (error) {
+  if (error.code === "auth/email-already-in-use") {
+    toast.error("Email already exists.");
+  } else if (error.code === "auth/weak-password") {
+    toast.error("Password is too weak.");
+  } else if (error.code === "auth/invalid-email") {
+    toast.error("Invalid email.");
+  } else {
+    toast.error("Something went wrong.");
+  }
+
+  console.log(error);
+}
+   finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="w-full max-w-[380px] -mt-7">
@@ -24,7 +133,8 @@ function Signup() {
       </p>
 
       {/* Form */}
-      <form className="mt-8 space-y-4">
+      <form onSubmit={handleSubmit} 
+      className="mt-8 space-y-4">
         {/* Full Name */}
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -32,10 +142,30 @@ function Signup() {
           </label>
 
           <input
-            type="text"
-            placeholder="John Doe"
-            className="h-11 w-full rounded-xl border border-gray-300 px-4 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-blue-600"
-          />
+  type="text"
+  placeholder="John Doe"
+  value={fullName}
+onChange={(e) => {
+  setFullName(e.target.value);
+
+  if (errors.fullName) {
+    setErrors((prev) => ({
+      ...prev,
+      fullName: "",
+    }));
+  }
+}}
+  className={`h-11 w-full rounded-xl px-4 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition ${
+  errors.fullName
+    ? "border border-red-500 focus:border-red-500"
+    : "border border-gray-300 focus:border-blue-600"
+}`}
+/>
+{errors.fullName && (
+  <p className="mt-2 text-sm text-red-500">
+    {errors.fullName}
+  </p>
+)}
         </div>
 
         {/* Email */}
@@ -44,11 +174,31 @@ function Signup() {
             Email Address
           </label>
 
-          <input
-            type="email"
-            placeholder="name@example.com"
-            className="h-11 w-full rounded-xl border border-gray-300 px-4 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-blue-600"
-          />
+         <input
+  type="email"
+  placeholder="name@example.com"
+  value={email}
+onChange={(e) => {
+  setEmail(e.target.value);
+
+  if (errors.email) {
+    setErrors((prev) => ({
+      ...prev,
+      email: "",
+    }));
+  }
+}}
+  className={`h-11 w-full rounded-xl px-4 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition ${
+  errors.email
+    ? "border border-red-500 focus:border-red-500"
+    : "border border-gray-300 focus:border-blue-600"
+}`}
+/>
+{errors.email && (
+  <p className="mt-2 text-sm text-red-500">
+    {errors.email}
+  </p>
+)}
         </div>
 
         {/* Password */}
@@ -61,9 +211,29 @@ function Signup() {
             <input
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
-              className="h-11 w-full rounded-xl border border-gray-300 px-4 pr-12 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-blue-600"
-            />
+              value={password}
+onChange={(e) => {
+  setPassword(e.target.value);
 
+  if (errors.password) {
+    setErrors((prev) => ({
+      ...prev,
+      password: "",
+    }));
+  }
+}}
+             className={`h-11 w-full rounded-xl px-4 pr-12 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition ${
+  errors.password
+    ? "border border-red-500 focus:border-red-500"
+    : "border border-gray-300 focus:border-blue-600"
+}`}
+            />
+{errors.password && (
+  <p className="mt-2 text-sm text-red-500">
+    {errors.password}
+  </p>
+)}
+          
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
@@ -84,7 +254,22 @@ function Signup() {
             <input
               type={showConfirmPassword ? "text" : "password"}
               placeholder="••••••••"
-              className="h-11 w-full rounded-xl border border-gray-300 px-4 pr-12 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-blue-600"
+              value={confirmPassword}
+onChange={(e) => {
+  setConfirmPassword(e.target.value);
+
+  if (errors.confirmPassword) {
+    setErrors((prev) => ({
+      ...prev,
+      confirmPassword: "",
+    }));
+  }
+}}
+             className={`h-11 w-full rounded-xl px-4 pr-12 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition ${
+  errors.confirmPassword
+    ? "border border-red-500 focus:border-red-500"
+    : "border border-gray-300 focus:border-blue-600"
+}`}
             />
 
             <button
@@ -101,7 +286,14 @@ function Signup() {
               )}
             </button>
           </div>
+        
+    
         </div>
+        {errors.confirmPassword && (
+  <p className="mt-2 text-sm text-red-500">
+    {errors.confirmPassword}
+  </p>
+)}
 
         {/* Terms */}
         <label className="flex items-start gap-2 text-sm text-gray-600">
@@ -120,11 +312,12 @@ function Signup() {
         </label>
 
         {/* Button */}
-        <button
+      <button
   type="submit"
-  className="mt-3 flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30 active:translate-y-0 active:scale-[0.99]"
+  disabled={loading}
+  className="mt-3 flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
 >
-  Create Account
+  {loading ? "Creating Account..." : "Create Account"}
 </button>
       </form>
 
