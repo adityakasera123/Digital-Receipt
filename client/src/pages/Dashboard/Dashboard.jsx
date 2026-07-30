@@ -4,6 +4,10 @@ import { AuthContext } from "../../context/AuthContext";
 import StatCard from "../../components/dashboard/StatCard";
 import RecentReceipts from "../../components/dashboard/RecentReceipts";
 import WarrantyAlerts from "../../components/dashboard/WarrantyAlerts";
+import ExpenseChart from "../../components/dashboard/ExpenseChart";
+import ExpenseCategories from "../../components/dashboard/ExpenseCategories";
+import QuickActions from "../../components/dashboard/QuickActions";
+import RecentActivity from "../../components/dashboard/RecentActivity";
 
 
 import {
@@ -68,6 +72,19 @@ function Dashboard() {
     <RecentReceipts />
   </div>
    <WarrantyAlerts />
+
+</div>
+<div className="mt-8">
+    <ExpenseChart />
+  </div>
+  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+  <ExpenseCategories />
+
+  <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+   
+<QuickActions />
+  </div>
+  <RecentActivity />
 </div>
     </div>
   );
