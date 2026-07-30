@@ -2,6 +2,9 @@ import { useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
 
 import StatCard from "../../components/dashboard/StatCard";
+import RecentReceipts from "../../components/dashboard/RecentReceipts";
+import WarrantyAlerts from "../../components/dashboard/WarrantyAlerts";
+
 
 import {
   Receipt,
@@ -59,6 +62,12 @@ function Dashboard() {
     icon={FileText}
   />
 
+</div>
+       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+  <div className="lg:col-span-2">
+    <RecentReceipts />
+  </div>
+   <WarrantyAlerts />
 </div>
     </div>
   );
