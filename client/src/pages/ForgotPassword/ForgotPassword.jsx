@@ -20,7 +20,7 @@ function ForgotPassword() {
     await sendPasswordResetEmail(auth, email);
 
     toast.success("Password reset link sent! Check your email.");
-    
+
     setEmail("");
 
   } catch (error) {

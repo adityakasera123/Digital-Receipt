@@ -1,59 +1,65 @@
-import { Link, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ArrowLeft } from "lucide-react";
 import { useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
-import { signOut } from "firebase/auth";
-import { auth } from "../../firebase/firebase";
 
+import StatCard from "../../components/dashboard/StatCard";
+
+import {
+  Receipt,
+  ShieldCheck,
+  IndianRupee,
+  FileText,
+} from "lucide-react";
 
 function Dashboard() {
-    const navigate = useNavigate();
-    const handleLogout = async () => {
-  try {
-    await signOut(auth);
+  const { user, loading } = useContext(AuthContext);
 
-    navigate("/login");
-
-  } catch (error) {
-    console.log(error);
+  if (loading) {
+    return <div>Loading...</div>;
   }
-};
-    const { user, loading } = useContext(AuthContext);
 
-console.log("Loading:", loading);
-console.log("Current User:", user);
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-6">
-      <div className="max-w-xl w-full bg-white rounded-3xl shadow-lg p-10 text-center">
-
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-100 flex items-center justify-center">
-          <LayoutDashboard className="w-8 h-8 text-blue-600" />
-        </div>
-
-        <h1 className="mt-6 text-4xl font-bold text-gray-900">
-          Dashboard Coming Soon
+    <div className="space-y-10">
+      <div>
+        <h1 className="text-4xl font-bold text-gray-900">
+          Welcome back, {user?.displayName || "User"} 👋
         </h1>
 
-        <p className="mt-4 text-gray-600 leading-7">
-          You're successfully inside the Billvora application.
-          Soon you'll be able to manage receipts, warranties,
-          analytics and AI insights from here.
+        <p className="mt-4 max-w-2xl text-lg text-gray-500">
+          Manage all your receipts, warranties and purchases from one place.
         </p>
-
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 mt-8 px-6 py-3 rounded-xl bg-black text-white hover:bg-gray-800 transition"
-        >
-          <ArrowLeft size={18} />
-          Back to Home
-        </Link>
-<button
-  onClick={handleLogout}
-  className="mt-4 w-full rounded-xl bg-red-600 px-6 py-3 text-white hover:bg-red-700 transition"
->
-  Logout
-</button>
       </div>
+
+      <div className="grid grid-cols-1 gap-7 md:grid-cols-2 2xl:grid-cols-4">
+
+  <StatCard
+    title="Total Receipts"
+    value="126"
+    subtitle="+12 this month"
+    icon={Receipt}
+  />
+
+  <StatCard
+    title="Active Warranties"
+    value="18"
+    subtitle="3 expiring soon"
+    icon={ShieldCheck}
+  />
+
+  <StatCard
+    title="Total Spending"
+    value="₹24,560"
+    subtitle="₹4,320 this month"
+    icon={IndianRupee}
+  />
+
+  <StatCard
+    title="Saved Documents"
+    value="142"
+    subtitle="Securely stored"
+    icon={FileText}
+  />
+
+</div>
     </div>
   );
 }
