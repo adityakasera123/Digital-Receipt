@@ -9,6 +9,7 @@ import Login from "../pages/Login/Login";
 import Signup from "../pages/Signup/Signup";
 import ForgotPassword from "../pages/ForgotPassword/ForgotPassword";
 import Dashboard from "../pages/Dashboard/Dashboard";
+import Receipts from "../pages/Receipts/Receipts";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 
@@ -37,6 +38,7 @@ function AppRoutes() {
         }
       >
         <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/receipts" element={<Receipts />} />
       </Route>
 
     </Routes>

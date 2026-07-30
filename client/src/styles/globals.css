@@ -8,7 +8,7 @@ html {
 
 body {
   background: var(--bg-primary);
-  color: var(--text-primary);
+
  font-family: "Manrope", sans-serif;
 }
 .container-custom {
