@@ -13,20 +13,18 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 
-// Save Receipt
-export const saveReceipt = async (receiptData) => {
-  const docRef = await addDoc(collection(db, "receipts"), {
-    ...receiptData,
+export const saveWarranty = async (warrantyData) => {
+  const docRef = await addDoc(collection(db, "warranties"), {
+    ...warrantyData,
     createdAt: serverTimestamp(),
   });
 
   return docRef.id;
 };
 
-// Get All Receipts
-export const getReceipts = async () => {
+export const getWarranties = async () => {
   const q = query(
-    collection(db, "receipts"),
+    collection(db, "warranties"),
     orderBy("createdAt", "desc")
   );
 
@@ -38,9 +36,8 @@ export const getReceipts = async () => {
   }));
 };
 
-// Get Receipt By ID
-export const getReceiptById = async (id) => {
-  const docRef = doc(db, "receipts", id);
+export const getWarrantyById = async (id) => {
+  const docRef = doc(db, "warranties", id);
 
   const docSnap = await getDoc(docRef);
 
@@ -54,18 +51,16 @@ export const getReceiptById = async (id) => {
   };
 };
 
-// Update Receipt
-export const updateReceipt = async (id, receiptData) => {
-  const docRef = doc(db, "receipts", id);
+export const updateWarranty = async (id, warrantyData) => {
+  const docRef = doc(db, "warranties", id);
 
   await updateDoc(docRef, {
-    ...receiptData,
+    ...warrantyData,
   });
 };
 
-// Delete Receipt
-export const deleteReceipt = async (receiptId) => {
-  const receiptRef = doc(db, "receipts", receiptId);
+export const deleteWarranty = async (warrantyId) => {
+  const warrantyRef = doc(db, "warranties", warrantyId);
 
-  await deleteDoc(receiptRef);
+  await deleteDoc(warrantyRef);
 };

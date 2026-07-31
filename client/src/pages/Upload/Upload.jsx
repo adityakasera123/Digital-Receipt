@@ -12,6 +12,9 @@ import { saveReceipt } from "../../services/receiptService";
 import useReceiptForm from "../../hooks/useReceiptForm";
 import { useNavigate } from "react-router-dom";
 
+import { saveWarranty } from "../../services/warrantyService";
+
+
 const Upload = () => {
   const navigate = useNavigate();
   const {
@@ -24,6 +27,7 @@ const Upload = () => {
   } = useReceiptForm();
 
   const handleSaveReceipt = async () => {
+    console.log("=== HANDLE SAVE CALLED ===");
     const result = validateReceipt();
 
     setErrors(result.errors);
@@ -42,16 +46,34 @@ const Upload = () => {
       );
 
       // Save receipt
-      const receiptId = await saveReceipt({
-        ...receiptData,
-        receiptImage: imageUrl,
-        userId: "test-user",
-      });
+     const receiptId = await saveReceipt({
+  ...receiptData,
+  receiptImage: imageUrl,
+  userId: "test-user",
+});
 
-      console.log("Receipt ID:", receiptId);
+console.log("Receipt ID:", receiptId);
 
-      toast.success("Receipt saved successfully!");
-      navigate("/receipts");
+console.log("Has Warranty:", receiptData.hasWarranty);
+
+if (receiptData.hasWarranty) {
+  console.log("Saving warranty...");
+
+  await saveWarranty({
+    receiptId,
+    storeName: receiptData.storeName,
+    category: receiptData.category,
+    purchaseDate: receiptData.purchaseDate,
+    warrantyDuration: receiptData.warrantyDuration,
+    expiryDate: receiptData.warrantyExpiry,
+    userId: "test-user",
+  });
+
+  console.log("Warranty saved");
+}
+
+toast.success("Receipt saved successfully!");
+navigate("/receipts");
 
     } catch (error) {
       console.error(error);

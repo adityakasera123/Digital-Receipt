@@ -17,6 +17,8 @@ import EditReceipt from "../pages/EditReceipt/EditReceipt";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 
+import Warranty from "../pages/Warranty/Warranty";
+
 function AppRoutes() {
   return (
     <Routes>
@@ -45,11 +47,13 @@ function AppRoutes() {
           <Route path="/receipts" element={<Receipts />} />
           <Route path="/receipts/:id" element={<ReceiptDetail />} />
           <Route path="/upload" element={<Upload />} />
+          
           <Route
   path="/receipts/edit/:id"
   element={<EditReceipt />}
 />
       </Route>
+       <Route path="/warranty" element={<Warranty />} />
 
     </Routes>
   );
