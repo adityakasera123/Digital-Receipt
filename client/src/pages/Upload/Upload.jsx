@@ -10,8 +10,10 @@ import toast from "react-hot-toast";
 import { uploadReceiptImage } from "../../services/storageService";
 import { saveReceipt } from "../../services/receiptService";
 import useReceiptForm from "../../hooks/useReceiptForm";
+import { useNavigate } from "react-router-dom";
 
 const Upload = () => {
+  const navigate = useNavigate();
   const {
     receiptData,
     errors,
@@ -49,6 +51,8 @@ const Upload = () => {
       console.log("Receipt ID:", receiptId);
 
       toast.success("Receipt saved successfully!");
+      navigate("/receipts");
+
     } catch (error) {
       console.error(error);
       toast.error("Receipt save failed!");
