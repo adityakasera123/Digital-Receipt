@@ -11,6 +11,7 @@ import ForgotPassword from "../pages/ForgotPassword/ForgotPassword";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import Receipts from "../pages/Receipts/Receipts";
 import ReceiptDetail from "../pages/Receipts/ReceiptDetail/ReceiptDetail";
+import Upload from "../pages/Upload/Upload";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 
@@ -41,6 +42,7 @@ function AppRoutes() {
         <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/receipts" element={<Receipts />} />
           <Route path="/receipts/:id" element={<ReceiptDetail />} />
+          <Route path="/upload" element={<Upload />} />
       </Route>
 
     </Routes>

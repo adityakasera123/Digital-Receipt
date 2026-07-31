@@ -5,6 +5,7 @@ import ReceiptHeader from "../../../components/receipt/ReceiptHeader";
 import ReceiptInfo from "../../../components/receipt/ReceiptInfo";
 import ReceiptPreview from "../../../components/receipt/ReceiptPreview";
 import PurchaseDetails from "../../../components/receipt/PurchaseDetails";
+import ReceiptActions from "../../../components/receipt/ReceiptActions";
 
 function ReceiptDetail() {
   const { id } = useParams();
@@ -37,6 +38,10 @@ function ReceiptDetail() {
       </div>
           <div className="mt-6">
   <PurchaseDetails receipt={receipt} />
+</div>
+
+<div className="mt-6">
+  <ReceiptActions />
 </div>
 
     </div>
