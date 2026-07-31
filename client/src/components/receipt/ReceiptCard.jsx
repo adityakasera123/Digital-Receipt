@@ -1,6 +1,8 @@
 import { CalendarDays, ShieldCheck } from "lucide-react";
+import { Link } from "react-router-dom";
 
-function ReceiptCard({
+    function ReceiptCard({
+  id,
   product,
   store,
   category,
@@ -11,6 +13,7 @@ function ReceiptCard({
   const isWarrantyActive = warrantyStatus === "Active";
 
   return (
+    <Link to={`/receipts/${id}`}>
     <div className="group cursor-pointer rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg">
       {/* Top */}
       <div className="mb-5 flex items-center justify-between">
@@ -63,6 +66,7 @@ function ReceiptCard({
         </div>
       </div>
     </div>
+    </Link>
   );
 }
 

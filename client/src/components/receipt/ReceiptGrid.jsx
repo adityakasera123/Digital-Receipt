@@ -36,6 +36,7 @@ function ReceiptGrid({ searchTerm, activeCategory }) {
       {filteredReceipts.map((receipt) => (
         <ReceiptCard
           key={receipt.id}
+            id={receipt.id}
           product={receipt.product}
           store={receipt.store}
           category={receipt.category}
