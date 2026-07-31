@@ -12,7 +12,7 @@ function ReceiptInfo({ receipt }) {
     <div className="h-full rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
 
       <h2 className="text-2xl font-bold text-slate-900">
-        {receipt.product}
+        {receipt.storeName}
       </h2>
 
       <p className="mt-2 text-slate-500">
@@ -29,7 +29,7 @@ function ReceiptInfo({ receipt }) {
           </div>
 
           <p className="mt-2 font-semibold text-slate-900">
-            {receipt.store}
+            {receipt.storeName}
           </p>
         </div>
 
@@ -88,9 +88,15 @@ function ReceiptInfo({ receipt }) {
             <span className="text-sm">Warranty</span>
           </div>
 
-          <span className="mt-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">
-            {receipt.warrantyStatus}
-          </span>
+          <span
+  className={`mt-2 inline-flex rounded-full px-3 py-1 text-sm font-medium ${
+    receipt.hasWarranty
+      ? "bg-emerald-100 text-emerald-700"
+      : "bg-red-100 text-red-700"
+  }`}
+>
+  {receipt.hasWarranty ? "Active" : "No Warranty"}
+</span>
         </div>
 
       </div>

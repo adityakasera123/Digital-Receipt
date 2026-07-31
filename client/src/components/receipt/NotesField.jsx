@@ -1,4 +1,4 @@
-const NotesField = () => {
+const NotesField = ({ receiptData, onInputChange }) => {
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
       <div className="mb-6">
@@ -12,6 +12,11 @@ const NotesField = () => {
       </div>
 
       <textarea
+ 
+       name="notes"
+       value={receiptData.notes}
+       onChange={onInputChange}
+
         rows={5}
         placeholder="Example: Purchased during sale, gift for someone, warranty card stored separately..."
         className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-indigo-500"

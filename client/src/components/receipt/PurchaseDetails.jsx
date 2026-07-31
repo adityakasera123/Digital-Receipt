@@ -45,11 +45,11 @@ function PurchaseDetails({ receipt }) {
           value={receipt.seller}
         />
 
-        <InfoItem
-          icon={<CalendarClock size={20} />}
-          label="Warranty Ends"
-          value={receipt.warrantyEnd}
-        />
+       <InfoItem
+  icon={<CalendarClock size={20} />}
+  label="Warranty Ends"
+  value={receipt.warrantyExpiry}
+/>
 
         <InfoItem
           icon={<StickyNote size={20} />}

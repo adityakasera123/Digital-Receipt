@@ -1,4 +1,7 @@
-const UploadActions = () => {
+const UploadActions = ({
+  onSave,
+  mode = "add",
+}) => {
   return (
     <section className="flex items-center justify-end gap-4">
       <button
@@ -10,9 +13,12 @@ const UploadActions = () => {
 
       <button
         type="submit"
+        onClick={onSave}
         className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-indigo-700"
       >
-        Save Receipt
+    {mode === "edit"
+  ? "Update Receipt"
+  : "Save Receipt"}
       </button>
     </section>
   );

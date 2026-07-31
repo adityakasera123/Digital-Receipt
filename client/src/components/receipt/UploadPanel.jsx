@@ -1,3 +1,6 @@
+import { useRef } from "react";
+
+
 import {
   ArrowUpFromLine,
   ScanText,
@@ -5,7 +8,17 @@ import {
   Sparkles,
 } from "lucide-react";
 
-const UploadPanel = () => {
+const UploadPanel = ({ onFileChange, errors }) => {
+    const fileInputRef = useRef(null);
+   const handleFileChange = (e) => {
+  const file = e.target.files[0];
+
+  if (!file) return;
+
+  console.log(file);
+
+  onFileChange(file);
+};
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
 
@@ -86,11 +99,20 @@ const UploadPanel = () => {
           Drop your receipt here or browse from your computer.
           Billvora will securely store it and prepare it for OCR.
         </p>
+<input
+  ref={fileInputRef}
+  type="file"
+  accept="image/*,.pdf"
+  className="hidden"
+  onChange={handleFileChange}
+/>
+
 
         {/* Button */}
 
         <button
           type="button"
+          onClick={() => fileInputRef.current.click()}
           className="
             mt-6
             inline-flex
@@ -114,6 +136,11 @@ const UploadPanel = () => {
           Browse Files
           <ArrowUpFromLine size={16} />
         </button>
+        {errors?.receiptImage && (
+  <p className="mt-4 text-sm font-medium text-red-500">
+    {errors.receiptImage}
+  </p>
+)}
 
         {/* Formats */}
 

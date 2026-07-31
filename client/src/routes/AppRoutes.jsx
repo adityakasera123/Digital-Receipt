@@ -13,6 +13,8 @@ import Receipts from "../pages/Receipts/Receipts";
 import ReceiptDetail from "../pages/Receipts/ReceiptDetail/ReceiptDetail";
 import Upload from "../pages/Upload/Upload";
 
+import EditReceipt from "../pages/EditReceipt/EditReceipt";
+
 import ProtectedRoute from "../components/ProtectedRoute";
 
 function AppRoutes() {
@@ -43,6 +45,10 @@ function AppRoutes() {
           <Route path="/receipts" element={<Receipts />} />
           <Route path="/receipts/:id" element={<ReceiptDetail />} />
           <Route path="/upload" element={<Upload />} />
+          <Route
+  path="/receipts/edit/:id"
+  element={<EditReceipt />}
+/>
       </Route>
 
     </Routes>

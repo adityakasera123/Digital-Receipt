@@ -1,14 +1,15 @@
 import UploadPanel from "./UploadPanel";
 import ReceiptPreviewCard from "./ReceiptPreviewCard";
 
-const UploadWorkspace = () => {
+const UploadWorkspace = ({ receiptData, onFileChange, errors }) => {
   return (
     <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+<UploadPanel
+  onFileChange={onFileChange}
+  errors={errors}
+/>
 
-      <UploadPanel />
-
-      <ReceiptPreviewCard />
-
+      <ReceiptPreviewCard receiptData={receiptData} />
     </section>
   );
 };

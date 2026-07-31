@@ -1,11 +1,16 @@
 import ReceiptCard from "./ReceiptCard";
-import { receiptData } from "../../data/receiptData";
 
-function ReceiptGrid({ searchTerm, activeCategory }) {
-  const filteredReceipts = receiptData.filter((receipt) => {
-    const matchesSearch = receipt.product
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+
+function ReceiptGrid({
+  receipts,
+  loading,
+  searchTerm,
+  activeCategory,
+}) {
+  const filteredReceipts = receipts.filter((receipt) => {
+    const matchesSearch = (receipt.storeName || "")
+  .toLowerCase()
+  .includes(searchTerm.toLowerCase());
 
     const matchesCategory =
       activeCategory === "All" ||
@@ -13,7 +18,13 @@ function ReceiptGrid({ searchTerm, activeCategory }) {
 
     return matchesSearch && matchesCategory;
   });
-
+if (loading) {
+  return (
+    <div className="py-20 text-center text-gray-500">
+      Loading receipts...
+    </div>
+  );
+}
   // Empty State
   if (filteredReceipts.length === 0) {
     return (
@@ -35,15 +46,15 @@ function ReceiptGrid({ searchTerm, activeCategory }) {
     <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
       {filteredReceipts.map((receipt) => (
         <ReceiptCard
-          key={receipt.id}
-            id={receipt.id}
-          product={receipt.product}
-          store={receipt.store}
-          category={receipt.category}
-          amount={receipt.amount}
-          purchaseDate={receipt.purchaseDate}
-          warrantyStatus={receipt.warrantyStatus}
-        />
+  key={receipt.id}
+  id={receipt.id}
+  product={receipt.storeName}
+  store={receipt.storeName}
+  category={receipt.category}
+  amount={receipt.amount}
+  purchaseDate={receipt.purchaseDate}
+  warrantyStatus={receipt.hasWarranty ? "Active" : "No Warranty"}
+/>
       ))}
     </div>
   );

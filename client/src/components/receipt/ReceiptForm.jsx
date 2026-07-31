@@ -1,4 +1,4 @@
-const ReceiptForm = () => {
+const ReceiptForm = ({ receiptData, onInputChange ,errors}) => {
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
 
@@ -28,9 +28,21 @@ const ReceiptForm = () => {
 
           <input
             type="text"
+            name="storeName"
+  value={receiptData.storeName}
+  onChange={onInputChange}
             placeholder="Amazon, Flipkart..."
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-indigo-500"
+            className={`w-full rounded-xl bg-white px-4 py-3 outline-none transition focus:border-indigo-500 ${
+  errors.storeName
+    ? "border border-red-500"
+    : "border border-slate-200"
+}`}
           />
+          {errors.storeName && (
+  <p className="mt-2 text-sm text-red-500">
+    {errors.storeName}
+  </p>
+)}
 
         </div>
 
@@ -43,9 +55,21 @@ const ReceiptForm = () => {
           </label>
 
           <input
-            type="date"
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-indigo-500"
-          />
+  type="date"
+  name="purchaseDate"
+  value={receiptData.purchaseDate}
+  onChange={onInputChange}
+  className={`w-full rounded-xl bg-white px-4 py-3 outline-none transition focus:border-indigo-500 ${
+  errors.purchaseDate
+    ? "border border-red-500"
+    : "border border-slate-200"
+}`}
+/>
+{errors.purchaseDate && (
+  <p className="mt-2 text-sm text-red-500">
+    {errors.purchaseDate}
+  </p>
+)}
 
         </div>
 
@@ -58,17 +82,31 @@ const ReceiptForm = () => {
           </label>
 
           <select
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-indigo-500"
-          >
+            name="category"
+            value={receiptData.category}
+            onChange={onInputChange} 
 
-            <option>Select Category</option>
-            <option>Electronics</option>
-            <option>Fashion</option>
-            <option>Grocery</option>
-            <option>Home</option>
-            <option>Others</option>
+        className={`w-full rounded-xl bg-white px-4 py-3 outline-none transition focus:border-indigo-500 ${
+  errors.category
+    ? "border border-red-500"
+    : "border border-slate-200"
+}`}
+        >
+            
+
+          <option value="">Select Category</option>
+<option value="Electronics">Electronics</option>
+<option value="Fashion">Fashion</option>
+<option value="Grocery">Grocery</option>
+<option value="Home">Home</option>
+<option value="Others">Others</option>
 
           </select>
+          {errors.category && (
+  <p className="mt-2 text-sm text-red-500">
+    {errors.category}
+  </p>
+)}
 
         </div>
 
@@ -82,10 +120,22 @@ const ReceiptForm = () => {
 
           <input
             type="number"
+                 name="amount"
+             value={receiptData.amount}
+             onChange={onInputChange}
             placeholder="₹ 0.00"
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-indigo-500"
-          />
-
+           
+          className={`w-full rounded-xl bg-white px-4 py-3 outline-none transition focus:border-indigo-500 ${
+  errors.amount
+    ? "border border-red-500"
+    : "border border-slate-200"
+}`}
+            /> 
+            {errors.amount && (
+  <p className="mt-2 text-sm text-red-500">
+    {errors.amount}
+  </p>
+)}
         </div>
 
       </div>
@@ -99,10 +149,25 @@ const ReceiptForm = () => {
         </label>
 
         <select
-          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-indigo-500"
-        >
 
-          <option>Select Payment Method</option>
+  name="paymentMethod"
+  value={receiptData.paymentMethod}
+  onChange={onInputChange}
+
+
+         className={`w-full rounded-xl bg-white px-4 py-3 outline-none transition focus:border-indigo-500 ${
+  errors.paymentMethod
+    ? "border border-red-500"
+    : "border border-slate-200"
+}`}
+        >
+            {errors.paymentMethod && (
+  <p className="mt-2 text-sm text-red-500">
+    {errors.paymentMethod}
+  </p>
+)}
+
+         <option value="">Select Payment Method</option>
           <option>UPI</option>
           <option>Credit Card</option>
           <option>Debit Card</option>
