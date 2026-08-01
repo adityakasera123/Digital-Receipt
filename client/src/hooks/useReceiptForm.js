@@ -1,6 +1,8 @@
 import { useState } from "react";
 
 const initialReceiptData = {
+  productName: "",
+
   storeName: "",
   category: "",
   amount: "",
@@ -45,6 +47,10 @@ const useReceiptForm = () => {
 
   const validateReceipt = () => {
     const errors = {};
+
+    if (!receiptData.productName.trim()) {
+  errors.productName = "Product Name is required";
+}
 
     if (!receiptData.storeName.trim()) {
       errors.storeName = "Store Name is required";

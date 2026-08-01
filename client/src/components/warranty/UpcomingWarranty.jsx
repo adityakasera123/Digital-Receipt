@@ -37,7 +37,7 @@ const UpcomingWarranty = ({ warranties }) => {
           upcomingWarranties.map((item) => (
             <UpcomingWarrantyCard
               key={item.id}
-              product={item.storeName}
+              product={item.productName}
               brand={item.category}
               store={item.storeName}
               expiryDate={item.expiryDate}

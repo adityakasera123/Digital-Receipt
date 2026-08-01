@@ -59,15 +59,16 @@ console.log("Has Warranty:", receiptData.hasWarranty);
 if (receiptData.hasWarranty) {
   console.log("Saving warranty...");
 
-  await saveWarranty({
-    receiptId,
-    storeName: receiptData.storeName,
-    category: receiptData.category,
-    purchaseDate: receiptData.purchaseDate,
-    warrantyDuration: receiptData.warrantyDuration,
-    expiryDate: receiptData.warrantyExpiry,
-    userId: "test-user",
-  });
+ await saveWarranty({
+  receiptId,
+  productName: receiptData.productName,
+  storeName: receiptData.storeName,
+  category: receiptData.category,
+  purchaseDate: receiptData.purchaseDate,
+  warrantyDuration: receiptData.warrantyDuration,
+  expiryDate: receiptData.warrantyExpiry,
+  userId: "test-user",
+});
 
   console.log("Warranty saved");
 }

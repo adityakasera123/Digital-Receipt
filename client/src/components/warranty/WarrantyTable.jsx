@@ -49,7 +49,8 @@ const WarrantyTable = ({ warranties }) => {
             warranties.map((item) => (
               <WarrantyRow
                 key={item.id}
-                product={item.storeName}          // Temporary
+                id={item.id}
+                product={item.productName}          // Temporary
                 brand={item.category}
                 purchaseDate={item.purchaseDate}
                 expiryDate={item.expiryDate}

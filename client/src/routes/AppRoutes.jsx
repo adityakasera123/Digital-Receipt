@@ -19,6 +19,9 @@ import ProtectedRoute from "../components/ProtectedRoute";
 
 import Warranty from "../pages/Warranty/Warranty";
 
+import WarrantyDetail from "../pages/WarrantyDetail/WarrantyDetail";
+import EditWarranty from "../pages/EditWarranty/EditWarranty";
+
 function AppRoutes() {
   return (
     <Routes>
@@ -54,6 +57,16 @@ function AppRoutes() {
 />
       </Route>
        <Route path="/warranty" element={<Warranty />} />
+
+       <Route
+  path="/warranty/:id"
+  element={<WarrantyDetail />}
+/>
+
+<Route
+  path="/warranty/edit/:id"
+  element={<EditWarranty />}
+/>
 
     </Routes>
   );

@@ -18,6 +18,35 @@ const ReceiptForm = ({ receiptData, onInputChange ,errors}) => {
 
       <div className="grid gap-6 md:grid-cols-2">
 
+        {/* Product Name */}
+
+<div>
+
+  <label className="mb-2 block text-sm font-medium text-slate-700">
+    Product Name
+  </label>
+
+  <input
+    type="text"
+    name="productName"
+    value={receiptData.productName}
+    onChange={onInputChange}
+    placeholder="iPhone 16 Pro, AirPods Pro..."
+    className={`w-full rounded-xl bg-white px-4 py-3 outline-none transition focus:border-indigo-500 ${
+      errors.productName
+        ? "border border-red-500"
+        : "border border-slate-200"
+    }`}
+  />
+
+  {errors.productName && (
+    <p className="mt-2 text-sm text-red-500">
+      {errors.productName}
+    </p>
+  )}
+
+</div>
+
         {/* Store Name */}
 
         <div>
