@@ -1,14 +1,17 @@
+import { useEffect, useState } from "react";
+
 import WarrantyHeader from "../../components/warranty/WarrantyHeader";
 import WarrantyStats from "../../components/warranty/WarrantyStats";
 import UpcomingWarranty from "../../components/warranty/UpcomingWarranty";
 import WarrantyFilters from "../../components/warranty/WarrantyFilters";
 import WarrantyTable from "../../components/warranty/WarrantyTable";
-import { useEffect, useState } from "react";
+
 import { getWarranties } from "../../services/warrantyService";
 
 const Warranty = () => {
-    const [warranties, setWarranties] = useState([]);
-    useEffect(() => {
+  const [warranties, setWarranties] = useState([]);
+
+  // Fetch all warranties
   const fetchWarranties = async () => {
     try {
       const data = await getWarranties();
@@ -18,16 +21,24 @@ const Warranty = () => {
     }
   };
 
-  fetchWarranties();
-}, []);
-console.log(warranties);
+  useEffect(() => {
+    fetchWarranties();
+  }, []);
+
   return (
     <div className="container-custom py-8 space-y-10">
       <WarrantyHeader />
-<WarrantyStats warranties={warranties} />
+
+      <WarrantyStats warranties={warranties} />
+
       <UpcomingWarranty warranties={warranties} />
+
       <WarrantyFilters />
-     <WarrantyTable warranties={warranties} />
+
+      <WarrantyTable
+        warranties={warranties}
+        onDelete={fetchWarranties}
+      />
     </div>
   );
 };

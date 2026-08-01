@@ -1,6 +1,6 @@
 import WarrantyRow from "./WarrantyRow";
 
-const WarrantyTable = ({ warranties }) => {
+const WarrantyTable = ({ warranties, onDelete }) => {
   const today = new Date();
 
   const getStatus = (expiryDate, duration) => {
@@ -58,6 +58,7 @@ const WarrantyTable = ({ warranties }) => {
                   item.expiryDate,
                   item.warrantyDuration
                 )}
+                onDelete={onDelete}
               />
             ))
           ) : (
