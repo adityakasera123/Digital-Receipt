@@ -1,31 +1,9 @@
 import { ChevronRight, Receipt } from "lucide-react";
 
-function RecentReceipts() {
-    const receipts = [
-  {
-    id: 1,
-    title: "iPhone 15 Pro",
-    store: "Apple Store",
-    amount: "₹1,29,900",
-    date: "Today",
-  },
-  {
-    id: 2,
-    title: "Boat Airdopes",
-    store: "Amazon",
-    amount: "₹2,999",
-    date: "Yesterday",
-  },
-  {
-    id: 3,
-    title: "Samsung Monitor",
-    store: "Flipkart",
-    amount: "₹18,499",
-    date: "2 days ago",
-  },
-];
+function RecentReceipts({ receipts = [] }) {
   return (
     <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+      {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-900">
           Recent Receipts
@@ -36,40 +14,55 @@ function RecentReceipts() {
           <ChevronRight size={16} />
         </button>
       </div>
-      <div className="space-y-4">
-  {receipts.map((receipt) => (
-    <div
-      key={receipt.id}
-      className="flex items-center justify-between rounded-2xl border border-gray-100 p-4 transition hover:bg-gray-50"
-    >
-      <div className="flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
-          <Receipt size={20} />
+
+      {/* Empty State */}
+      {receipts.length === 0 ? (
+        <div className="py-12 text-center text-gray-500">
+          No receipts found.
         </div>
+      ) : (
+        <div className="space-y-4">
+          {receipts
+            .slice()
+            .sort((a, b) => {
+              if (!a.createdAt || !b.createdAt) return 0;
+              return b.createdAt.seconds - a.createdAt.seconds;
+            })
+            .slice(0, 5)
+            .map((receipt) => (
+              <div
+                key={receipt.id}
+                className="flex items-center justify-between rounded-2xl border border-gray-100 p-4 transition hover:bg-gray-50"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
+                    <Receipt size={20} />
+                  </div>
 
-        <div>
-          <h3 className="font-semibold text-gray-900">
-            {receipt.title}
-          </h3>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      {receipt.productName}
+                    </h3>
 
-          <p className="text-sm text-gray-500">
-            {receipt.store}
-          </p>
+                    <p className="text-sm text-gray-500">
+                      {receipt.storeName}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <p className="font-semibold">
+                    ₹{Number(receipt.amount || 0).toLocaleString("en-IN")}
+                  </p>
+
+                  <p className="text-sm text-gray-500">
+                    {receipt.purchaseDate}
+                  </p>
+                </div>
+              </div>
+            ))}
         </div>
-      </div>
-
-      <div className="text-right">
-        <p className="font-semibold">
-          {receipt.amount}
-        </p>
-
-        <p className="text-sm text-gray-500">
-          {receipt.date}
-        </p>
-      </div>
-    </div>
-  ))}
-</div>
+      )}
     </div>
   );
 }
