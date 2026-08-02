@@ -1039,3 +1039,26 @@ Contact
 Pricing
 FAQ
 🔒 Final
+
+
+this is dasboard part live connect with data
+
+Dashboard
+
+✅ Welcome Header
+
+✅ Total Receipts
+
+✅ Active Warranty
+
+✅ Total Spending
+
+✅ Saved Documents
+
+✅ Recent Receipts
+
+✅ Warranty Alerts
+
+✅ Loading
+
+✅ Empty State
