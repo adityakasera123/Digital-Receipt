@@ -1,3 +1,11 @@
+import {
+  getTotalSpending,
+  getActiveWarranties,
+  getSavedDocuments,
+  getExpiringSoon,
+} from "../../utils/dashboardUtils";
+
+
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../context/AuthContext";
 
@@ -39,8 +47,7 @@ function Dashboard() {
         setReceipts(receiptsData);
         setWarranties(warrantiesData);
 
-        console.log("Dashboard Receipts:", receiptsData);
-        console.log("Dashboard Warranties:", warrantiesData);
+      
       } catch (error) {
         console.error("Failed to load dashboard data:", error);
       } finally {
@@ -59,10 +66,13 @@ function Dashboard() {
     );
   }
 
-  const totalSpending = receipts.reduce(
-    (total, receipt) => total + Number(receipt.amount || 0),
-    0
-  );
+ const totalSpending = getTotalSpending(receipts);
+
+const activeWarranties = getActiveWarranties(warranties);
+
+const savedDocuments = getSavedDocuments(receipts, warranties);
+
+const expiringSoon = getExpiringSoon(warranties);
 
   return (
     <div className="space-y-10">
@@ -79,33 +89,33 @@ function Dashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-7 md:grid-cols-2 2xl:grid-cols-4">
-        <StatCard
-          title="Total Receipts"
-          value={receipts.length}
-          subtitle="Stored receipts"
-          icon={Receipt}
-        />
+       <StatCard
+  title="Total Receipts"
+  value={receipts.length}
+  subtitle="Stored receipts"
+  icon={Receipt}
+/>
 
-        <StatCard
-          title="Active Warranties"
-          value={warranties.length}
-          subtitle="Active warranties"
-          icon={ShieldCheck}
-        />
+<StatCard
+  title="Active Warranties"
+  value={activeWarranties}
+  subtitle={`${expiringSoon} expiring soon`}
+  icon={ShieldCheck}
+/>
 
-        <StatCard
-          title="Total Spending"
-          value={`₹${totalSpending.toLocaleString("en-IN")}`}
-          subtitle="Total purchase value"
-          icon={IndianRupee}
-        />
+<StatCard
+  title="Total Spending"
+  value={`₹${totalSpending.toLocaleString("en-IN")}`}
+  subtitle="Total purchase value"
+  icon={IndianRupee}
+/>
 
-        <StatCard
-          title="Saved Documents"
-          value={receipts.length + warranties.length}
-          subtitle="Securely stored"
-          icon={FileText}
-        />
+<StatCard
+  title="Saved Documents"
+  value={savedDocuments}
+  subtitle="Securely stored"
+  icon={FileText}
+/>
       </div>
 
       {/* Recent Receipts + Warranty Alerts */}
