@@ -1,4 +1,5 @@
 import { ChevronRight, Receipt } from "lucide-react";
+import EmptyState from "../common/EmptyState";
 
 function RecentReceipts({ receipts = [] }) {
   return (
@@ -16,11 +17,13 @@ function RecentReceipts({ receipts = [] }) {
       </div>
 
       {/* Empty State */}
-      {receipts.length === 0 ? (
-        <div className="py-12 text-center text-gray-500">
-          No receipts found.
-        </div>
-      ) : (
+     {receipts.length === 0 ? (
+  <EmptyState
+    icon={Receipt}
+    title="No Receipts Yet"
+    description="Upload your first receipt to start managing your purchases."
+  />
+) : (
         <div className="space-y-4">
           {receipts
             .slice()

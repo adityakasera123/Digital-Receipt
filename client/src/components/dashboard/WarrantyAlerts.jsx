@@ -1,4 +1,5 @@
 import { ChevronRight, ShieldAlert } from "lucide-react";
+import EmptyState from "../common/EmptyState";
 
 function WarrantyAlerts({ warranties = [] }) {
   // Calculate remaining days
@@ -42,10 +43,12 @@ function WarrantyAlerts({ warranties = [] }) {
 
       {/* Empty State */}
       {sortedWarranties.length === 0 ? (
-        <div className="py-12 text-center text-gray-500">
-          No warranties found.
-        </div>
-      ) : (
+  <EmptyState
+    icon={ShieldAlert}
+    title="No Warranties Found"
+    description="Your active warranties will appear here."
+  />
+) : (
         <div className="space-y-4">
           {sortedWarranties.slice(0, 5).map((item) => (
             <div
