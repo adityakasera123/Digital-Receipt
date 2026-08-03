@@ -20,6 +20,7 @@ import RecentActivity from "../../components/dashboard/RecentActivity";
 import { getReceipts } from "../../services/receiptService";
 import { getWarranties } from "../../services/warrantyService";
 
+import DashboardSkeleton from "../../components/common/skeleton/DashboardSkeleton";
 import {
   Receipt,
   ShieldCheck,
@@ -59,12 +60,8 @@ function Dashboard() {
   }, []);
 
   if (loading || dashboardLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center text-lg font-medium text-gray-500">
-        Loading Dashboard...
-      </div>
-    );
-  }
+  return <DashboardSkeleton />;
+}
 
  const totalSpending = getTotalSpending(receipts);
 
