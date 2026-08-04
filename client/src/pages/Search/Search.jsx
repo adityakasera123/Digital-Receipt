@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
+import SearchBar from "../../components/search/SearchBar";
 import SearchFilters from "../../components/search/SearchFilters";
 import SearchSort from "../../components/search/SearchSort";
 import SearchResults from "../../components/search/SearchResults";
-
-import { getReceipts } from "../../services/receiptService";
 import SearchSkeleton from "../../components/search/SearchSkeleton";
 
+import { getReceipts } from "../../services/receiptService";
+
 const Search = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const [query, setQuery] = useState(searchParams.get("q") || "");
@@ -21,23 +23,24 @@ const Search = () => {
   const [loading, setLoading] = useState(true);
 
   // Load Receipts
- // Load Receipts
-useEffect(() => {
-  const loadReceipts = async () => {
-    try {
-      const data = await getReceipts();
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+  useEffect(() => {
+    const loadReceipts = async () => {
+      try {
+        const data = await getReceipts();
 
-      setReceipts(data);
-    } catch (error) {
-      console.error("Failed to load receipts:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  loadReceipts();
-}, []);
+
+
+        setReceipts(data);
+      } catch (error) {
+        console.error("Failed to load receipts:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadReceipts();
+  }, []);
 
   // Read URL Query
   useEffect(() => {
@@ -97,22 +100,24 @@ useEffect(() => {
     setResults(filtered);
   }, [query, selectedCategory, sortBy, receipts]);
 
-  const handleView = (id) => {
-    console.log("View Receipt:", id);
-
-    // Later
-    // navigate(`/receipts/${id}`);
-  };
+  // Open Receipt Detail
+ const handleView = (id) => {
+  navigate(`/receipts/${id}`, {
+    state: {
+      from: "search",
+    },
+  });
+};
 
   if (loading) {
-  return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-6xl px-6 py-8">
-        <SearchSkeleton />
-      </div>
-    </main>
-  );
-}
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-6xl px-6 py-8">
+          <SearchSkeleton />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -126,6 +131,16 @@ useEffect(() => {
           <p className="mt-2 text-sm text-slate-500">
             Find receipts by product, store or category.
           </p>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mb-8">
+          <SearchBar
+            value={query}
+            onChange={setQuery}
+            onSearch={setQuery}
+            placeholder="Search receipts..."
+          />
         </div>
 
         {/* Filters + Sorting */}

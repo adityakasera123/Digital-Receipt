@@ -1,6 +1,5 @@
 import ReceiptCard from "./ReceiptCard";
 
-
 function ReceiptGrid({
   receipts,
   loading,
@@ -8,9 +7,18 @@ function ReceiptGrid({
   activeCategory,
 }) {
   const filteredReceipts = receipts.filter((receipt) => {
-    const matchesSearch = (receipt.storeName || "")
-  .toLowerCase()
-  .includes(searchTerm.toLowerCase());
+    const search = searchTerm.toLowerCase();
+
+    const matchesSearch =
+      (receipt.productName || "")
+        .toLowerCase()
+        .includes(search) ||
+      (receipt.storeName || "")
+        .toLowerCase()
+        .includes(search) ||
+      (receipt.category || "")
+        .toLowerCase()
+        .includes(search);
 
     const matchesCategory =
       activeCategory === "All" ||
@@ -18,13 +26,15 @@ function ReceiptGrid({
 
     return matchesSearch && matchesCategory;
   });
-if (loading) {
-  return (
-    <div className="py-20 text-center text-gray-500">
-      Loading receipts...
-    </div>
-  );
-}
+
+  if (loading) {
+    return (
+      <div className="py-20 text-center text-gray-500">
+        Loading receipts...
+      </div>
+    );
+  }
+
   // Empty State
   if (filteredReceipts.length === 0) {
     return (
@@ -46,15 +56,19 @@ if (loading) {
     <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
       {filteredReceipts.map((receipt) => (
         <ReceiptCard
-  key={receipt.id}
-  id={receipt.id}
-  product={receipt.storeName}
-  store={receipt.storeName}
-  category={receipt.category}
-  amount={receipt.amount}
-  purchaseDate={receipt.purchaseDate}
-  warrantyStatus={receipt.hasWarranty ? "Active" : "No Warranty"}
-/>
+          key={receipt.id}
+          id={receipt.id}
+          product={receipt.productName}
+          store={receipt.storeName}
+          category={receipt.category}
+          amount={receipt.amount}
+          purchaseDate={receipt.purchaseDate}
+          warrantyStatus={
+            receipt.hasWarranty
+              ? "Active"
+              : "No Warranty"
+          }
+        />
       ))}
     </div>
   );

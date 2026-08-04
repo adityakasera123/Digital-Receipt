@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 
 import { getReceiptById } from "../../../services/receiptService";
 
@@ -11,6 +15,10 @@ import ReceiptActions from "../../../components/receipt/ReceiptActions";
 
 function ReceiptDetail() {
   const { id } = useParams();
+
+  // ✅ New
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [receipt, setReceipt] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -47,9 +55,19 @@ function ReceiptDetail() {
     );
   }
 
+  // ✅ Back Logic
+  const handleBack = () => {
+    if (location.state?.from === "search") {
+      navigate(-1);
+    } else {
+      navigate("/receipts");
+    }
+  };
+
   return (
     <div className="container-custom py-8">
-      <ReceiptHeader />
+      {/* 👇 Ye line change hui hai */}
+      <ReceiptHeader onBack={handleBack} />
 
       <div className="mt-6 grid grid-cols-12 gap-6 items-stretch">
         <div className="col-span-4">
@@ -66,31 +84,32 @@ function ReceiptDetail() {
       </div>
 
       <div className="mt-6">
-<ReceiptActions
-  receiptId={receipt.id}
-  onView={() => setIsPreviewOpen(true)}
-/>
+        <ReceiptActions
+          receiptId={receipt.id}
+          onView={() => setIsPreviewOpen(true)}
+        />
       </div>
-      {isPreviewOpen && (
-  <div
-    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
-    onClick={() => setIsPreviewOpen(false)}
-  >
-    <button
-      onClick={() => setIsPreviewOpen(false)}
-      className="absolute top-6 right-6 rounded-full bg-white p-2 shadow-lg"
-    >
-      ✕
-    </button>
 
-    <img
-      src={receipt.receiptImage}
-      alt={receipt.storeName}
-      className="max-h-[90vh] max-w-[90vw] rounded-2xl bg-white object-contain"
-      onClick={(e) => e.stopPropagation()}
-    />
-  </div>
-)}
+      {isPreviewOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+          onClick={() => setIsPreviewOpen(false)}
+        >
+          <button
+            onClick={() => setIsPreviewOpen(false)}
+            className="absolute right-6 top-6 rounded-full bg-white p-2 shadow-lg"
+          >
+            ✕
+          </button>
+
+          <img
+            src={receipt.receiptImage}
+            alt={receipt.storeName}
+            className="max-h-[90vh] max-w-[90vw] rounded-2xl bg-white object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

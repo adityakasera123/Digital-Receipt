@@ -1,16 +1,15 @@
 import { ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
 
-function ReceiptHeader() {
+function ReceiptHeader({ onBack }) {
   return (
-    <div className="mb-6 -mt-10" >
-      <Link
-        to="/receipts"
+    <div className="mb-6 -mt-10">
+      <button
+        onClick={onBack}
         className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-blue-600"
       >
         <ArrowLeft size={18} />
-        Back to Receipts
-      </Link>
+        Back
+      </button>
 
       <div className="mt-1">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">
