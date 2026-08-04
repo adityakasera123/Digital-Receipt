@@ -1,90 +1,152 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import SearchBar from "../../components/search/SearchBar";
+import SearchFilters from "../../components/search/SearchFilters";
+import SearchSort from "../../components/search/SearchSort";
 import SearchResults from "../../components/search/SearchResults";
 
-const dummyReceipts = [
-  {
-    id: "1",
-    productName: "MacBook Air M2",
-    storeName: "Apple Store",
-    category: "Electronics",
-    amount: 99999,
-    purchaseDate: "04 Aug 2026",
-  },
-  {
-    id: "2",
-    productName: "Nike Air Max",
-    storeName: "Nike",
-    category: "Fashion",
-    amount: 7999,
-    purchaseDate: "20 Jul 2026",
-  },
-  {
-    id: "3",
-    productName: "Boat Rockerz 550",
-    storeName: "Amazon",
-    category: "Electronics",
-    amount: 1999,
-    purchaseDate: "15 Jun 2026",
-  },
-];
+import { getReceipts } from "../../services/receiptService";
 
 const Search = () => {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState(dummyReceipts);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [sortBy, setSortBy] = useState("newest");
 
-  const handleSearch = (searchQuery) => {
-    const search = searchQuery.toLowerCase();
+  const [receipts, setReceipts] = useState([]);
+  const [results, setResults] = useState([]);
 
-    const filtered = dummyReceipts.filter((receipt) => {
-      return (
-        receipt.productName.toLowerCase().includes(search) ||
-        receipt.storeName.toLowerCase().includes(search) ||
-        receipt.category.toLowerCase().includes(search)
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadReceipts = async () => {
+      try {
+        const data = await getReceipts();
+
+        setReceipts(data);
+        setResults(data);
+      } catch (error) {
+        console.error("Failed to load receipts:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadReceipts();
+  }, []);
+
+  useEffect(() => {
+    let filtered = [...receipts];
+
+    // Category Filter
+    if (selectedCategory !== "All") {
+      filtered = filtered.filter(
+        (receipt) => receipt.category === selectedCategory
       );
-    });
+    }
+
+    // Search Filter
+    if (query.trim()) {
+      const search = query.toLowerCase();
+
+      filtered = filtered.filter((receipt) => {
+        return (
+          receipt.productName?.toLowerCase().includes(search) ||
+          receipt.storeName?.toLowerCase().includes(search) ||
+          receipt.category?.toLowerCase().includes(search)
+        );
+      });
+    }
+
+    // Sorting
+    switch (sortBy) {
+      case "highest":
+        filtered.sort((a, b) => Number(b.amount) - Number(a.amount));
+        break;
+
+      case "lowest":
+        filtered.sort((a, b) => Number(a.amount) - Number(b.amount));
+        break;
+
+      case "oldest":
+        filtered.sort(
+          (a, b) =>
+            new Date(a.purchaseDate) - new Date(b.purchaseDate)
+        );
+        break;
+
+      case "newest":
+      default:
+        filtered.sort(
+          (a, b) =>
+            new Date(b.purchaseDate) - new Date(a.purchaseDate)
+        );
+    }
 
     setResults(filtered);
+  }, [query, selectedCategory, sortBy, receipts]);
+
+  const handleSearch = (searchQuery) => {
+    setQuery(searchQuery);
   };
 
   const handleView = (id) => {
     console.log("View Receipt:", id);
   };
 
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50">
+        <p className="text-slate-500">Loading receipts...</p>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-6xl px-6 py-10">
+      <div className="mx-auto max-w-6xl px-6 py-8">
         {/* Header */}
-        <section className="mb-10">
-          <h1 className="text-4xl font-bold tracking-tight text-slate-900">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900">
             Search
           </h1>
 
-          <p className="mt-3 max-w-2xl text-slate-500">
-            Quickly find receipts by product name, store name or category.
+          <p className="mt-2 text-sm text-slate-500">
+            Find receipts by product, store or category.
           </p>
-        </section>
+        </div>
 
-        {/* Search Bar */}
-        <section className="mb-8">
+        {/* Search */}
+        <div className="mb-6">
           <SearchBar
             value={query}
             onChange={setQuery}
             onSearch={handleSearch}
-            placeholder="Search by product, store or category..."
+            placeholder="Search receipts..."
             autoFocus
           />
-        </section>
+        </div>
+
+        {/* Filters + Sort */}
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <SearchFilters
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+          />
+
+          <SearchSort
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+          />
+        </div>
 
         {/* Result Count */}
-        <section className="mb-6 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-slate-600">
-            {results.length} Receipt{results.length !== 1 ? "s" : ""} Found
-          </h2>
-        </section>
+        <div className="mb-5">
+          <p className="text-sm font-medium text-slate-500">
+            Showing {results.length} receipt{results.length !== 1 ? "s" : ""}
+          </p>
+        </div>
 
-        {/* Search Results */}
+        {/* Results */}
         <SearchResults
           results={results}
           onView={handleView}

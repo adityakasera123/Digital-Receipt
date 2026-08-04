@@ -6,10 +6,9 @@ const SearchBar = ({
   onSearch,
   placeholder = "Search receipts...",
   autoFocus = false,
-  disabled = false,
 }) => {
-  const handleKeyDown = (e) => {
-    if (e.key !== "Enter") return;
+  const handleSubmit = (e) => {
+    e.preventDefault();
 
     const query = value.trim();
 
@@ -19,45 +18,72 @@ const SearchBar = ({
   };
 
   return (
-    <div className="relative w-full">
-      {/* Search Icon */}
-      <Search
-        size={18}
-        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-      />
-
-      {/* Search Input */}
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        autoFocus={autoFocus}
-        disabled={disabled}
+    <form onSubmit={handleSubmit}>
+      <div
         className="
-          w-full
-          rounded-xl
+          flex
+          items-center
+          gap-4
+          rounded-2xl
           border
-          border-gray-300
+          border-slate-200
           bg-white
-          py-3
-          pl-11
-          pr-4
-          text-sm
-          text-gray-900
-          placeholder:text-gray-400
-          outline-none
+          px-5
+          py-4
+          shadow-sm
           transition-all
           duration-200
-          focus:border-blue-500
-          focus:ring-4
-          focus:ring-blue-100
-          disabled:cursor-not-allowed
-          disabled:opacity-60
+          focus-within:border-blue-500
+          focus-within:ring-4
+          focus-within:ring-blue-100
         "
-      />
-    </div>
+      >
+        {/* Search Icon */}
+        <Search
+          size={20}
+          className="text-slate-400"
+        />
+
+        {/* Input */}
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          autoFocus={autoFocus}
+          className="
+            flex-1
+            bg-transparent
+            text-base
+            text-slate-900
+            placeholder:text-slate-400
+            outline-none
+          "
+        />
+
+        {/* Enter Key */}
+        <div
+          className="
+            hidden
+            items-center
+            gap-1
+            rounded-lg
+            border
+            border-slate-200
+            bg-slate-50
+            px-3
+            py-1.5
+            text-xs
+            font-medium
+            text-slate-500
+            md:flex
+          "
+        >
+          <kbd>↵</kbd>
+          <span>Enter</span>
+        </div>
+      </div>
+    </form>
   );
 };
 
