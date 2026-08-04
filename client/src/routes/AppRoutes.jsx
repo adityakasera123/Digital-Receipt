@@ -22,6 +22,8 @@ import Warranty from "../pages/Warranty/Warranty";
 import WarrantyDetail from "../pages/WarrantyDetail/WarrantyDetail";
 import EditWarranty from "../pages/EditWarranty/EditWarranty";
 
+import Search from "../pages/Search/Search";
+
 function AppRoutes() {
   return (
     <Routes>
@@ -66,6 +68,15 @@ function AppRoutes() {
 <Route
   path="/warranty/edit/:id"
   element={<EditWarranty />}
+/>
+
+<Route
+  path="/search"
+  element={
+    <ProtectedRoute>
+      <Search />
+    </ProtectedRoute>
+  }
 />
 
     </Routes>
