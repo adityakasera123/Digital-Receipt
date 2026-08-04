@@ -8,26 +8,26 @@ import Landing from "../pages/Landing/Landing";
 import Login from "../pages/Login/Login";
 import Signup from "../pages/Signup/Signup";
 import ForgotPassword from "../pages/ForgotPassword/ForgotPassword";
+
 import Dashboard from "../pages/Dashboard/Dashboard";
+
 import Receipts from "../pages/Receipts/Receipts";
 import ReceiptDetail from "../pages/Receipts/ReceiptDetail/ReceiptDetail";
-import Upload from "../pages/Upload/Upload";
-
 import EditReceipt from "../pages/EditReceipt/EditReceipt";
 
-import ProtectedRoute from "../components/ProtectedRoute";
+import Upload from "../pages/Upload/Upload";
 
 import Warranty from "../pages/Warranty/Warranty";
-
 import WarrantyDetail from "../pages/WarrantyDetail/WarrantyDetail";
 import EditWarranty from "../pages/EditWarranty/EditWarranty";
 
 import Search from "../pages/Search/Search";
 
+import ProtectedRoute from "../components/ProtectedRoute";
+
 function AppRoutes() {
   return (
     <Routes>
-
       {/* Public Website */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<Landing />} />
@@ -40,7 +40,7 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
       </Route>
 
-      {/* Protected Application */}
+      {/* Protected Dashboard */}
       <Route
         element={
           <ProtectedRoute>
@@ -48,37 +48,25 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
+        {/* Dashboard */}
         <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/receipts" element={<Receipts />} />
-          <Route path="/receipts/:id" element={<ReceiptDetail />} />
-          <Route path="/upload" element={<Upload />} />
-          
-          <Route
-  path="/receipts/edit/:id"
-  element={<EditReceipt />}
-/>
+
+        {/* Receipt */}
+        <Route path="/receipts" element={<Receipts />} />
+        <Route path="/receipts/:id" element={<ReceiptDetail />} />
+        <Route path="/receipts/edit/:id" element={<EditReceipt />} />
+
+        {/* Upload */}
+        <Route path="/upload" element={<Upload />} />
+
+        {/* Warranty */}
+        <Route path="/warranty" element={<Warranty />} />
+        <Route path="/warranty/:id" element={<WarrantyDetail />} />
+        <Route path="/warranty/edit/:id" element={<EditWarranty />} />
+
+        {/* Search */}
+        <Route path="/search" element={<Search />} />
       </Route>
-       <Route path="/warranty" element={<Warranty />} />
-
-       <Route
-  path="/warranty/:id"
-  element={<WarrantyDetail />}
-/>
-
-<Route
-  path="/warranty/edit/:id"
-  element={<EditWarranty />}
-/>
-
-<Route
-  path="/search"
-  element={
-    <ProtectedRoute>
-      <Search />
-    </ProtectedRoute>
-  }
-/>
-
     </Routes>
   );
 }

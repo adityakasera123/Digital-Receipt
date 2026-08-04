@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
-import SearchBar from "../../components/search/SearchBar";
 import SearchFilters from "../../components/search/SearchFilters";
 import SearchSort from "../../components/search/SearchSort";
 import SearchResults from "../../components/search/SearchResults";
 
 import { getReceipts } from "../../services/receiptService";
+import SearchSkeleton from "../../components/search/SearchSkeleton";
 
 const Search = () => {
-  const [query, setQuery] = useState("");
+  const [searchParams] = useSearchParams();
+
+  const [query, setQuery] = useState(searchParams.get("q") || "");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState("newest");
 
@@ -17,23 +20,31 @@ const Search = () => {
 
   const [loading, setLoading] = useState(true);
 
+  // Load Receipts
+ // Load Receipts
+useEffect(() => {
+  const loadReceipts = async () => {
+    try {
+      const data = await getReceipts();
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      setReceipts(data);
+    } catch (error) {
+      console.error("Failed to load receipts:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadReceipts();
+}, []);
+
+  // Read URL Query
   useEffect(() => {
-    const loadReceipts = async () => {
-      try {
-        const data = await getReceipts();
+    setQuery(searchParams.get("q") || "");
+  }, [searchParams]);
 
-        setReceipts(data);
-        setResults(data);
-      } catch (error) {
-        console.error("Failed to load receipts:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadReceipts();
-  }, []);
-
+  // Search + Filter + Sort
   useEffect(() => {
     let filtered = [...receipts];
 
@@ -44,9 +55,9 @@ const Search = () => {
       );
     }
 
-    // Search Filter
+    // Search
     if (query.trim()) {
-      const search = query.toLowerCase();
+      const search = query.trim().toLowerCase();
 
       filtered = filtered.filter((receipt) => {
         return (
@@ -80,26 +91,28 @@ const Search = () => {
           (a, b) =>
             new Date(b.purchaseDate) - new Date(a.purchaseDate)
         );
+        break;
     }
 
     setResults(filtered);
   }, [query, selectedCategory, sortBy, receipts]);
 
-  const handleSearch = (searchQuery) => {
-    setQuery(searchQuery);
-  };
-
   const handleView = (id) => {
     console.log("View Receipt:", id);
+
+    // Later
+    // navigate(`/receipts/${id}`);
   };
 
   if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50">
-        <p className="text-slate-500">Loading receipts...</p>
-      </main>
-    );
-  }
+  return (
+    <main className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        <SearchSkeleton />
+      </div>
+    </main>
+  );
+}
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -115,19 +128,8 @@ const Search = () => {
           </p>
         </div>
 
-        {/* Search */}
-        <div className="mb-6">
-          <SearchBar
-            value={query}
-            onChange={setQuery}
-            onSearch={handleSearch}
-            placeholder="Search receipts..."
-            autoFocus
-          />
-        </div>
-
-        {/* Filters + Sort */}
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        {/* Filters + Sorting */}
+        <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <SearchFilters
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
@@ -140,9 +142,10 @@ const Search = () => {
         </div>
 
         {/* Result Count */}
-        <div className="mb-5">
+        <div className="mb-6">
           <p className="text-sm font-medium text-slate-500">
-            Showing {results.length} receipt{results.length !== 1 ? "s" : ""}
+            Showing {results.length} receipt
+            {results.length !== 1 ? "s" : ""}
           </p>
         </div>
 
