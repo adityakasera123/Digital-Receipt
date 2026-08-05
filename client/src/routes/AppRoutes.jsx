@@ -22,6 +22,7 @@ import WarrantyDetail from "../pages/WarrantyDetail/WarrantyDetail";
 import EditWarranty from "../pages/EditWarranty/EditWarranty";
 
 import Search from "../pages/Search/Search";
+import Analytics from "../pages/Analytics/Analytics";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 
@@ -66,6 +67,10 @@ function AppRoutes() {
 
         {/* Search */}
         <Route path="/search" element={<Search />} />
+
+          {/* Analytics */}
+<Route path="/analytics" element={<Analytics />} />
+
       </Route>
     </Routes>
   );
