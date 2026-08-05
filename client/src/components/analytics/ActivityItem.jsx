@@ -33,4 +33,4 @@ const ActivityItem = ({
   );
 };
 
-export default ActivityItem;Analytics
+export default ActivityItem;
