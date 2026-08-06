@@ -11,40 +11,65 @@ import {
 } from "recharts";
 
 const MonthlyExpenseChart = ({ data = [] }) => {
-  console.log("Chart Data:", data);
-
   return (
     <AnalyticsSection
       title="Monthly Spending"
       description="Track your monthly expenses."
+      action={
+        <button className="rounded-full border border-gray-200 px-5 py-2 text-sm font-medium transition hover:bg-gray-100">
+          This Year
+        </button>
+      }
     >
-      {/* Temporary Debug */}
-      <div className="mb-4 rounded-lg bg-slate-100 p-3 text-xs overflow-auto">
-        {JSON.stringify(data, null, 2)}
-      </div>
-
-      <div
-        style={{
-          width: "100%",
-          height: 400,
-          border: "1px solid #e5e7eb",
-        }}
-      >
+      <div className="h-96">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
-            <CartesianGrid stroke="#eee" />
+          <LineChart
+            data={data}
+            margin={{
+              top: 20,
+              right: 20,
+              left: 10,
+              bottom: 5,
+            }}
+          >
+            <CartesianGrid
+              stroke="#F1F5F9"
+              vertical={false}
+            />
 
-            <XAxis dataKey="month" />
+            <XAxis
+              dataKey="month"
+              tickLine={false}
+              axisLine={false}
+            />
 
-            <YAxis />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              allowDecimals={false}
+              domain={[0, "auto"]}
+            />
 
-            <Tooltip />
+            <Tooltip
+              formatter={(value) => [
+                `₹${Number(value).toLocaleString("en-IN")}`,
+                "Expenses",
+              ]}
+            />
 
             <Line
               type="monotone"
               dataKey="amount"
               stroke="#2563EB"
               strokeWidth={3}
+              connectNulls
+              dot={{
+                r: 5,
+                fill: "#2563EB",
+              }}
+              activeDot={{
+                r: 8,
+              }}
             />
           </LineChart>
         </ResponsiveContainer>
