@@ -2,9 +2,10 @@ import { Receipt } from "lucide-react";
 
 import AnalyticsSection from "./AnalyticsSection";
 import ActivityItem from "./ActivityItem";
+import AnalyticsEmptyState from "./AnalyticsEmptyState";
 
 const RecentActivity = ({ receipts = [] }) => {
-  const recentReceipts = receipts.slice(0, 5);
+  const recentReceipts = [...receipts].slice(0, 5);
 
   return (
     <AnalyticsSection
@@ -17,11 +18,10 @@ const RecentActivity = ({ receipts = [] }) => {
       }
     >
       {recentReceipts.length === 0 ? (
-        <div className="flex h-44 items-center justify-center rounded-2xl border border-dashed border-gray-200">
-          <p className="text-sm text-gray-500">
-            No recent activity found.
-          </p>
-        </div>
+        <AnalyticsEmptyState
+          title="No Recent Activity"
+          description="Upload your first receipt to start tracking your purchases."
+        />
       ) : (
         <div className="space-y-3">
           {recentReceipts.map((receipt) => (

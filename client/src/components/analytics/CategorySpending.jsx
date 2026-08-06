@@ -1,5 +1,6 @@
 import AnalyticsSection from "./AnalyticsSection";
 import CategoryProgress from "./CategoryProgress";
+import AnalyticsEmptyState from "./AnalyticsEmptyState";
 
 const CategorySpending = ({ categories = [] }) => {
   return (
@@ -8,11 +9,10 @@ const CategorySpending = ({ categories = [] }) => {
       description="See where your money is spent."
     >
       {categories.length === 0 ? (
-        <div className="flex h-60 items-center justify-center rounded-2xl border border-dashed border-gray-200">
-          <p className="text-sm text-gray-500">
-            No spending data available.
-          </p>
-        </div>
+        <AnalyticsEmptyState
+          title="No Category Data"
+          description="Upload receipts to see category-wise spending insights."
+        />
       ) : (
         <div className="space-y-8">
           {categories.map((category) => (
