@@ -1,40 +1,11 @@
-import {
-  Receipt,
-  ShieldCheck,
-  Pencil,
-} from "lucide-react";
+import { Receipt } from "lucide-react";
 
 import AnalyticsSection from "./AnalyticsSection";
 import ActivityItem from "./ActivityItem";
 
-const activities = [
-  {
-    icon: <Receipt size={20} />,
-    title: "Receipt Uploaded",
-    subtitle: "iPhone 15 Pro",
-    time: "2 min ago",
-    iconBg: "bg-blue-100",
-    iconColor: "text-blue-600",
-  },
-  {
-    icon: <ShieldCheck size={20} />,
-    title: "Warranty Added",
-    subtitle: "HP Laptop",
-    time: "15 min ago",
-    iconBg: "bg-green-100",
-    iconColor: "text-green-600",
-  },
-  {
-    icon: <Pencil size={20} />,
-    title: "Receipt Updated",
-    subtitle: "Boat Airdopes",
-    time: "Yesterday",
-    iconBg: "bg-orange-100",
-    iconColor: "text-orange-600",
-  },
-];
+const RecentActivity = ({ receipts = [] }) => {
+  const recentReceipts = receipts.slice(0, 5);
 
-const RecentActivity = () => {
   return (
     <AnalyticsSection
       title="Recent Activity"
@@ -45,14 +16,30 @@ const RecentActivity = () => {
         </button>
       }
     >
-      <div className="space-y-3">
-        {activities.map((activity) => (
-          <ActivityItem
-            key={activity.title}
-            {...activity}
-          />
-        ))}
-      </div>
+      {recentReceipts.length === 0 ? (
+        <div className="flex h-44 items-center justify-center rounded-2xl border border-dashed border-gray-200">
+          <p className="text-sm text-gray-500">
+            No recent activity found.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {recentReceipts.map((receipt) => (
+            <ActivityItem
+              key={receipt.id}
+              id={receipt.id}
+              icon={<Receipt size={20} />}
+              title={receipt.productName || "Untitled Product"}
+              subtitle={`${receipt.storeName || "Unknown Store"} • ₹${Number(
+                receipt.amount || 0
+              ).toLocaleString("en-IN")}`}
+              time={receipt.purchaseDate || "--"}
+              iconBg="bg-blue-100"
+              iconColor="text-blue-600"
+            />
+          ))}
+        </div>
+      )}
     </AnalyticsSection>
   );
 };

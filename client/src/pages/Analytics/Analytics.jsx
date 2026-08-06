@@ -41,10 +41,10 @@ const Analytics = () => {
       </div>
 
       {/* Quick Insights */}
-      <QuickInsights />
+      <QuickInsights analytics={analytics} />
 
       {/* Recent Activity */}
-      <RecentActivity />
+    <RecentActivity receipts={analytics.receipts} />
     </div>
   );
 };

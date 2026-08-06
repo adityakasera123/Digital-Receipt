@@ -6,46 +6,57 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-const insights = [
-  {
-    title: "Highest Purchase",
-    value: "₹18,999",
-    icon: <IndianRupee size={18} />,
-    color: "bg-blue-100 text-blue-600",
-  },
-  {
-    title: "Lowest Purchase",
-    value: "₹149",
-    icon: <TrendingDown size={18} />,
-    color: "bg-red-100 text-red-600",
-  },
-  {
-    title: "Average Purchase",
-    value: "₹1,938",
-    icon: <BarChart3 size={18} />,
-    color: "bg-emerald-100 text-emerald-600",
-  },
-  {
-    title: "Top Category",
-    value: "Electronics",
-    icon: <Trophy size={18} />,
-    color: "bg-amber-100 text-amber-600",
-  },
-];
+const QuickInsights = ({ analytics }) => {
+  const insights = [
+    {
+      title: "Highest Purchase",
+      value: analytics.highestPurchase
+        ? `₹${Number(
+            analytics.highestPurchase.amount
+          ).toLocaleString("en-IN")}`
+        : "₹0",
+      icon: <IndianRupee size={18} />,
+      color: "bg-blue-100 text-blue-600",
+    },
+    {
+      title: "Lowest Purchase",
+      value: analytics.lowestPurchase
+        ? `₹${Number(
+            analytics.lowestPurchase.amount
+          ).toLocaleString("en-IN")}`
+        : "₹0",
+      icon: <TrendingDown size={18} />,
+      color: "bg-red-100 text-red-600",
+    },
+    {
+      title: "Average Purchase",
+      value: `₹${Number(
+        analytics.averagePurchase || 0
+      ).toLocaleString("en-IN")}`,
+      icon: <BarChart3 size={18} />,
+      color: "bg-emerald-100 text-emerald-600",
+    },
+    {
+      title: "Top Category",
+      value:
+        analytics.categorySpending?.length > 0
+          ? analytics.categorySpending[0].title
+          : "N/A",
+      icon: <Trophy size={18} />,
+      color: "bg-amber-100 text-amber-600",
+    },
+  ];
 
-const QuickInsights = () => {
   return (
     <section className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            Quick Insights
-          </h2>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">
+          Quick Insights
+        </h2>
 
-          <p className="mt-1 text-gray-500">
-            Your spending highlights at a glance.
-          </p>
-        </div>
+        <p className="mt-1 text-gray-500">
+          Your spending highlights at a glance.
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
