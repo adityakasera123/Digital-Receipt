@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 
-import { getAllReceipts } from "../services/analyticsService";
+import { AuthContext } from "../context/AuthContext";
+import { getReceipts } from "../services/receiptService";
 
 import {
   calculateTotalExpenses,
@@ -13,6 +14,8 @@ import {
 } from "../utils/analyticsHelpers";
 
 const useAnalytics = () => {
+  const { user } = useContext(AuthContext);
+
   const [loading, setLoading] = useState(true);
 
   const [analytics, setAnalytics] = useState({
@@ -27,9 +30,14 @@ const useAnalytics = () => {
   });
 
   useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     const fetchAnalytics = async () => {
       try {
-        const receipts = await getAllReceipts();
+        const receipts = await getReceipts(user.uid);
 
         const monthlyExpenses =
           calculateMonthlyExpenses(receipts);
@@ -67,7 +75,7 @@ const useAnalytics = () => {
     };
 
     fetchAnalytics();
-  }, []);
+  }, [user]);
 
   return {
     loading,
