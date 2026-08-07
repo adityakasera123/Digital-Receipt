@@ -8,16 +8,7 @@ import {
   CartesianGrid,
 } from "recharts";
 
-function ExpenseChart() {
-  const data = [
-    { month: "Jan", amount: 12000 },
-    { month: "Feb", amount: 18000 },
-    { month: "Mar", amount: 15000 },
-    { month: "Apr", amount: 24000 },
-    { month: "May", amount: 21000 },
-    { month: "Jun", amount: 28000 },
-  ];
-
+function ExpenseChart({ data = [] }) {
   return (
     <div className="w-full rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
       <div className="flex items-start justify-between">
@@ -36,64 +27,72 @@ function ExpenseChart() {
         </button>
       </div>
 
-      {/* Chart */}
       <div className="mt-8 h-[420px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={data}
-            margin={{
-              top: 10,
-              right: 20,
-              left: 0,
-              bottom: 0,
-            }}
-          >
-            <CartesianGrid
-              stroke="#E5E7EB"
-              strokeDasharray="4 4"
-              vertical={false}
-            />
-
-            <XAxis
-              dataKey="month"
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: "#6B7280", fontSize: 13 }}
-            />
-
-            <YAxis
-              tickFormatter={(value) => `₹${value / 1000}k`}
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: "#6B7280", fontSize: 13 }}
-            />
-
-            <Tooltip
-              formatter={(value) => [`₹${value.toLocaleString()}`, "Spending"]}
-              contentStyle={{
-                borderRadius: "12px",
-                border: "1px solid #E5E7EB",
-                boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+        {data.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-gray-500">
+            No spending data available
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={data}
+              margin={{
+                top: 10,
+                right: 20,
+                left: 0,
+                bottom: 0,
               }}
-            />
+            >
+              <CartesianGrid
+                stroke="#E5E7EB"
+                strokeDasharray="4 4"
+                vertical={false}
+              />
 
-            <Line
-              type="monotone"
-              dataKey="amount"
-              stroke="#2563EB"
-              strokeWidth={4}
-              dot={{
-                r: 4,
-                fill: "#2563EB",
-              }}
-              activeDot={{
-                r: 7,
-                stroke: "#2563EB",
-                strokeWidth: 2,
-              }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+              <XAxis
+                dataKey="month"
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: "#6B7280", fontSize: 13 }}
+              />
+
+              <YAxis
+                tickFormatter={(value) => `₹${Math.round(value / 1000)}k`}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: "#6B7280", fontSize: 13 }}
+              />
+
+              <Tooltip
+                formatter={(value) => [
+                  `₹${Number(value).toLocaleString("en-IN")}`,
+                  "Spending",
+                ]}
+                contentStyle={{
+                  borderRadius: "12px",
+                  border: "1px solid #E5E7EB",
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+                }}
+              />
+
+              <Line
+                type="monotone"
+                dataKey="amount"
+                stroke="#2563EB"
+                strokeWidth={4}
+                dot={{
+                  r: 4,
+                  fill: "#2563EB",
+                }}
+                activeDot={{
+                  r: 7,
+                  stroke: "#2563EB",
+                  strokeWidth: 2,
+                }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );

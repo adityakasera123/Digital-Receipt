@@ -5,6 +5,11 @@ import {
   getExpiringSoon,
 } from "../../utils/dashboardUtils";
 
+import {
+  calculateMonthlyExpenses,
+  calculateCategorySpending,
+} from "../../utils/analyticsHelpers";
+
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../context/AuthContext";
 
@@ -67,6 +72,10 @@ function Dashboard() {
   const savedDocuments = getSavedDocuments(receipts);
   const expiringSoon = getExpiringSoon(warranties);
 
+  // Real analytics data from Firebase receipts
+  const monthlyExpenses = calculateMonthlyExpenses(receipts);
+  const categorySpending = calculateCategorySpending(receipts);
+
   return (
     <div className="space-y-10">
       {/* Header */}
@@ -122,17 +131,17 @@ function Dashboard() {
 
       {/* Analytics Section */}
       <div className="mt-8">
-        <ExpenseChart />
+        <ExpenseChart data={monthlyExpenses} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <ExpenseCategories />
+        <ExpenseCategories categories={categorySpending} />
 
         <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
           <QuickActions />
         </div>
 
-        <RecentActivity />
+   <RecentActivity receipts={receipts} />
       </div>
     </div>
   );
