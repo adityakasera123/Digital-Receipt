@@ -2,10 +2,12 @@ import {
   ref,
   uploadBytesResumable,
   getDownloadURL,
+  deleteObject,
 } from "firebase/storage";
 
 import { storage } from "../firebase/firebase";
 
+// Upload Receipt Image
 export const uploadReceiptImage = (file, userId) => {
   return new Promise((resolve, reject) => {
     const fileName = `${Date.now()}-${file.name}`;
@@ -36,9 +38,6 @@ export const uploadReceiptImage = (file, userId) => {
       async () => {
         try {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-
-          console.log("Download URL:", downloadURL);
-
           resolve(downloadURL);
         } catch (error) {
           reject(error);
@@ -46,4 +45,10 @@ export const uploadReceiptImage = (file, userId) => {
       }
     );
   });
+};
+
+// Delete Receipt Image
+export const deleteReceiptImage = async (imageUrl) => {
+  const imageRef = ref(storage, imageUrl);
+  await deleteObject(imageRef);
 };

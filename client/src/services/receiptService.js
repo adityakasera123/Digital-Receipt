@@ -1,4 +1,5 @@
 import { db } from "../firebase/firebase";
+import { deleteReceiptImage } from "./storageService";
 
 import {
   addDoc,
@@ -26,13 +27,7 @@ export const saveReceipt = async (receiptData) => {
 
 // Get All Receipts (Current Logged-in User Only)
 export const getReceipts = async (userId) => {
-  console.log("=== getReceipts called ===");
-  console.log("User ID passed:", userId);
-
-  if (!userId) {
-    console.log("No userId received");
-    return [];
-  }
+  if (!userId) return [];
 
   const q = query(
     collection(db, "receipts"),
@@ -41,12 +36,6 @@ export const getReceipts = async (userId) => {
   );
 
   const querySnapshot = await getDocs(q);
-
-  console.log("Fetched receipts count:", querySnapshot.size);
-
-  querySnapshot.docs.forEach((doc) => {
-    console.log("Receipt:", doc.id, doc.data());
-  });
 
   return querySnapshot.docs.map((doc) => ({
     id: doc.id,
@@ -57,7 +46,6 @@ export const getReceipts = async (userId) => {
 // Get Receipt By ID
 export const getReceiptById = async (id) => {
   const docRef = doc(db, "receipts", id);
-
   const docSnap = await getDoc(docRef);
 
   if (!docSnap.exists()) {
@@ -79,9 +67,53 @@ export const updateReceipt = async (id, receiptData) => {
   });
 };
 
-// Delete Receipt
+// Delete Receipt + Firebase Storage Image + Linked Warranty
 export const deleteReceipt = async (receiptId) => {
   const receiptRef = doc(db, "receipts", receiptId);
 
+  // Get receipt document first
+  const receiptSnap = await getDoc(receiptRef);
+
+  if (!receiptSnap.exists()) {
+    throw new Error("Receipt not found");
+  }
+
+  const receiptData = receiptSnap.data();
+
+  // Delete image from Firebase Storage
+  if (receiptData.receiptImage) {
+    try {
+      await deleteReceiptImage(receiptData.receiptImage);
+      console.log("Storage image deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete image from Storage:", error);
+    }
+  }
+
+  // Delete linked warranty documents
+  try {
+    const warrantyQuery = query(
+      collection(db, "warranties"),
+      where("receiptId", "==", receiptId)
+    );
+
+    const warrantySnapshot = await getDocs(warrantyQuery);
+
+    const deletePromises = warrantySnapshot.docs.map((warrantyDoc) =>
+      deleteDoc(doc(db, "warranties", warrantyDoc.id))
+    );
+
+    await Promise.all(deletePromises);
+
+    console.log(`Deleted ${warrantySnapshot.size} linked warranty(s)`);
+  } catch (error) {
+    console.error("Failed to delete linked warranties:", error);
+  }
+
+  // Delete Firestore receipt document
   await deleteDoc(receiptRef);
+
+  console.log(
+    "Receipt, storage image, and linked warranty deleted successfully"
+  );
 };
