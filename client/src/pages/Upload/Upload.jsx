@@ -1,3 +1,7 @@
+import { useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+
 import UploadHeader from "../../components/receipt/UploadHeader";
 import UploadWorkspace from "../../components/receipt/UploadWorkspace";
 import ReceiptForm from "../../components/receipt/ReceiptForm";
@@ -5,18 +9,17 @@ import WarrantyForm from "../../components/receipt/WarrantyForm";
 import NotesField from "../../components/receipt/NotesField";
 import UploadActions from "../../components/receipt/UploadActions";
 
-import toast from "react-hot-toast";
-
 import { uploadReceiptImage } from "../../services/storageService";
 import { saveReceipt } from "../../services/receiptService";
-import useReceiptForm from "../../hooks/useReceiptForm";
-import { useNavigate } from "react-router-dom";
-
 import { saveWarranty } from "../../services/warrantyService";
 
+import useReceiptForm from "../../hooks/useReceiptForm";
+import { AuthContext } from "../../context/AuthContext";
 
 const Upload = () => {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
+
   const {
     receiptData,
     errors,
@@ -27,7 +30,6 @@ const Upload = () => {
   } = useReceiptForm();
 
   const handleSaveReceipt = async () => {
-    console.log("=== HANDLE SAVE CALLED ===");
     const result = validateReceipt();
 
     setErrors(result.errors);
@@ -38,44 +40,43 @@ const Upload = () => {
       return;
     }
 
+    if (!user) {
+      toast.error("Please login first.");
+      return;
+    }
+
     try {
-      // Upload image
+      const uid = user.uid;
+
+      // Upload image to Firebase Storage
       const imageUrl = await uploadReceiptImage(
         receiptData.receiptImage,
-        "test-user"
+        uid
       );
 
-      // Save receipt
-     const receiptId = await saveReceipt({
-  ...receiptData,
-  receiptImage: imageUrl,
-  userId: "test-user",
-});
+      // Save receipt with current user UID
+      const receiptId = await saveReceipt({
+        ...receiptData,
+        receiptImage: imageUrl,
+        userId: uid,
+      });
 
-console.log("Receipt ID:", receiptId);
+      // Save warranty if enabled
+      if (receiptData.hasWarranty) {
+        await saveWarranty({
+          receiptId,
+          productName: receiptData.productName,
+          storeName: receiptData.storeName,
+          category: receiptData.category,
+          purchaseDate: receiptData.purchaseDate,
+          warrantyDuration: receiptData.warrantyDuration,
+          expiryDate: receiptData.warrantyExpiry,
+          userId: uid,
+        });
+      }
 
-console.log("Has Warranty:", receiptData.hasWarranty);
-
-if (receiptData.hasWarranty) {
-  console.log("Saving warranty...");
-
- await saveWarranty({
-  receiptId,
-  productName: receiptData.productName,
-  storeName: receiptData.storeName,
-  category: receiptData.category,
-  purchaseDate: receiptData.purchaseDate,
-  warrantyDuration: receiptData.warrantyDuration,
-  expiryDate: receiptData.warrantyExpiry,
-  userId: "test-user",
-});
-
-  console.log("Warranty saved");
-}
-
-toast.success("Receipt saved successfully!");
-navigate("/receipts");
-
+      toast.success("Receipt saved successfully!");
+      navigate("/receipts");
     } catch (error) {
       console.error(error);
       toast.error("Receipt save failed!");

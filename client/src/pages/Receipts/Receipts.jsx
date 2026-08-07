@@ -1,23 +1,29 @@
-
+import { useContext, useEffect, useState } from "react";
 
 import ReceiptSearch from "../../components/receipt/ReceiptSearch";
 import ReceiptFilters from "../../components/receipt/ReceiptFilters";
 import ReceiptGrid from "../../components/receipt/ReceiptGrid";
 
-import { useEffect, useState } from "react";
+import { AuthContext } from "../../context/AuthContext";
 import { getReceipts } from "../../services/receiptService";
 
-
-
 function Receipts() {
-    const [searchTerm, setSearchTerm] = useState("");
-const [activeCategory, setActiveCategory] = useState("All");
-const [receipts, setReceipts] = useState([]);
-const [loading, setLoading] = useState(true);
- useEffect(() => {
+  const { user } = useContext(AuthContext);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [receipts, setReceipts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+
     const fetchReceipts = async () => {
       try {
-        const data = await getReceipts();
+        setLoading(true);
+
+        const data = await getReceipts(user.uid);
+
         setReceipts(data);
       } catch (error) {
         console.error(error);
@@ -27,10 +33,9 @@ const [loading, setLoading] = useState(true);
     };
 
     fetchReceipts();
-  }, []);
+  }, [user]);
 
   return (
-  
     <div className="space-y-8">
       {/* Header */}
       <div>
@@ -44,20 +49,21 @@ const [loading, setLoading] = useState(true);
       </div>
 
       <ReceiptSearch
-  searchTerm={searchTerm}
-  setSearchTerm={setSearchTerm}
-/>
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+      />
 
-     <ReceiptFilters
-  activeCategory={activeCategory}
-  setActiveCategory={setActiveCategory}
-/>
-<ReceiptGrid
-  receipts={receipts}
-  loading={loading}
-  searchTerm={searchTerm}
-  activeCategory={activeCategory}
-/>
+      <ReceiptFilters
+        activeCategory={activeCategory}
+        setActiveCategory={setActiveCategory}
+      />
+
+      <ReceiptGrid
+        receipts={receipts}
+        loading={loading}
+        searchTerm={searchTerm}
+        activeCategory={activeCategory}
+      />
     </div>
   );
 }

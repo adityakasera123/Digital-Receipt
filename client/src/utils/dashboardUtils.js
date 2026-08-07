@@ -11,8 +11,8 @@ export const getTotalSpending = (receipts) => {
 };
 
 // Total Saved Documents
-export const getSavedDocuments = (receipts, warranties) => {
-  return receipts.length + warranties.length;
+export const getSavedDocuments = (receipts) => {
+  return receipts.length;
 };
 
 // Active Warranties

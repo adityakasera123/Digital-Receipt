@@ -5,7 +5,6 @@ import {
   getExpiringSoon,
 } from "../../utils/dashboardUtils";
 
-
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../context/AuthContext";
 
@@ -36,19 +35,19 @@ function Dashboard() {
   const [dashboardLoading, setDashboardLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
+
     const loadDashboardData = async () => {
       try {
         setDashboardLoading(true);
 
         const [receiptsData, warrantiesData] = await Promise.all([
-          getReceipts(),
-          getWarranties(),
+          getReceipts(user.uid),
+          getWarranties(user.uid),
         ]);
 
         setReceipts(receiptsData);
         setWarranties(warrantiesData);
-
-      
       } catch (error) {
         console.error("Failed to load dashboard data:", error);
       } finally {
@@ -57,19 +56,16 @@ function Dashboard() {
     };
 
     loadDashboardData();
-  }, []);
+  }, [user]);
 
   if (loading || dashboardLoading) {
-  return <DashboardSkeleton />;
-}
+    return <DashboardSkeleton />;
+  }
 
- const totalSpending = getTotalSpending(receipts);
-
-const activeWarranties = getActiveWarranties(warranties);
-
-const savedDocuments = getSavedDocuments(receipts, warranties);
-
-const expiringSoon = getExpiringSoon(warranties);
+  const totalSpending = getTotalSpending(receipts);
+  const activeWarranties = getActiveWarranties(warranties);
+  const savedDocuments = getSavedDocuments(receipts);
+  const expiringSoon = getExpiringSoon(warranties);
 
   return (
     <div className="space-y-10">
@@ -86,33 +82,33 @@ const expiringSoon = getExpiringSoon(warranties);
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-7 md:grid-cols-2 2xl:grid-cols-4">
-       <StatCard
-  title="Total Receipts"
-  value={receipts.length}
-  subtitle="Stored receipts"
-  icon={Receipt}
-/>
+        <StatCard
+          title="Total Receipts"
+          value={receipts.length}
+          subtitle="Stored receipts"
+          icon={Receipt}
+        />
 
-<StatCard
-  title="Active Warranties"
-  value={activeWarranties}
-  subtitle={`${expiringSoon} expiring soon`}
-  icon={ShieldCheck}
-/>
+        <StatCard
+          title="Active Warranties"
+          value={activeWarranties}
+          subtitle={`${expiringSoon} expiring soon`}
+          icon={ShieldCheck}
+        />
 
-<StatCard
-  title="Total Spending"
-  value={`₹${totalSpending.toLocaleString("en-IN")}`}
-  subtitle="Total purchase value"
-  icon={IndianRupee}
-/>
+        <StatCard
+          title="Total Spending"
+          value={`₹${totalSpending.toLocaleString("en-IN")}`}
+          subtitle="Total purchase value"
+          icon={IndianRupee}
+        />
 
-<StatCard
-  title="Saved Documents"
-  value={savedDocuments}
-  subtitle="Securely stored"
-  icon={FileText}
-/>
+        <StatCard
+          title="Saved Documents"
+          value={savedDocuments}
+          subtitle="Securely stored"
+          icon={FileText}
+        />
       </div>
 
       {/* Recent Receipts + Warranty Alerts */}
@@ -124,7 +120,7 @@ const expiringSoon = getExpiringSoon(warranties);
         <WarrantyAlerts warranties={warranties} />
       </div>
 
-      {/* Analytics Section (Static for now) */}
+      {/* Analytics Section */}
       <div className="mt-8">
         <ExpenseChart />
       </div>

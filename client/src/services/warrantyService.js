@@ -1,4 +1,4 @@
-import { db } from "../firebase/firebase";
+import { db, auth } from "../firebase/firebase";
 
 import {
   addDoc,
@@ -11,8 +11,10 @@ import {
   getDoc,
   updateDoc,
   deleteDoc,
+  where,
 } from "firebase/firestore";
 
+// Save Warranty
 export const saveWarranty = async (warrantyData) => {
   const docRef = await addDoc(collection(db, "warranties"), {
     ...warrantyData,
@@ -22,9 +24,15 @@ export const saveWarranty = async (warrantyData) => {
   return docRef.id;
 };
 
+// Get Warranties (Current Logged-in User Only)
 export const getWarranties = async () => {
+  const user = auth.currentUser;
+
+  if (!user) return [];
+
   const q = query(
     collection(db, "warranties"),
+    where("userId", "==", user.uid),
     orderBy("createdAt", "desc")
   );
 
@@ -36,6 +44,7 @@ export const getWarranties = async () => {
   }));
 };
 
+// Get Warranty By ID
 export const getWarrantyById = async (id) => {
   const docRef = doc(db, "warranties", id);
 
@@ -51,6 +60,7 @@ export const getWarrantyById = async (id) => {
   };
 };
 
+// Update Warranty
 export const updateWarranty = async (id, warrantyData) => {
   const docRef = doc(db, "warranties", id);
 
@@ -59,6 +69,7 @@ export const updateWarranty = async (id, warrantyData) => {
   });
 };
 
+// Delete Warranty
 export const deleteWarranty = async (warrantyId) => {
   const warrantyRef = doc(db, "warranties", warrantyId);
 

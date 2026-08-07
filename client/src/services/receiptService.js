@@ -11,6 +11,7 @@ import {
   getDoc,
   updateDoc,
   deleteDoc,
+  where,
 } from "firebase/firestore";
 
 // Save Receipt
@@ -23,14 +24,29 @@ export const saveReceipt = async (receiptData) => {
   return docRef.id;
 };
 
-// Get All Receipts
-export const getReceipts = async () => {
+// Get All Receipts (Current Logged-in User Only)
+export const getReceipts = async (userId) => {
+  console.log("=== getReceipts called ===");
+  console.log("User ID passed:", userId);
+
+  if (!userId) {
+    console.log("No userId received");
+    return [];
+  }
+
   const q = query(
     collection(db, "receipts"),
+    where("userId", "==", userId),
     orderBy("createdAt", "desc")
   );
 
   const querySnapshot = await getDocs(q);
+
+  console.log("Fetched receipts count:", querySnapshot.size);
+
+  querySnapshot.docs.forEach((doc) => {
+    console.log("Receipt:", doc.id, doc.data());
+  });
 
   return querySnapshot.docs.map((doc) => ({
     id: doc.id,
