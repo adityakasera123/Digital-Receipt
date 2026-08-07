@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import SearchBar from "../../components/search/SearchBar";
@@ -8,10 +8,13 @@ import SearchResults from "../../components/search/SearchResults";
 import SearchSkeleton from "../../components/search/SearchSkeleton";
 
 import { getReceipts } from "../../services/receiptService";
+import { AuthContext } from "../../context/AuthContext";
 
 const Search = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  const { user } = useContext(AuthContext);
 
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -22,15 +25,16 @@ const Search = () => {
 
   const [loading, setLoading] = useState(true);
 
-  // Load Receipts
+  // Load Receipts (Current Logged-in User Only)
   useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     const loadReceipts = async () => {
       try {
-        const data = await getReceipts();
-
-
-
-
+        const data = await getReceipts(user.uid);
         setReceipts(data);
       } catch (error) {
         console.error("Failed to load receipts:", error);
@@ -40,7 +44,7 @@ const Search = () => {
     };
 
     loadReceipts();
-  }, []);
+  }, [user]);
 
   // Read URL Query
   useEffect(() => {
@@ -101,13 +105,13 @@ const Search = () => {
   }, [query, selectedCategory, sortBy, receipts]);
 
   // Open Receipt Detail
- const handleView = (id) => {
-  navigate(`/receipts/${id}`, {
-    state: {
-      from: "search",
-    },
-  });
-};
+  const handleView = (id) => {
+    navigate(`/receipts/${id}`, {
+      state: {
+        from: "search",
+      },
+    });
+  };
 
   if (loading) {
     return (
