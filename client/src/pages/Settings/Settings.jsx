@@ -18,6 +18,12 @@ serverTimestamp,
 } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import SecuritySection from '../../components/settings/SecuritySection';
+import {
+  exportReceipts,
+  exportWarranties,
+  exportNotifications,
+  exportCompleteBackup,
+} from '../../utils/exportUtils';
 
 const sections = [
 { id: 'profile', label: 'Profile', icon: User },
@@ -376,6 +382,146 @@ Manage your account, notifications, security, and data preferences. </p> </div>
           </>
         )}
         {activeSection === 'security' && <SecuritySection />}
+        {activeSection === 'data' && (
+  <div className="space-y-8">
+    <div>
+      <h2 className="text-2xl font-semibold text-gray-900">
+        Data Management
+      </h2>
+      <p className="mt-1 text-gray-500">
+        Export, back up, or permanently remove your Billvora data.
+      </p>
+    </div>
+
+    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="font-medium text-gray-900">Export Receipts</p>
+          <p className="text-sm text-gray-500">
+            Download all your receipts as a JSON backup file.
+          </p>
+        </div>
+
+        <button
+          onClick={async () => {
+            const user = auth.currentUser;
+            if (!user) {
+              toast.error("User not found");
+              return;
+            }
+
+            try {
+              await exportReceipts(user.uid);
+              toast.success("Receipts exported successfully");
+            } catch (error) {
+              console.error(error);
+              toast.error("Failed to export receipts");
+            }
+          }}
+          className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-medium text-white hover:bg-black"
+        >
+          Export
+        </button>
+      </div>
+    </div>
+    
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-gray-900">Export Warranties</p>
+            <p className="text-sm text-gray-500">
+              Download all your warranties as a JSON backup file.
+            </p>
+          </div>
+
+          <button
+            onClick={async () => {
+              const user = auth.currentUser;
+              if (!user) {
+                toast.error("User not found");
+                return;
+              }
+
+              try {
+                await exportWarranties(user.uid);
+                toast.success("Warranties exported successfully");
+              } catch (error) {
+                console.error(error);
+                toast.error("Failed to export warranties");
+              }
+            }}
+            className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-medium text-white hover:bg-black"
+          >
+            Export
+          </button>
+        </div>
+      </div>
+
+
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-gray-900">Export Notifications</p>
+            <p className="text-sm text-gray-500">
+              Download all your in-app notifications as a JSON backup file.
+            </p>
+          </div>
+
+          <button
+            onClick={async () => {
+              const user = auth.currentUser;
+              if (!user) {
+                toast.error("User not found");
+                return;
+              }
+
+              try {
+                await exportNotifications(user.uid);
+                toast.success("Notifications exported successfully");
+              } catch (error) {
+                console.error(error);
+                toast.error("Failed to export notifications");
+              }
+            }}
+            className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-medium text-white hover:bg-black"
+          >
+            Export
+          </button>
+        </div>
+      </div>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-gray-900">Download Complete Backup</p>
+            <p className="text-sm text-gray-500">
+              Download receipts, warranties, and notifications in a single backup file.
+            </p>
+          </div>
+
+          <button
+            onClick={async () => {
+              const user = auth.currentUser;
+              if (!user) {
+                toast.error("User not found");
+                return;
+              }
+
+              try {
+                await exportCompleteBackup(user.uid);
+                toast.success("Complete backup downloaded");
+              } catch (error) {
+                console.error(error);
+                toast.error("Failed to download backup");
+              }
+            }}
+            className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-medium text-white hover:bg-black"
+          >
+            Download Backup
+          </button>
+        </div>
+      </div>
+  </div>
+)}
       </section>
     </div>
   </div>
