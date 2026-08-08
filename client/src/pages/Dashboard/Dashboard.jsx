@@ -46,17 +46,6 @@ function Dashboard() {
   const { popupNotification } = useWarrantyNotifications();
   const [showReminderModal, setShowReminderModal] = useState(true);
 
-  // Temporary shared demo notification
-  const demoPopupNotification =
-    popupNotification || {
-      id: "demo-1",
-      warrantyId: "demo-1",
-      productName: "MacBook Air M2",
-      storeName: "Apple Store",
-      title: "Warranty expires in 7 days",
-      formattedExpiryDate: "15 Aug 2026",
-    };
-
   useEffect(() => {
     if (!user) return;
 
@@ -166,8 +155,8 @@ function Dashboard() {
 
       {/* Billvora 5.0 Urgent Reminder Modal */}
       <UrgentReminderModal
-        isOpen={showReminderModal}
-        notification={demoPopupNotification}
+        isOpen={showReminderModal && !!popupNotification}
+        notification={popupNotification}
         onClose={() => setShowReminderModal(false)}
         onRemindLater={() => setShowReminderModal(false)}
         onViewWarranty={() => setShowReminderModal(false)}

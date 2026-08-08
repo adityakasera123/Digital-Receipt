@@ -2,6 +2,11 @@ import { useEffect, useState, useCallback, useContext } from "react";
 import { getDashboardNotifications } from "../services/notificationService";
 import { AuthContext } from "../context/AuthContext";
 
+import {
+  getReadNotifications,
+  markAllNotificationsAsRead,
+} from "../utils/notificationStorage";
+
 const initialState = {
   notifications: [],
   unreadCount: 0,
@@ -32,7 +37,17 @@ export const useWarrantyNotifications = () => {
 
       const result = await getDashboardNotifications(user.uid);
 
-      setData(result);
+      // Calculate unread count from localStorage
+      const readIds = getReadNotifications();
+
+      const unreadCount = result.notifications.filter(
+        (notification) => !readIds.includes(notification.id)
+      ).length;
+
+      setData({
+        ...result,
+        unreadCount,
+      });
     } catch (err) {
       console.error("Failed to load warranty notifications:", err);
       setError(err);
@@ -45,10 +60,20 @@ export const useWarrantyNotifications = () => {
     loadNotifications();
   }, [loadNotifications]);
 
+  const markAllAsRead = useCallback(() => {
+    markAllNotificationsAsRead(data.notifications);
+
+    setData((prev) => ({
+      ...prev,
+      unreadCount: 0,
+    }));
+  }, [data.notifications]);
+
   return {
     ...data,
     loading,
     error,
     refreshNotifications: loadNotifications,
+    markAllAsRead,
   };
 };
