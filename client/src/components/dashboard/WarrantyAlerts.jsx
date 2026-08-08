@@ -1,31 +1,61 @@
 import { ChevronRight, ShieldAlert } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
 import EmptyState from "../common/EmptyState";
+import { getWarrantyNotifications } from "../../utils/warrantyReminder";
 
 function WarrantyAlerts({ warranties = [] }) {
-  // Calculate remaining days
-  const getDaysLeft = (expiryDate) => {
-    if (!expiryDate) return "No expiry";
+  const navigate = useNavigate();
 
-    const today = new Date();
-    const expiry = new Date(expiryDate);
+  // Billvora 5.0 reminder notifications
+  const notifications = getWarrantyNotifications(warranties);
 
-    today.setHours(0, 0, 0, 0);
-    expiry.setHours(0, 0, 0, 0);
+  // Temporary development fallback
+  // If no warranty falls inside 30/15/7/1/today window,
+  // show one demo alert using the first warranty so the UI is visible.
+  const displayNotifications =
+    notifications.length > 0
+      ? notifications
+      : warranties.slice(0, 1).map((warranty) => ({
+          id: warranty.id,
+          warrantyId: warranty.id,
+          productName: warranty.productName,
+          formattedExpiryDate: "Demo - 7 days left",
+          title: "Warranty expires in 7 days",
+          priority: "high",
+        }));
 
-    const diffTime = expiry - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const getBadgeStyles = (priority) => {
+    switch (priority) {
+      case "critical":
+        return {
+          iconBg: "bg-red-100",
+          icon: "text-red-600",
+          text: "text-red-600",
+        };
 
-    if (diffDays < 0) return "Expired";
-    if (diffDays === 0) return "Expires Today";
-    if (diffDays === 1) return "1 day left";
+      case "high":
+        return {
+          iconBg: "bg-orange-100",
+          icon: "text-orange-600",
+          text: "text-orange-600",
+        };
 
-    return `${diffDays} days left`;
+      case "medium":
+        return {
+          iconBg: "bg-amber-100",
+          icon: "text-amber-600",
+          text: "text-amber-600",
+        };
+
+      default:
+        return {
+          iconBg: "bg-blue-100",
+          icon: "text-blue-600",
+          text: "text-blue-600",
+        };
+    }
   };
-
-  // Sort by nearest expiry
-  const sortedWarranties = [...warranties].sort(
-    (a, b) => new Date(a.expiryDate) - new Date(b.expiryDate)
-  );
 
   return (
     <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -35,44 +65,60 @@ function WarrantyAlerts({ warranties = [] }) {
           Warranty Alerts
         </h2>
 
-        <button className="flex items-center gap-1 text-sm font-medium text-blue-600 transition hover:text-blue-700">
+        <button
+          onClick={() => navigate("/notifications")}
+          className="flex items-center gap-1 text-sm font-medium text-blue-600 transition hover:text-blue-700"
+        >
           View All
           <ChevronRight size={16} />
         </button>
       </div>
 
       {/* Empty State */}
-      {sortedWarranties.length === 0 ? (
-  <EmptyState
-    icon={ShieldAlert}
-    title="No Warranties Found"
-    description="Your active warranties will appear here."
-  />
-) : (
+      {displayNotifications.length === 0 ? (
+        <EmptyState
+          icon={ShieldAlert}
+          title="No Warranty Alerts"
+          description="No warranties are currently expiring soon."
+        />
+      ) : (
         <div className="space-y-4">
-          {sortedWarranties.slice(0, 5).map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-4 rounded-2xl border border-gray-100 p-4 transition hover:bg-gray-50"
-            >
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-100">
-                <ShieldAlert
-                  size={20}
-                  className="text-orange-600"
-                />
-              </div>
+          {displayNotifications.slice(0, 5).map((notification) => {
+            const styles = getBadgeStyles(notification.priority);
 
-              <div>
-                <h3 className="font-medium text-gray-900">
-                  {item.productName}
-                </h3>
+            return (
+              <button
+                key={notification.id}
+                onClick={() =>
+                  navigate(`/warranty/${notification.warrantyId}`)
+                }
+                className="flex w-full items-center gap-4 rounded-2xl border border-gray-100 p-4 text-left transition hover:bg-gray-50"
+              >
+                <div
+                  className={`flex h-11 w-11 items-center justify-center rounded-xl ${styles.iconBg}`}
+                >
+                  <ShieldAlert
+                    size={20}
+                    className={styles.icon}
+                  />
+                </div>
 
-                <p className="text-sm text-orange-600">
-                  {getDaysLeft(item.expiryDate)}
-                </p>
-              </div>
-            </div>
-          ))}
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-medium text-gray-900">
+                    {notification.productName}
+                  </h3>
+
+                  <p className={`text-sm font-medium ${styles.text}`}>
+                    {notification.title}
+                  </p>
+
+                  <p className="mt-1 text-xs text-gray-500">
+                    Expires on {notification.formattedExpiryDate}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

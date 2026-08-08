@@ -24,6 +24,8 @@ import RecentActivity from "../../components/dashboard/RecentActivity";
 import { getReceipts } from "../../services/receiptService";
 import { getWarranties } from "../../services/warrantyService";
 
+
+
 import DashboardSkeleton from "../../components/common/skeleton/DashboardSkeleton";
 import {
   Receipt,
