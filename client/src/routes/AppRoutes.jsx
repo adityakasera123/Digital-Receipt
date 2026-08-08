@@ -23,6 +23,7 @@ import EditWarranty from "../pages/EditWarranty/EditWarranty";
 
 import Search from "../pages/Search/Search";
 import Analytics from "../pages/Analytics/Analytics";
+import Notifications from "../pages/Notifications/Notifications";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 
@@ -38,7 +39,10 @@ function AppRoutes() {
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
       </Route>
 
       {/* Protected Dashboard */}
@@ -52,25 +56,42 @@ function AppRoutes() {
         {/* Dashboard */}
         <Route path="/dashboard" element={<Dashboard />} />
 
-        {/* Receipt */}
+        {/* Receipts */}
         <Route path="/receipts" element={<Receipts />} />
-        <Route path="/receipts/:id" element={<ReceiptDetail />} />
-        <Route path="/receipts/edit/:id" element={<EditReceipt />} />
+        <Route
+          path="/receipts/:id"
+          element={<ReceiptDetail />}
+        />
+        <Route
+          path="/receipts/edit/:id"
+          element={<EditReceipt />}
+        />
 
         {/* Upload */}
         <Route path="/upload" element={<Upload />} />
 
         {/* Warranty */}
         <Route path="/warranty" element={<Warranty />} />
-        <Route path="/warranty/:id" element={<WarrantyDetail />} />
-        <Route path="/warranty/edit/:id" element={<EditWarranty />} />
+        <Route
+          path="/warranty/:id"
+          element={<WarrantyDetail />}
+        />
+        <Route
+          path="/warranty/edit/:id"
+          element={<EditWarranty />}
+        />
 
         {/* Search */}
         <Route path="/search" element={<Search />} />
 
-          {/* Analytics */}
-<Route path="/analytics" element={<Analytics />} />
+        {/* Analytics */}
+        <Route path="/analytics" element={<Analytics />} />
 
+        {/* Notifications */}
+        <Route
+          path="/notifications"
+          element={<Notifications />}
+        />
       </Route>
     </Routes>
   );

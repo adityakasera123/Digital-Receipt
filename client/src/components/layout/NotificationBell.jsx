@@ -144,11 +144,13 @@ function NotificationBell() {
 
               <div className="border-t border-gray-100 pt-3">
                <button
-  onClick={() => setOpen(false)}
-  className="w-full cursor-not-allowed rounded-xl py-2 text-sm font-medium text-gray-400"
-  disabled
+  onClick={() => {
+    navigate("/notifications");
+    setOpen(false);
+  }}
+  className="w-full rounded-xl py-2 text-sm font-medium text-blue-600 transition hover:bg-blue-50"
 >
-  View all notifications (Coming soon)
+  View all notifications
 </button>
               </div>
             </div>
