@@ -20,11 +20,12 @@ import ExpenseChart from "../../components/dashboard/ExpenseChart";
 import ExpenseCategories from "../../components/dashboard/ExpenseCategories";
 import QuickActions from "../../components/dashboard/QuickActions";
 import RecentActivity from "../../components/dashboard/RecentActivity";
+import UrgentReminderModal from "../../components/dashboard/UrgentReminderModal";
+
+import { useWarrantyNotifications } from "../../hooks/useWarrantyNotifications";
 
 import { getReceipts } from "../../services/receiptService";
 import { getWarranties } from "../../services/warrantyService";
-
-
 
 import DashboardSkeleton from "../../components/common/skeleton/DashboardSkeleton";
 import {
@@ -40,6 +41,21 @@ function Dashboard() {
   const [receipts, setReceipts] = useState([]);
   const [warranties, setWarranties] = useState([]);
   const [dashboardLoading, setDashboardLoading] = useState(true);
+
+  // Billvora 5.0 notifications
+  const { popupNotification } = useWarrantyNotifications();
+  const [showReminderModal, setShowReminderModal] = useState(true);
+
+  // Temporary shared demo notification
+  const demoPopupNotification =
+    popupNotification || {
+      id: "demo-1",
+      warrantyId: "demo-1",
+      productName: "MacBook Air M2",
+      storeName: "Apple Store",
+      title: "Warranty expires in 7 days",
+      formattedExpiryDate: "15 Aug 2026",
+    };
 
   useEffect(() => {
     if (!user) return;
@@ -79,73 +95,84 @@ function Dashboard() {
   const categorySpending = calculateCategorySpending(receipts);
 
   return (
-    <div className="space-y-10">
-      {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold text-gray-900">
-          Welcome back, {user?.displayName || "User"} 👋
-        </h1>
+    <>
+      <div className="space-y-10">
+        {/* Header */}
+        <div>
+          <h1 className="text-4xl font-bold text-gray-900">
+            Welcome back, {user?.displayName || "User"} 👋
+          </h1>
 
-        <p className="mt-4 max-w-2xl text-lg text-gray-500">
-          Manage all your receipts, warranties and purchases from one place.
-        </p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-7 md:grid-cols-2 2xl:grid-cols-4">
-        <StatCard
-          title="Total Receipts"
-          value={receipts.length}
-          subtitle="Stored receipts"
-          icon={Receipt}
-        />
-
-        <StatCard
-          title="Active Warranties"
-          value={activeWarranties}
-          subtitle={`${expiringSoon} expiring soon`}
-          icon={ShieldCheck}
-        />
-
-        <StatCard
-          title="Total Spending"
-          value={`₹${totalSpending.toLocaleString("en-IN")}`}
-          subtitle="Total purchase value"
-          icon={IndianRupee}
-        />
-
-        <StatCard
-          title="Saved Documents"
-          value={savedDocuments}
-          subtitle="Securely stored"
-          icon={FileText}
-        />
-      </div>
-
-      {/* Recent Receipts + Warranty Alerts */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <RecentReceipts receipts={receipts} />
+          <p className="mt-4 max-w-2xl text-lg text-gray-500">
+            Manage all your receipts, warranties and purchases from one place.
+          </p>
         </div>
 
-        <WarrantyAlerts warranties={warranties} />
-      </div>
+        {/* Stats */}
+        <div className="grid grid-cols-1 gap-7 md:grid-cols-2 2xl:grid-cols-4">
+          <StatCard
+            title="Total Receipts"
+            value={receipts.length}
+            subtitle="Stored receipts"
+            icon={Receipt}
+          />
 
-      {/* Analytics Section */}
-      <div className="mt-8">
-        <ExpenseChart data={monthlyExpenses} />
-      </div>
+          <StatCard
+            title="Active Warranties"
+            value={activeWarranties}
+            subtitle={`${expiringSoon} expiring soon`}
+            icon={ShieldCheck}
+          />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <ExpenseCategories categories={categorySpending} />
+          <StatCard
+            title="Total Spending"
+            value={`₹${totalSpending.toLocaleString("en-IN")}`}
+            subtitle="Total purchase value"
+            icon={IndianRupee}
+          />
 
-        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-          <QuickActions />
+          <StatCard
+            title="Saved Documents"
+            value={savedDocuments}
+            subtitle="Securely stored"
+            icon={FileText}
+          />
         </div>
 
-   <RecentActivity receipts={receipts} />
+        {/* Recent Receipts + Warranty Alerts */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <RecentReceipts receipts={receipts} />
+          </div>
+
+          <WarrantyAlerts warranties={warranties} />
+        </div>
+
+        {/* Analytics Section */}
+        <div className="mt-8">
+          <ExpenseChart data={monthlyExpenses} />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <ExpenseCategories categories={categorySpending} />
+
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+            <QuickActions />
+          </div>
+
+          <RecentActivity receipts={receipts} />
+        </div>
       </div>
-    </div>
+
+      {/* Billvora 5.0 Urgent Reminder Modal */}
+      <UrgentReminderModal
+        isOpen={showReminderModal}
+        notification={demoPopupNotification}
+        onClose={() => setShowReminderModal(false)}
+        onRemindLater={() => setShowReminderModal(false)}
+        onViewWarranty={() => setShowReminderModal(false)}
+      />
+    </>
   );
 }
 
