@@ -18,11 +18,21 @@ serverTimestamp,
 } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import SecuritySection from '../../components/settings/SecuritySection';
+import ConfirmModal from '../../components/common/ConfirmModal';
+import { useNavigate } from 'react-router-dom';
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+} from 'firebase/auth';
 import {
   exportReceipts,
   exportWarranties,
   exportNotifications,
   exportCompleteBackup,
+  deleteAllNotifications,
+  deleteAllReceipts,
+  deleteAllWarranties,
+  deleteAccount,
 } from '../../utils/exportUtils';
 
 const sections = [
@@ -54,12 +64,21 @@ timeStyle: 'short',
 
 export default function Settings() {
 const [activeSection, setActiveSection] = useState('profile');
+const navigate = useNavigate();
 
 const [displayName, setDisplayName] = useState('');
 const [email, setEmail] = useState('');
 const [memberSince, setMemberSince] = useState('');
 const [lastSignIn, setLastSignIn] = useState('');
 const [saving, setSaving] = useState(false);
+const [showDeleteNotificationsModal, setShowDeleteNotificationsModal] = useState(false);
+const [showDeleteReceiptsModal, setShowDeleteReceiptsModal] = useState(false);
+
+const [showDeleteWarrantiesModal, setShowDeleteWarrantiesModal] = useState(false);
+const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+
+const [deletePassword, setDeletePassword] = useState('');
+const [deletingAccount, setDeletingAccount] = useState(false);
 
 const [notifications, setNotifications] = useState({
 enabled: true,
@@ -180,6 +199,131 @@ try {
 
 };
 
+const handleDeleteAllNotifications = async () => {
+  const user = auth.currentUser;
+
+  if (!user) {
+    toast.error('User not found');
+    return;
+  }
+
+  try {
+    const deletedCount = await deleteAllNotifications(user.uid);
+
+    toast.success(
+      deletedCount === 0
+        ? 'No notifications to delete'
+        : `${deletedCount} notification${deletedCount === 1 ? '' : 's'} deleted`
+    );
+
+    setShowDeleteNotificationsModal(false);
+  } catch (error) {
+    console.error(error);
+    toast.error('Failed to delete notifications');
+  }
+};
+
+
+const handleDeleteAllReceipts = async () => {
+  const user = auth.currentUser;
+
+  if (!user) {
+    toast.error('User not found');
+    return;
+  }
+
+  try {
+    const deletedCount = await deleteAllReceipts(user.uid);
+
+    toast.success(
+      deletedCount === 0
+        ? 'No receipts to delete'
+        : `${deletedCount} receipt${deletedCount === 1 ? '' : 's'} deleted`
+    );
+
+    setShowDeleteReceiptsModal(false);
+  } catch (error) {
+    console.error(error);
+    toast.error('Failed to delete receipts');
+  }
+};
+
+const handleDeleteAllWarranties = async () => {
+  const user = auth.currentUser;
+
+  if (!user) {
+    toast.error('User not found');
+    return;
+  }
+
+  try {
+    const deletedCount = await deleteAllWarranties(user.uid);
+
+    toast.success(
+      deletedCount === 0
+        ? 'No warranties to delete'
+        : `${deletedCount} warrant${deletedCount === 1 ? 'y' : 'ies'} deleted`
+    );
+
+    setShowDeleteWarrantiesModal(false);
+  } catch (error) {
+    console.error(error);
+    toast.error('Failed to delete warranties');
+  }
+};
+
+
+const handleDeleteAccount = async () => {
+  const user = auth.currentUser;
+
+  if (!user) {
+    toast.error('User not found');
+    return;
+  }
+
+  if (!deletePassword) {
+    toast.error('Please enter your current password');
+    return;
+  }
+
+  try {
+    setDeletingAccount(true);
+
+    const credential = EmailAuthProvider.credential(
+      user.email,
+      deletePassword
+    );
+
+    await reauthenticateWithCredential(user, credential);
+
+    await deleteAccount(user);
+
+    toast.success('Account deleted successfully');
+
+    setShowDeleteAccountModal(false);
+    setDeletePassword('');
+
+    navigate('/');
+  } catch (error) {
+    console.error(error);
+
+    switch (error.code) {
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        toast.error('Current password is incorrect');
+        break;
+
+      case 'auth/requires-recent-login':
+        toast.error('Please log in again before deleting your account');
+        break;
+
+      default:
+        toast.error('Failed to delete account');
+    }
+  } finally {
+    setDeletingAccount(false);
+  }
+};
 const initial = (displayName || email || 'A').charAt(0).toUpperCase();
 
 return ( <div className="min-h-screen bg-[#F6F6F7] p-6"> <div className="mx-auto max-w-7xl"> <div className="mb-6"> <h1 className="text-3xl font-bold text-gray-900">Settings</h1> <p className="mt-1 text-gray-500">
@@ -520,11 +664,165 @@ Manage your account, notifications, security, and data preferences. </p> </div>
           </button>
         </div>
       </div>
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-red-700">Delete All Notifications</p>
+            <p className="text-sm text-red-600">
+              Permanently remove all in-app notifications from your account.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setShowDeleteNotificationsModal(true)}
+            className="rounded-xl bg-red-600 px-5 py-3 text-sm font-medium text-white hover:bg-red-700"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-red-700">Delete All Receipts</p>
+            <p className="text-sm text-red-600">
+              Permanently remove all receipts, receipt images, and linked warranties from your account.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setShowDeleteReceiptsModal(true)}
+            className="rounded-xl bg-red-600 px-5 py-3 text-sm font-medium text-white hover:bg-red-700"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-red-700">Delete All Warranties</p>
+            <p className="text-sm text-red-600">
+              Permanently remove all warranties from your account.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setShowDeleteWarrantiesModal(true)}
+            className="rounded-xl bg-red-600 px-5 py-3 text-sm font-medium text-white hover:bg-red-700"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+
+  <div className="rounded-2xl border border-red-300 bg-red-50 p-5">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="font-medium text-red-700">Delete Account</p>
+        <p className="text-sm text-red-600">
+          Permanently delete your Billvora account and all associated data.
+        </p>
+      </div>
+
+      <button
+        onClick={() => setShowDeleteAccountModal(true)}
+        className="rounded-xl bg-red-700 px-5 py-3 text-sm font-medium text-white hover:bg-red-800"
+      >
+        Delete Account
+      </button>
+    </div>
+  </div>
+
+  {showDeleteAccountModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+        <h3 className="text-2xl font-bold text-gray-900">
+          Delete your account?
+        </h3>
+
+        <p className="mt-3 text-gray-600">
+          This will permanently delete your Billvora account, receipts,
+          warranties, notifications, settings, and receipt images.
+          This action cannot be undone.
+        </p>
+
+        <div className="mt-5">
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            Enter your current password
+          </label>
+
+          <input
+            type="password"
+            value={deletePassword}
+            onChange={(e) => setDeletePassword(e.target.value)}
+            placeholder="Current password"
+            className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-gray-400"
+          />
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            onClick={() => {
+              setShowDeleteAccountModal(false);
+              setDeletePassword('');
+            }}
+            className="rounded-xl border border-gray-300 px-5 py-3 font-medium text-gray-700 hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+
+          <button
+            onClick={handleDeleteAccount}
+            disabled={deletingAccount}
+            className="rounded-xl bg-red-600 px-5 py-3 font-medium text-white hover:bg-red-700 disabled:opacity-60"
+          >
+            {deletingAccount ? 'Deleting...' : 'Delete Account'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+
+
   </div>
 )}
       </section>
     </div>
   </div>
+        <ConfirmModal
+        isOpen={showDeleteNotificationsModal}
+        onClose={() => setShowDeleteNotificationsModal(false)}
+        onConfirm={handleDeleteAllNotifications}
+        title="Delete all notifications?"
+        message="This will permanently delete all in-app notifications from your account. This action cannot be undone."
+        confirmText="Delete All"
+        cancelText="Cancel"
+        variant="danger"
+      />
+
+            <ConfirmModal
+        isOpen={showDeleteReceiptsModal}
+        onClose={() => setShowDeleteReceiptsModal(false)}
+        onConfirm={handleDeleteAllReceipts}
+        title="Delete all receipts?"
+        message="This will permanently delete all receipts, receipt images, and any linked warranties from your account. This action cannot be undone."
+        confirmText="Delete All"
+        cancelText="Cancel"
+        variant="danger"
+      />
+
+            <ConfirmModal
+        isOpen={showDeleteWarrantiesModal}
+        onClose={() => setShowDeleteWarrantiesModal(false)}
+        onConfirm={handleDeleteAllWarranties}
+        title="Delete all warranties?"
+        message="This will permanently delete all warranties from your account. This action cannot be undone."
+        confirmText="Delete All"
+        cancelText="Cancel"
+        variant="danger"
+      />
+          
 </div>
 
 

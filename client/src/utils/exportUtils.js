@@ -131,3 +131,137 @@ notifications,
 
 downloadJson('billvora-complete-backup.json', payload);
 }
+
+
+import { deleteDoc } from 'firebase/firestore';
+
+export async function deleteAllNotifications(userId) {
+const notificationsRef = collection(db, 'notifications');
+
+const notificationsQuery = query(
+notificationsRef,
+where('userId', '==', userId)
+);
+
+const snapshot = await getDocs(notificationsQuery);
+
+const deletePromises = snapshot.docs.map((notificationDoc) =>
+deleteDoc(notificationDoc.ref)
+);
+
+await Promise.all(deletePromises);
+
+return snapshot.size;
+}
+
+
+import { deleteObject, ref } from 'firebase/storage';
+import { storage } from '../firebase/firebase';
+
+export async function deleteAllReceipts(userId) {
+const receiptsRef = collection(db, 'receipts');
+
+const receiptsQuery = query(
+receiptsRef,
+where('userId', '==', userId)
+);
+
+const snapshot = await getDocs(receiptsQuery);
+
+let deletedCount = 0;
+
+for (const receiptDoc of snapshot.docs) {
+const receiptData = receiptDoc.data();
+
+
+// Delete linked warranties
+const warrantiesRef = collection(db, 'warranties');
+const warrantiesQuery = query(
+  warrantiesRef,
+  where('receiptId', '==', receiptDoc.id)
+);
+
+const warrantiesSnap = await getDocs(warrantiesQuery);
+
+const warrantyDeletes = warrantiesSnap.docs.map((warrantyDoc) =>
+  deleteDoc(warrantyDoc.ref)
+);
+
+await Promise.all(warrantyDeletes);
+
+// Delete receipt image from Firebase Storage
+if (receiptData.receiptImage) {
+  try {
+    const imageRef = ref(storage, receiptData.receiptImage);
+    await deleteObject(imageRef);
+  } catch (error) {
+    console.warn('Receipt image delete skipped:', error);
+  }
+}
+
+// Delete receipt document
+await deleteDoc(receiptDoc.ref);
+deletedCount++;
+
+
+}
+
+return deletedCount;
+}
+
+export async function deleteAllWarranties(userId) {
+const warrantiesRef = collection(db, 'warranties');
+
+const warrantiesQuery = query(
+warrantiesRef,
+where('userId', '==', userId)
+);
+
+const snapshot = await getDocs(warrantiesQuery);
+
+const deletePromises = snapshot.docs.map((warrantyDoc) =>
+deleteDoc(warrantyDoc.ref)
+);
+
+await Promise.all(deletePromises);
+
+return snapshot.size;
+}
+
+
+
+import { deleteUser } from 'firebase/auth';
+
+export async function deleteAccount(user) {
+if (!user) {
+throw new Error('User not found');
+}
+
+const userId = user.uid;
+
+// Delete all notifications
+await deleteAllNotifications(userId);
+
+// Delete all receipts (this also deletes linked warranties and receipt images)
+await deleteAllReceipts(userId);
+
+// Delete any remaining warranties
+await deleteAllWarranties(userId);
+
+// Delete user settings
+try {
+await deleteDoc(doc(db, 'users', userId, 'settings', 'notifications'));
+} catch (error) {
+console.warn('Notification settings delete skipped:', error);
+}
+
+// Delete user profile document
+try {
+await deleteDoc(doc(db, 'users', userId));
+} catch (error) {
+console.warn('User profile delete skipped:', error);
+}
+
+// Finally delete Firebase Authentication account
+await deleteUser(user);
+}
