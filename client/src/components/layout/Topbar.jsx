@@ -1,18 +1,15 @@
-import { Bell, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { AuthContext } from "../../context/AuthContext";
-import { useWarrantyNotifications } from "../../hooks/useWarrantyNotifications";
+import NotificationBell from "./NotificationBell";
 
 function Topbar() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
-
-  // Billvora 5.0 notification data
-  const { unreadCount } = useWarrantyNotifications();
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -47,19 +44,8 @@ function Topbar() {
 
       {/* Right Side */}
       <div className="ml-8 flex items-center gap-4">
-        {/* Notification */}
-        <button
-          className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 transition hover:bg-gray-100"
-          aria-label="Notifications"
-        >
-          <Bell size={20} />
-
-          {unreadCount > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
-          )}
-        </button>
+        {/* Notification Bell */}
+        <NotificationBell />
 
         {/* User */}
         <div className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2">
