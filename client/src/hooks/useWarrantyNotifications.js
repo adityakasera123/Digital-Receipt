@@ -1,20 +1,17 @@
 import { useEffect, useState, useCallback, useContext } from "react";
-import { getDashboardNotifications } from "../services/notificationService";
-import { AuthContext } from "../context/AuthContext";
-
 import {
-  getReadNotifications,
+  getDashboardNotifications,
   markAllNotificationsAsRead,
-} from "../utils/notificationStorage";
+  markNotificationAsRead,
+} from "../services/notificationService";
+import { AuthContext } from "../context/AuthContext";
 
 const initialState = {
   notifications: [],
   unreadCount: 0,
-  urgentCount: 0,
-  expiringToday: 0,
-  expiringTomorrow: 0,
-  expiringThisWeek: 0,
-  popupNotification: null,
+  criticalCount: 0,
+  hasUrgent: false,
+  nextUrgent: null,
 };
 
 export const useWarrantyNotifications = () => {
@@ -37,17 +34,7 @@ export const useWarrantyNotifications = () => {
 
       const result = await getDashboardNotifications(user.uid);
 
-      // Calculate unread count from localStorage
-      const readIds = getReadNotifications();
-
-      const unreadCount = result.notifications.filter(
-        (notification) => !readIds.includes(notification.id)
-      ).length;
-
-      setData({
-        ...result,
-        unreadCount,
-      });
+      setData(result);
     } catch (err) {
       console.error("Failed to load warranty notifications:", err);
       setError(err);
@@ -60,14 +47,46 @@ export const useWarrantyNotifications = () => {
     loadNotifications();
   }, [loadNotifications]);
 
-  const markAllAsRead = useCallback(() => {
-    markAllNotificationsAsRead(data.notifications);
+  const markAllAsRead = useCallback(async () => {
+    if (!user?.uid) return;
 
-    setData((prev) => ({
-      ...prev,
-      unreadCount: 0,
-    }));
-  }, [data.notifications]);
+    try {
+      await markAllNotificationsAsRead(user.uid);
+
+      setData((prev) => ({
+        ...prev,
+        notifications: prev.notifications.map((notification) => ({
+          ...notification,
+          isRead: true,
+        })),
+        unreadCount: 0,
+      }));
+    } catch (err) {
+      console.error("Failed to mark notifications as read:", err);
+    }
+  }, [user?.uid]);
+
+  const markAsRead = useCallback(async (notificationId) => {
+    try {
+      await markNotificationAsRead(notificationId);
+
+      setData((prev) => {
+        const notifications = prev.notifications.map((notification) =>
+          notification.id === notificationId
+            ? { ...notification, isRead: true }
+            : notification
+        );
+
+        return {
+          ...prev,
+          notifications,
+          unreadCount: notifications.filter((n) => !n.isRead).length,
+        };
+      });
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+    }
+  }, []);
 
   return {
     ...data,
@@ -75,5 +94,6 @@ export const useWarrantyNotifications = () => {
     error,
     refreshNotifications: loadNotifications,
     markAllAsRead,
+    markAsRead,
   };
 };

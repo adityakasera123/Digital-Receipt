@@ -50,7 +50,10 @@ const createNotification = (warranty, daysRemaining) => ({
   expiryDate: warranty.expiryDate,
   formattedExpiryDate: formatDisplayDate(warranty.expiryDate),
 
+  // Keep both values for compatibility
   daysRemaining,
+  reminderDays: daysRemaining,
+
   priority: getPriority(daysRemaining),
 
   title: getTitle(daysRemaining),
