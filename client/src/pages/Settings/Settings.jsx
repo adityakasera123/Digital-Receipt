@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+
 import {
 User,
 Bell,
@@ -16,6 +17,7 @@ getDoc,
 serverTimestamp,
 } from 'firebase/firestore';
 import toast from 'react-hot-toast';
+import SecuritySection from '../../components/settings/SecuritySection';
 
 const sections = [
 { id: 'profile', label: 'Profile', icon: User },
@@ -373,6 +375,7 @@ Manage your account, notifications, security, and data preferences. </p> </div>
             </div>
           </>
         )}
+        {activeSection === 'security' && <SecuritySection />}
       </section>
     </div>
   </div>
