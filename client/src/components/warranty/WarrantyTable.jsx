@@ -27,28 +27,37 @@ const WarrantyTable = ({ warranties, onDelete }) => {
   };
 
   return (
-    <Card className='transition-theme'>
-      <div className='mb-6'>
-        <h2 className='text-2xl font-bold text-primary'>All Warranties</h2>
+    <Card>
+      {/* Header */}
+      <div className="mb-4">
+        <h2 className="text-2xl font-bold text-primary">
+          All Warranties
+        </h2>
       </div>
 
-      <div className='overflow-x-auto'>
-        <table className='w-full'>
-          <thead className='bg-surface'>
-            <tr className='border-b border-default'>
-              <th className='px-6 py-4 text-left text-sm font-semibold text-primary'>
+      {/* Table */}
+      <div className="overflow-x-hidden">
+        <table className="w-full">
+          {/* Desktop Header */}
+          <thead className="hidden bg-surface lg:table-header-group">
+            <tr className="border-b border-default">
+              <th className="px-6 py-4 text-left text-sm font-semibold text-primary">
                 Product
               </th>
-              <th className='px-6 py-4 text-left text-sm font-semibold text-primary'>
+
+              <th className="px-6 py-4 text-left text-sm font-semibold text-primary">
                 Purchase
               </th>
-              <th className='px-6 py-4 text-left text-sm font-semibold text-primary'>
+
+              <th className="px-6 py-4 text-left text-sm font-semibold text-primary">
                 Expiry
               </th>
-              <th className='px-6 py-4 text-left text-sm font-semibold text-primary'>
+
+              <th className="px-6 py-4 text-left text-sm font-semibold text-primary">
                 Status
               </th>
-              <th className='px-6 py-4 text-left text-sm font-semibold text-primary'>
+
+              <th className="px-6 py-4 text-left text-sm font-semibold text-primary">
                 Actions
               </th>
             </tr>
@@ -74,8 +83,8 @@ const WarrantyTable = ({ warranties, onDelete }) => {
             ) : (
               <tr>
                 <td
-                  colSpan='5'
-                  className='px-6 py-10 text-center text-secondary'
+                  colSpan="5"
+                  className="px-6 py-10 text-center text-secondary"
                 >
                   No warranties found.
                 </td>

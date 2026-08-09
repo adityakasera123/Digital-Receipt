@@ -115,65 +115,68 @@ const Search = () => {
 
   if (loading) {
     return (
-      <main className='min-h-screen bg-background transition-theme'>
-        <div className='mx-auto max-w-7xl p-8'>
-          <SearchSkeleton />
-        </div>
+      <main className="space-y-8">
+        <SearchSkeleton />
       </main>
     );
   }
 
   return (
-    <main className='min-h-screen bg-background transition-theme'>
-      <div className='mx-auto max-w-7xl p-8'>
-        {/* Header */}
-        <div className='mb-8'>
-          <h1 className='text-4xl font-bold tracking-tight text-primary'>
-            Search
-          </h1>
+    <main className="space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-4xl font-bold tracking-tight text-primary">
+          Search
+        </h1>
 
-          <p className='mt-2 text-secondary'>
-            Find receipts by product, store or category.
-          </p>
-        </div>
+        <p className="mt-2 text-secondary">
+          Find receipts by product, store or category.
+        </p>
+      </div>
 
+      {/* Sticky Search + Filters */}
+      <div className="sticky top-0 z-20 -mx-2 rounded-3xl bg-app/95 px-2 py-3 backdrop-blur supports-[backdrop-filter]:bg-app/80">
         {/* Search Bar */}
-        <div className='mb-8'>
+        <div className="mb-5">
           <SearchBar
             value={query}
             onChange={setQuery}
             onSearch={setQuery}
-            placeholder='Search receipts...'
+            placeholder="Search receipts..."
           />
         </div>
 
         {/* Filters + Sorting */}
-        <div className='mb-8 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between'>
-          <SearchFilters
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-          />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="overflow-x-auto">
+            <div className="min-w-max">
+              <SearchFilters
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+              />
+            </div>
+          </div>
 
           <SearchSort
             sortBy={sortBy}
             onSortChange={setSortBy}
           />
         </div>
-
-        {/* Result Count */}
-        <div className='mb-6'>
-          <p className='text-sm font-medium text-secondary'>
-            Showing {results.length} receipt
-            {results.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-
-        {/* Results */}
-        <SearchResults
-          results={results}
-          onView={handleView}
-        />
       </div>
+
+      {/* Result Count */}
+      <div>
+        <p className="text-sm font-medium text-secondary">
+          Showing {results.length} receipt
+          {results.length !== 1 ? 's' : ''}
+        </p>
+      </div>
+
+      {/* Results */}
+      <SearchResults
+        results={results}
+        onView={handleView}
+      />
     </main>
   );
 };

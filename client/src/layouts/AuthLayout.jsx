@@ -10,7 +10,7 @@ const features = [
 const AuthLayout = () => {
   return (
     <div className="min-h-screen bg-slate-100 p-4 lg:p-6">
-     <div className="mx-auto flex h-[650px] w-[1120px] overflow-hidden rounded-[28px] bg-white shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
+     <div className="mx-auto flex h-[650px] w-full max-w-[1120px] overflow-hidden rounded-[28px] bg-white shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
 
         {/* LEFT SIDE */}
        <div className="flex h-full w-full justify-center overflow-y-auto px-8 py-8 lg:w-[42%]">

@@ -4,6 +4,7 @@ import {
   ShieldCheck,
   BarChart3,
 } from 'lucide-react';
+
 import AnalyticsCard from './AnalyticsCard';
 
 const AnalyticsSummaryGrid = ({ analytics }) => {
@@ -38,16 +39,20 @@ const AnalyticsSummaryGrid = ({ analytics }) => {
             analytics.highestPurchase.amount
           ).toLocaleString('en-IN')}`
         : '₹0',
-      subtitle: analytics.highestPurchase?.productName || 'No data',
+      subtitle:
+        analytics.highestPurchase?.productName || 'No data',
       icon: ShieldCheck,
       trend: '--',
     },
   ];
 
   return (
-    <div className='mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4'>
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-4 lg:gap-6">
       {summaryData.map((card) => (
-        <AnalyticsCard key={card.title} {...card} />
+        <AnalyticsCard
+          key={card.title}
+          {...card}
+        />
       ))}
     </div>
   );

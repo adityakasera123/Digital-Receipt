@@ -115,15 +115,15 @@ Manage your password, verification, and account sessions. </p> </div>
         </p>
       </div>
 
-      <span
-        className={`rounded-full px-3 py-1 text-xs font-semibold ${
-          user?.emailVerified
-            ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300'
-            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300'
-        }`}
-      >
-        {user?.emailVerified ? 'Verified' : 'Not verified'}
-      </span>
+     <span
+  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+    user?.emailVerified
+      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-500'
+      : 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400'
+  }`}
+>
+  {user?.emailVerified ? 'Verified' : 'Not verified'}
+</span>
     </div>
 
     {!user?.emailVerified && (

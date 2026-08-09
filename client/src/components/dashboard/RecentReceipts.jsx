@@ -1,15 +1,25 @@
 import { ChevronRight, Receipt } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
 import EmptyState from '../common/EmptyState';
 import Card from '../ui/Card';
 
 function RecentReceipts({ receipts = [] }) {
-  return (
-    <Card className='transition-theme'>
-      {/* Header */}
-      <div className='mb-5 flex items-center justify-between'>
-        <h2 className='text-2xl font-bold text-primary'>Recent Receipts</h2>
+  const navigate = useNavigate();
 
-        <button className='flex items-center gap-1 text-sm font-medium text-primary transition hover:opacity-80'>
+  return (
+    <Card>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-primary">
+          Recent Receipts
+        </h2>
+
+        <button
+          type="button"
+          onClick={() => navigate('/receipts')}
+          className="flex items-center gap-1 text-sm font-medium text-primary transition hover:opacity-80"
+        >
           View All
           <ChevronRight size={16} />
         </button>
@@ -19,11 +29,11 @@ function RecentReceipts({ receipts = [] }) {
       {receipts.length === 0 ? (
         <EmptyState
           icon={Receipt}
-          title='No receipts yet'
-          description='Upload your first receipt to start tracking purchases.'
+          title="No receipts yet"
+          description="Upload your first receipt to start tracking purchases."
         />
       ) : (
-        <div className='divide-y divide-[var(--border-color)]'>
+        <div className="divide-y divide-[var(--border-color)]">
           {receipts
             .slice()
             .sort((a, b) => {
@@ -34,22 +44,24 @@ function RecentReceipts({ receipts = [] }) {
             .map((receipt) => (
               <div
                 key={receipt.id}
-                className='flex items-center justify-between py-4 transition-theme'
+                className="flex items-center justify-between py-4 transition-theme"
               >
                 <div>
-                  <h3 className='font-semibold text-primary'>
+                  <h3 className="font-semibold text-primary">
                     {receipt.productName}
                   </h3>
 
-                  <p className='text-sm text-secondary'>{receipt.storeName}</p>
+                  <p className="text-sm text-secondary">
+                    {receipt.storeName}
+                  </p>
                 </div>
 
-                <div className='text-right'>
-                  <p className='font-semibold text-primary'>
+                <div className="text-right">
+                  <p className="font-semibold text-primary">
                     ₹{Number(receipt.amount || 0).toLocaleString('en-IN')}
                   </p>
 
-                  <p className='text-sm text-secondary'>
+                  <p className="text-sm text-secondary">
                     {receipt.purchaseDate}
                   </p>
                 </div>

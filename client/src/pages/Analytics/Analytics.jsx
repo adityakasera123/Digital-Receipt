@@ -16,7 +16,7 @@ const Analytics = () => {
   }
 
   return (
-    <div className='min-h-screen bg-background p-6 transition-theme'>
+    <div className="space-y-8">
       {/* Header */}
       <AnalyticsHeader />
 
@@ -24,8 +24,8 @@ const Analytics = () => {
       <AnalyticsSummaryGrid analytics={analytics} />
 
       {/* Charts */}
-      <div className='grid grid-cols-1 gap-6 xl:grid-cols-3'>
-        <div className='xl:col-span-2'>
+      <div className="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-3">
+        <div className="xl:col-span-2">
           <MonthlyExpenseChart data={analytics.monthlyExpenses} />
         </div>
 
