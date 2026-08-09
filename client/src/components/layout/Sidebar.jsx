@@ -103,13 +103,19 @@ function Sidebar() {
 
         <nav className="space-y-2">
 
-          <NavLink
-            to="/settings"
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-700 hover:bg-gray-100"
-          >
-            <Settings size={20} />
-            Settings
-          </NavLink>
+               <NavLink
+        to="/settings"
+        className={({ isActive }) =>
+          `flex items-center gap-3 rounded-xl px-4 py-3 transition-all ${
+            isActive
+              ? "bg-black text-white shadow-lg"
+              : "text-gray-700 hover:bg-gray-100"
+          }`
+        }
+      >
+        <Settings size={20} />
+        Settings
+      </NavLink>
 
           <NavLink
             to="/help-center"

@@ -24,6 +24,7 @@ import EditWarranty from "../pages/EditWarranty/EditWarranty";
 import Search from "../pages/Search/Search";
 import Analytics from "../pages/Analytics/Analytics";
 import Notifications from "../pages/Notifications/Notifications";
+import Settings from "../pages/Settings/Settings";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 
@@ -92,6 +93,9 @@ function AppRoutes() {
           path="/notifications"
           element={<Notifications />}
         />
+
+        {/* Settings */}
+        <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>
   );
