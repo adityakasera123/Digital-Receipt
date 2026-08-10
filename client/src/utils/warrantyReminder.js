@@ -14,18 +14,25 @@ export const NOTIFICATION_PRIORITY = {
 };
 
 /**
- * Returns priority based on remaining days
+ * Priority mapping (Production)
+ * 30d  - Low
+ * 15d  - Medium
+ * 7d   - High
+ * 3d   - High
+ * 1d   - Critical
+ * 0d   - Critical
  */
 const getPriority = (daysRemaining) => {
   if (daysRemaining === 0) return NOTIFICATION_PRIORITY.CRITICAL;
   if (daysRemaining === 1) return NOTIFICATION_PRIORITY.CRITICAL;
-  if (daysRemaining <= 7) return NOTIFICATION_PRIORITY.HIGH;
-  if (daysRemaining <= 15) return NOTIFICATION_PRIORITY.MEDIUM;
-  return NOTIFICATION_PRIORITY.LOW;
+  if (daysRemaining <= 3) return NOTIFICATION_PRIORITY.HIGH;
+  if (daysRemaining === 7) return NOTIFICATION_PRIORITY.HIGH;
+  if (daysRemaining === 15) return NOTIFICATION_PRIORITY.MEDIUM;
+  return NOTIFICATION_PRIORITY.LOW; // 30 days
 };
 
 /**
- * Returns title based on remaining days
+ * Notification title
  */
 const getTitle = (daysRemaining) => {
   if (daysRemaining === 0) return "Warranty expires today";
@@ -34,7 +41,7 @@ const getTitle = (daysRemaining) => {
 };
 
 /**
- * Convert a warranty document into a notification object
+ * Convert a warranty into a notification object
  */
 const createNotification = (warranty, daysRemaining) => ({
   id: warranty.id,
@@ -50,7 +57,6 @@ const createNotification = (warranty, daysRemaining) => ({
   expiryDate: warranty.expiryDate,
   formattedExpiryDate: formatDisplayDate(warranty.expiryDate),
 
-  // Keep both values for compatibility
   daysRemaining,
   reminderDays: daysRemaining,
 
@@ -65,7 +71,7 @@ const createNotification = (warranty, daysRemaining) => ({
 });
 
 /**
- * Generate all warranty notifications
+ * Generate warranty notifications
  */
 export const getWarrantyNotifications = (warranties = []) => {
   const notifications = [];
@@ -74,19 +80,17 @@ export const getWarrantyNotifications = (warranties = []) => {
     const daysRemaining = getDaysRemaining(warranty.expiryDate);
 
     if (daysRemaining === null) return;
-
-    // Ignore expired warranties
     if (daysRemaining < 0) return;
 
-    // Only notify for supported reminder windows
-    const reminderDays = [30, 15, 7, 1, 0];
+    // Reminder windows
+    const reminderDays = [30, 15, 7, 3, 1, 0];
 
     if (reminderDays.includes(daysRemaining)) {
       notifications.push(createNotification(warranty, daysRemaining));
     }
   });
 
-  // Sort by urgency
+  // Sort by priority then by days remaining
   notifications.sort((a, b) => {
     const priorityOrder = {
       critical: 0,
@@ -106,7 +110,7 @@ export const getWarrantyNotifications = (warranties = []) => {
 };
 
 /**
- * Returns notification summary used across the dashboard
+ * Dashboard notification summary
  */
 export const getNotificationSummary = (warranties = []) => {
   const notifications = getWarrantyNotifications(warranties);
@@ -128,6 +132,7 @@ export const getNotificationSummary = (warranties = []) => {
 
     expiringThisWeek: notifications.filter((n) => n.daysRemaining <= 7).length,
 
+    // Popup triggers only for High & Critical (7d, 3d, 1d, 0d)
     popupNotification:
       notifications.find(
         (n) =>

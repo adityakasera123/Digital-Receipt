@@ -30,7 +30,6 @@ export const useWarrantyNotifications = () => {
       return;
     }
 
-
     try {
       setLoading(true);
       setError(null);
@@ -49,21 +48,16 @@ export const useWarrantyNotifications = () => {
     } finally {
       setLoading(false);
     }
-
-
   }, [user?.uid]);
 
-  // Initial load
   useEffect(() => {
     loadNotifications();
   }, [loadNotifications]);
 
-  // Refresh when notifications are updated elsewhere
   useEffect(() => {
     const handleNotificationsUpdated = () => {
       loadNotifications();
     };
-
 
     window.addEventListener(
       "notifications-updated",
@@ -76,11 +70,8 @@ export const useWarrantyNotifications = () => {
         handleNotificationsUpdated
       );
     };
-
-
   }, [loadNotifications]);
 
-  // Refresh when user returns to the app or tab
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
@@ -88,13 +79,15 @@ export const useWarrantyNotifications = () => {
       }
     };
 
-
     const handleFocus = () => {
       loadNotifications();
     };
 
     window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleVisibility);
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibility
+    );
 
     return () => {
       window.removeEventListener("focus", handleFocus);
@@ -103,13 +96,10 @@ export const useWarrantyNotifications = () => {
         handleVisibility
       );
     };
-
-
   }, [loadNotifications]);
 
   const markAllAsRead = useCallback(async () => {
     if (!user?.uid) return;
-
 
     try {
       await markAllNotificationsAsRead(user.uid);
@@ -131,14 +121,11 @@ export const useWarrantyNotifications = () => {
     } catch (err) {
       console.error("Failed to mark notifications as read:", err);
     }
-
-
   }, [user?.uid]);
 
   const markAsRead = useCallback(async (notificationId) => {
     try {
       await markNotificationAsRead(notificationId);
-
 
       setData((prev) => {
         const notifications = prev.notifications.map((notification) =>
@@ -153,7 +140,11 @@ export const useWarrantyNotifications = () => {
           notifications.find(
             (n) =>
               !n.isRead &&
-              (n.priority === "critical" || n.priority === "high")
+              (
+                n.priority === "critical" ||
+                n.priority === "high" ||
+                n.priority === "medium"
+              )
           ) || null;
 
         return {
@@ -173,14 +164,12 @@ export const useWarrantyNotifications = () => {
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
     }
-
-
   }, []);
 
-  const snooze = useCallback(async (notificationId, days) => {
+  // TEST MODE: minutes instead of days
+  const snooze = useCallback(async (notificationId, minutes) => {
     try {
-      await snoozeNotification(notificationId, days);
-
+      await snoozeNotification(notificationId, minutes);
 
       setData((prev) => {
         const updatedNotifications = prev.notifications.filter(
@@ -191,7 +180,11 @@ export const useWarrantyNotifications = () => {
           updatedNotifications.find(
             (n) =>
               !n.isRead &&
-              (n.priority === "critical" || n.priority === "high")
+              (
+                n.priority === "critical" ||
+                n.priority === "high" ||
+                n.priority === "medium"
+              )
           ) || null;
 
         return {
@@ -211,8 +204,6 @@ export const useWarrantyNotifications = () => {
     } catch (err) {
       console.error("Failed to snooze notification:", err);
     }
-
-
   }, []);
 
   return {

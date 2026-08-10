@@ -15,7 +15,7 @@ return ( <div className="fixed inset-0 z-[100] flex items-center justify-center 
        className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
      > <X size={18} /> </button>
 
-```
+
     {/* Icon */}
     <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-100">
       <ShieldAlert size={28} className="text-red-600" />
