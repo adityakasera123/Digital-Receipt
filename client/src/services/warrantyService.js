@@ -71,7 +71,25 @@ export const updateWarranty = async (id, warrantyData) => {
 
 // Delete Warranty
 export const deleteWarranty = async (warrantyId) => {
-  const warrantyRef = doc(db, "warranties", warrantyId);
+// Delete linked notifications
+const notificationsRef = collection(db, 'notifications');
+const notificationsQuery = query(
+notificationsRef,
+where('warrantyId', '==', warrantyId)
+);
 
-  await deleteDoc(warrantyRef);
+const notificationsSnap = await getDocs(notificationsQuery);
+
+await Promise.all(
+notificationsSnap.docs.map((notificationDoc) =>
+deleteDoc(notificationDoc.ref)
+)
+);
+
+// Delete the warranty document
+const warrantyRef = doc(db, 'warranties', warrantyId);
+await deleteDoc(warrantyRef);
+
+// Refresh notification UI (bell icon, popup, etc.)
+window.dispatchEvent(new Event('notifications-updated'));
 };
