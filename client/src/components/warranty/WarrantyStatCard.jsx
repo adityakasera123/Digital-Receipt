@@ -1,15 +1,16 @@
+import Card from '../ui/Card';
+
 const WarrantyStatCard = ({
   title,
   count,
   description,
   icon,
-  iconBg = "bg-indigo-100",
-  iconColor = "text-indigo-600",
+  iconBg = 'bg-indigo-100',
+  iconColor = 'text-indigo-600',
 }) => {
   return (
-    <div className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-
-      <div className="flex items-center justify-between">
+    <Card className='transition-theme'>
+      <div className='flex items-center justify-between'>
         <div
           className={`flex h-12 w-12 items-center justify-center rounded-2xl ${iconBg}`}
         >
@@ -17,21 +18,16 @@ const WarrantyStatCard = ({
         </div>
       </div>
 
-      <div className="mt-6">
-        <h3 className="text-sm font-medium text-slate-500">
-          {title}
-        </h3>
+      <div className='mt-6'>
+        <h3 className='text-sm font-medium text-secondary'>{title}</h3>
 
-        <p className="mt-2 text-4xl font-bold tracking-tight text-slate-900">
+        <p className='mt-2 text-4xl font-bold tracking-tight text-primary'>
           {count}
         </p>
 
-        <p className="mt-2 text-sm leading-6 text-slate-500">
-          {description}
-        </p>
+        <p className='mt-2 text-sm leading-6 text-secondary'>{description}</p>
       </div>
-
-    </div>
+    </Card>
   );
 };
 

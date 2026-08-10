@@ -1,4 +1,5 @@
-import UpcomingWarrantyCard from "./UpcomingWarrantyCard";
+import Card from '../ui/Card';
+import UpcomingWarrantyCard from './UpcomingWarrantyCard';
 
 const UpcomingWarranty = ({ warranties }) => {
   const today = new Date();
@@ -21,18 +22,18 @@ const UpcomingWarranty = ({ warranties }) => {
     .slice(0, 4);
 
   return (
-    <section className="space-y-5">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">
+    <Card className='transition-theme'>
+      <div className='mb-6'>
+        <h2 className='text-2xl font-bold text-primary'>
           Upcoming Warranties
         </h2>
 
-        <p className="mt-1 text-slate-500">
+        <p className='mt-1 text-secondary'>
           Products that require your attention soon.
         </p>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className='grid gap-5 lg:grid-cols-2'>
         {upcomingWarranties.length > 0 ? (
           upcomingWarranties.map((item) => (
             <UpcomingWarrantyCard
@@ -45,12 +46,12 @@ const UpcomingWarranty = ({ warranties }) => {
             />
           ))
         ) : (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
+          <div className='rounded-2xl border border-dashed border-default bg-surface p-8 text-center text-secondary transition-theme'>
             No upcoming warranties found.
           </div>
         )}
       </div>
-    </section>
+    </Card>
   );
 };
 

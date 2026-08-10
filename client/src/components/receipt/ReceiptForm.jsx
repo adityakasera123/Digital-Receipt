@@ -1,213 +1,166 @@
-const ReceiptForm = ({ receiptData, onInputChange ,errors}) => {
+import Card from '../ui/Card';
+
+const ReceiptForm = ({ receiptData, onInputChange, errors }) => {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
-
+    <Card className='transition-theme'>
       {/* Header */}
-
-      <div className="mb-8">
-
-        <h2 className="text-xl font-semibold text-slate-900">
+      <div className='mb-8'>
+        <h2 className='text-xl font-semibold text-primary'>
           Receipt Information
         </h2>
 
-        <p className="mt-1 text-sm text-slate-500">
-          Enter your purchase details. Later, OCR can automatically fill these fields.
+        <p className='mt-1 text-sm text-secondary'>
+          Enter your purchase details. Later, OCR can automatically fill these
+          fields.
         </p>
-
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-
+      <div className='grid gap-6 md:grid-cols-2'>
         {/* Product Name */}
+        <div>
+          <label className='mb-2 block text-sm font-medium text-primary'>
+            Product Name
+          </label>
 
-<div>
+          <input
+            type='text'
+            name='productName'
+            value={receiptData.productName}
+            onChange={onInputChange}
+            placeholder='iPhone 16 Pro, AirPods Pro...'
+            className={`input-surface w-full rounded-xl px-4 py-3 outline-none transition-theme ${
+              errors.productName ? 'border-red-500' : ''
+            }`}
+          />
 
-  <label className="mb-2 block text-sm font-medium text-slate-700">
-    Product Name
-  </label>
-
-  <input
-    type="text"
-    name="productName"
-    value={receiptData.productName}
-    onChange={onInputChange}
-    placeholder="iPhone 16 Pro, AirPods Pro..."
-    className={`w-full rounded-xl bg-white px-4 py-3 outline-none transition focus:border-indigo-500 ${
-      errors.productName
-        ? "border border-red-500"
-        : "border border-slate-200"
-    }`}
-  />
-
-  {errors.productName && (
-    <p className="mt-2 text-sm text-red-500">
-      {errors.productName}
-    </p>
-  )}
-
-</div>
+          {errors.productName && (
+            <p className='mt-2 text-sm text-red-500'>{errors.productName}</p>
+          )}
+        </div>
 
         {/* Store Name */}
-
         <div>
-
-          <label className="mb-2 block text-sm font-medium text-slate-700">
+          <label className='mb-2 block text-sm font-medium text-primary'>
             Store Name
           </label>
 
           <input
-            type="text"
-            name="storeName"
-  value={receiptData.storeName}
-  onChange={onInputChange}
-            placeholder="Amazon, Flipkart..."
-            className={`w-full rounded-xl bg-white px-4 py-3 outline-none transition focus:border-indigo-500 ${
-  errors.storeName
-    ? "border border-red-500"
-    : "border border-slate-200"
-}`}
+            type='text'
+            name='storeName'
+            value={receiptData.storeName}
+            onChange={onInputChange}
+            placeholder='Amazon, Flipkart...'
+            className={`input-surface w-full rounded-xl px-4 py-3 outline-none transition-theme ${
+              errors.storeName ? 'border-red-500' : ''
+            }`}
           />
-          {errors.storeName && (
-  <p className="mt-2 text-sm text-red-500">
-    {errors.storeName}
-  </p>
-)}
 
+          {errors.storeName && (
+            <p className='mt-2 text-sm text-red-500'>{errors.storeName}</p>
+          )}
         </div>
 
         {/* Purchase Date */}
-
         <div>
-
-          <label className="mb-2 block text-sm font-medium text-slate-700">
+          <label className='mb-2 block text-sm font-medium text-primary'>
             Purchase Date
           </label>
 
           <input
-  type="date"
-  name="purchaseDate"
-  value={receiptData.purchaseDate}
-  onChange={onInputChange}
-  className={`w-full rounded-xl bg-white px-4 py-3 outline-none transition focus:border-indigo-500 ${
-  errors.purchaseDate
-    ? "border border-red-500"
-    : "border border-slate-200"
-}`}
-/>
-{errors.purchaseDate && (
-  <p className="mt-2 text-sm text-red-500">
-    {errors.purchaseDate}
-  </p>
-)}
+            type='date'
+            name='purchaseDate'
+            value={receiptData.purchaseDate}
+            onChange={onInputChange}
+            className={`input-surface w-full rounded-xl px-4 py-3 outline-none transition-theme ${
+              errors.purchaseDate ? 'border-red-500' : ''
+            }`}
+          />
 
+          {errors.purchaseDate && (
+            <p className='mt-2 text-sm text-red-500'>{errors.purchaseDate}</p>
+          )}
         </div>
 
         {/* Category */}
-
         <div>
-
-          <label className="mb-2 block text-sm font-medium text-slate-700">
+          <label className='mb-2 block text-sm font-medium text-primary'>
             Category
           </label>
 
           <select
-            name="category"
+            name='category'
             value={receiptData.category}
-            onChange={onInputChange} 
-
-        className={`w-full rounded-xl bg-white px-4 py-3 outline-none transition focus:border-indigo-500 ${
-  errors.category
-    ? "border border-red-500"
-    : "border border-slate-200"
-}`}
-        >
-            
-
-          <option value="">Select Category</option>
-<option value="Electronics">Electronics</option>
-<option value="Fashion">Fashion</option>
-<option value="Grocery">Grocery</option>
-<option value="Home">Home</option>
-<option value="Others">Others</option>
-
+            onChange={onInputChange}
+            className={`input-surface w-full rounded-xl px-4 py-3 outline-none transition-theme ${
+              errors.category ? 'border-red-500' : ''
+            }`}
+          >
+            <option value=''>Select Category</option>
+            <option>Electronics</option>
+            <option>Fashion</option>
+            <option>Food</option>
+            <option>Travel</option>
+            <option>Home</option>
+            <option>Others</option>
           </select>
-          {errors.category && (
-  <p className="mt-2 text-sm text-red-500">
-    {errors.category}
-  </p>
-)}
 
+          {errors.category && (
+            <p className='mt-2 text-sm text-red-500'>{errors.category}</p>
+          )}
         </div>
 
         {/* Amount */}
-
         <div>
-
-          <label className="mb-2 block text-sm font-medium text-slate-700">
+          <label className='mb-2 block text-sm font-medium text-primary'>
             Amount
           </label>
 
           <input
-            type="number"
-                 name="amount"
-             value={receiptData.amount}
-             onChange={onInputChange}
-            placeholder="₹ 0.00"
-           
-          className={`w-full rounded-xl bg-white px-4 py-3 outline-none transition focus:border-indigo-500 ${
-  errors.amount
-    ? "border border-red-500"
-    : "border border-slate-200"
-}`}
-            /> 
-            {errors.amount && (
-  <p className="mt-2 text-sm text-red-500">
-    {errors.amount}
-  </p>
-)}
+            type='number'
+            name='amount'
+            value={receiptData.amount}
+            onChange={onInputChange}
+            placeholder='₹ 0.00'
+            className={`input-surface w-full rounded-xl px-4 py-3 outline-none transition-theme ${
+              errors.amount ? 'border-red-500' : ''
+            }`}
+          />
+
+          {errors.amount && (
+            <p className='mt-2 text-sm text-red-500'>{errors.amount}</p>
+          )}
         </div>
 
+        {/* Payment Method */}
+        <div>
+          <label className='mb-2 block text-sm font-medium text-primary'>
+            Payment Method
+          </label>
+
+          <select
+            name='paymentMethod'
+            value={receiptData.paymentMethod}
+            onChange={onInputChange}
+            className={`input-surface w-full rounded-xl px-4 py-3 outline-none transition-theme ${
+              errors.paymentMethod ? 'border-red-500' : ''
+            }`}
+          >
+            <option value=''>Select Payment Method</option>
+            <option>UPI</option>
+            <option>Credit Card</option>
+            <option>Debit Card</option>
+            <option>Cash</option>
+            <option>Net Banking</option>
+          </select>
+
+          {errors.paymentMethod && (
+            <p className='mt-2 text-sm text-red-500'>
+              {errors.paymentMethod}
+            </p>
+          )}
+        </div>
       </div>
-
-      {/* Payment Method */}
-
-      <div className="mt-6">
-
-        <label className="mb-2 block text-sm font-medium text-slate-700">
-          Payment Method
-        </label>
-
-        <select
-
-  name="paymentMethod"
-  value={receiptData.paymentMethod}
-  onChange={onInputChange}
-
-
-         className={`w-full rounded-xl bg-white px-4 py-3 outline-none transition focus:border-indigo-500 ${
-  errors.paymentMethod
-    ? "border border-red-500"
-    : "border border-slate-200"
-}`}
-        >
-            {errors.paymentMethod && (
-  <p className="mt-2 text-sm text-red-500">
-    {errors.paymentMethod}
-  </p>
-)}
-
-         <option value="">Select Payment Method</option>
-          <option>UPI</option>
-          <option>Credit Card</option>
-          <option>Debit Card</option>
-          <option>Cash</option>
-          <option>Net Banking</option>
-
-        </select>
-
-      </div>
-
-    </section>
+    </Card>
   );
 };
 

@@ -1,209 +1,116 @@
-import { useRef } from "react";
-
-
+import { useRef } from 'react';
 import {
   ArrowUpFromLine,
   ScanText,
   ShieldCheck,
   Sparkles,
-} from "lucide-react";
+} from 'lucide-react';
+import Card from '../ui/Card';
 
 const UploadPanel = ({ onFileChange, errors }) => {
-    const fileInputRef = useRef(null);
-   const handleFileChange = (e) => {
-  const file = e.target.files[0];
+  const fileInputRef = useRef(null);
 
-  if (!file) return;
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    onFileChange(file);
+  };
 
-  console.log(file);
-
-  onFileChange(file);
-};
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
-
+    <Card className='transition-theme'>
       {/* Header */}
-
-      <div className="mb-6 flex items-start justify-between">
-
+      <div className='mb-6 flex items-start justify-between'>
         <div>
+          <h2 className='text-xl font-semibold text-primary'>Upload Receipt</h2>
 
-          <h2 className="text-xl font-semibold text-slate-900">
-            Upload Receipt
-          </h2>
-
-          <p className="mt-1 max-w-md text-sm leading-6 text-slate-500">
+          <p className='mt-1 max-w-md text-sm leading-6 text-secondary'>
             Securely upload invoices and receipts for OCR extraction,
             warranty tracking and AI insights.
           </p>
-
         </div>
 
-        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+        <span className='rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700'>
           Ready
         </span>
-
       </div>
 
       {/* Upload Area */}
-
       <div
-        className="
-          group
-          rounded-2xl
-          border-2
-          border-dashed
-          border-slate-200
-          bg-slate-50
-          px-8
-          py-10
-          text-center
-          transition-all
-          duration-300
-          hover:border-indigo-400
-          hover:bg-indigo-50/30
-        "
+        className='group rounded-2xl border-2 border-dashed border-default bg-surface px-8 py-10 text-center transition-theme hover:bg-surface-hover'
       >
-
         {/* Icon */}
-
-        <div
-          className="
-            mx-auto
-            flex
-            h-14
-            w-14
-            items-center
-            justify-center
-            rounded-xl
-            bg-white
-            shadow-sm
-            transition-transform
-            duration-300
-            group-hover:scale-105
-          "
-        >
-          <ArrowUpFromLine
-            size={26}
-            className="text-indigo-600"
-          />
+        <div className='mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-surface shadow-surface transition-transform duration-300 group-hover:scale-105'>
+          <ArrowUpFromLine size={26} className='text-primary' />
         </div>
 
         {/* Heading */}
-
-        <h3 className="mt-5 text-2xl font-semibold text-slate-900">
+        <h3 className='mt-5 text-2xl font-semibold text-primary'>
           Drag & Drop Receipt
         </h3>
 
-        <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">
-          Drop your receipt here or browse from your computer.
-          Billvora will securely store it and prepare it for OCR.
+        <p className='mx-auto mt-2 max-w-sm text-sm leading-6 text-secondary'>
+          Drop your receipt here or browse from your computer. Billvora will
+          securely store it and prepare it for OCR.
         </p>
-<input
-  ref={fileInputRef}
-  type="file"
-  accept="image/*,.pdf"
-  className="hidden"
-  onChange={handleFileChange}
-/>
 
+        {/* Hidden Input */}
+        <input
+          ref={fileInputRef}
+          type='file'
+          accept='image/*,.pdf'
+          className='hidden'
+          onChange={handleFileChange}
+        />
 
         {/* Button */}
-
         <button
-          type="button"
+          type='button'
           onClick={() => fileInputRef.current.click()}
-          className="
-            mt-6
-            inline-flex
-            items-center
-            gap-2
-            rounded-xl
-            border
-            border-slate-200
-            bg-white
-            px-5
-            py-3
-            text-sm
-            font-medium
-            text-slate-700
-            transition-all
-            hover:border-indigo-500
-            hover:text-indigo-600
-            hover:shadow-sm
-          "
+          className='button-secondary mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium transition-theme'
         >
           Browse Files
           <ArrowUpFromLine size={16} />
         </button>
+
         {errors?.receiptImage && (
-  <p className="mt-4 text-sm font-medium text-red-500">
-    {errors.receiptImage}
-  </p>
-)}
+          <p className='mt-3 text-sm text-red-500'>{errors.receiptImage}</p>
+        )}
 
         {/* Formats */}
-
-        <div className="mt-7 flex flex-wrap justify-center gap-2">
-
-          {["PNG", "JPG", "JPEG", "PDF"].map((item) => (
+        <div className='mt-7 flex flex-wrap justify-center gap-2'>
+          {['PNG', 'JPG', 'JPEG', 'PDF'].map((item) => (
             <span
               key={item}
-              className="
-                rounded-full
-                border
-                border-slate-200
-                bg-white
-                px-3
-                py-1
-                text-xs
-                font-medium
-                text-slate-500
-              "
+              className='rounded-full border border-default bg-surface px-3 py-1 text-xs font-medium text-secondary'
             >
               {item}
             </span>
           ))}
 
-          <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
+          <span className='rounded-full bg-surface-hover px-3 py-1 text-xs font-medium text-secondary'>
             Max 10 MB
           </span>
-
         </div>
-
       </div>
 
       {/* Features */}
-
-      <div className="mt-6 flex flex-wrap gap-3">
-
-        <div className="inline-flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700">
-
+      <div className='mt-6 flex flex-wrap gap-3'>
+        <div className='inline-flex items-center gap-2 rounded-xl bg-blue-100 px-3 py-2 text-xs font-medium text-blue-700'>
           <ScanText size={15} />
-
           OCR Ready
-
         </div>
 
-        <div className="inline-flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
-
+        <div className='inline-flex items-center gap-2 rounded-xl bg-green-100 px-3 py-2 text-xs font-medium text-green-700'>
           <ShieldCheck size={15} />
-
           Warranty Tracking
-
         </div>
 
-        <div className="inline-flex items-center gap-2 rounded-xl bg-violet-50 px-3 py-2 text-xs font-medium text-violet-700">
-
+        <div className='inline-flex items-center gap-2 rounded-xl bg-purple-100 px-3 py-2 text-xs font-medium text-purple-700'>
           <Sparkles size={15} />
-
           AI Insights
-
         </div>
-
       </div>
-
-    </div>
+    </Card>
   );
 };
 

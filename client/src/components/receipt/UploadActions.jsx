@@ -1,26 +1,21 @@
-const UploadActions = ({
-  onSave,
-  mode = "add",
-}) => {
+const UploadActions = ({ onSave, mode = 'add' }) => {
   return (
-    <section className="flex items-center justify-end gap-4">
+    <div className='flex items-center justify-end gap-3 pt-2'>
       <button
-        type="button"
-        className="rounded-xl border border-slate-300 px-6 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+        type='button'
+        className='button-secondary rounded-xl px-6 py-3 text-sm font-medium transition-theme'
       >
         Cancel
       </button>
 
       <button
-        type="submit"
+        type='button'
         onClick={onSave}
-        className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-indigo-700"
+        className='button-primary rounded-xl px-6 py-3 text-sm font-medium transition-theme'
       >
-    {mode === "edit"
-  ? "Update Receipt"
-  : "Save Receipt"}
+        {mode === 'edit' ? 'Update Receipt' : 'Save Receipt'}
       </button>
-    </section>
+    </div>
   );
 };
 
