@@ -26,6 +26,10 @@ import Analytics from "../pages/Analytics/Analytics";
 import Notifications from "../pages/Notifications/Notifications";
 import Settings from "../pages/Settings/Settings";
 
+import HelpCenter from "../pages/HelpCenter/HelpCenter";
+import HelpCategory from "../pages/HelpCenter/HelpCategory";
+import HelpArticle from "../pages/HelpCenter/HelpArticle";
+
 import ProtectedRoute from "../components/ProtectedRoute";
 
 function AppRoutes() {
@@ -97,6 +101,19 @@ function AppRoutes() {
         {/* Settings */}
         <Route path="/settings" element={<Settings />} />
       </Route>
+      <Route
+  path="/help-center"
+  element={<HelpCenter />}
+/>
+<Route
+  path="/help-center/:categoryId"
+  element={<HelpCategory />}
+/>
+
+<Route
+  path="/help-center/:categoryId/:articleId"
+  element={<HelpArticle />}
+/>
     </Routes>
   );
 }
