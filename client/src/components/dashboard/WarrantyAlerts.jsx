@@ -1,18 +1,17 @@
-import { ChevronRight, ShieldAlert } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ChevronRight, ShieldAlert } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-import EmptyState from "../common/EmptyState";
-import { getWarrantyNotifications } from "../../utils/warrantyReminder";
+import EmptyState from '../common/EmptyState';
+import Card from '../ui/Card';
+import { getWarrantyNotifications } from '../../utils/warrantyReminder';
 
 function WarrantyAlerts({ warranties = [] }) {
   const navigate = useNavigate();
 
-  // Billvora 5.0 reminder notifications
+  // Billvora reminder notifications
   const notifications = getWarrantyNotifications(warranties);
 
-  // Temporary development fallback
-  // If no warranty falls inside 30/15/7/1/today window,
-  // show one demo alert using the first warranty so the UI is visible.
+  // Development fallback
   const displayNotifications =
     notifications.length > 0
       ? notifications
@@ -20,54 +19,52 @@ function WarrantyAlerts({ warranties = [] }) {
           id: warranty.id,
           warrantyId: warranty.id,
           productName: warranty.productName,
-          formattedExpiryDate: "Demo - 7 days left",
-          title: "Warranty expires in 7 days",
-          priority: "high",
+          formattedExpiryDate: 'Demo - 7 days left',
+          title: 'Warranty expires in 7 days',
+          priority: 'high',
         }));
 
   const getBadgeStyles = (priority) => {
     switch (priority) {
-      case "critical":
+      case 'critical':
         return {
-          iconBg: "bg-red-100",
-          icon: "text-red-600",
-          text: "text-red-600",
+          iconBg: 'bg-red-100',
+          icon: 'text-red-600',
+          text: 'text-red-500',
         };
 
-      case "high":
+      case 'high':
         return {
-          iconBg: "bg-orange-100",
-          icon: "text-orange-600",
-          text: "text-orange-600",
+          iconBg: 'bg-orange-100',
+          icon: 'text-orange-600',
+          text: 'text-orange-500',
         };
 
-      case "medium":
+      case 'medium':
         return {
-          iconBg: "bg-amber-100",
-          icon: "text-amber-600",
-          text: "text-amber-600",
+          iconBg: 'bg-amber-100',
+          icon: 'text-amber-600',
+          text: 'text-amber-500',
         };
 
       default:
         return {
-          iconBg: "bg-blue-100",
-          icon: "text-blue-600",
-          text: "text-blue-600",
+          iconBg: 'bg-blue-100',
+          icon: 'text-blue-600',
+          text: 'text-blue-500',
         };
     }
   };
 
   return (
-    <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+    <Card className='transition-theme'>
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900">
-          Warranty Alerts
-        </h2>
+      <div className='mb-5 flex items-center justify-between'>
+        <h2 className='text-2xl font-bold text-primary'>Warranty Alerts</h2>
 
         <button
-          onClick={() => navigate("/notifications")}
-          className="flex items-center gap-1 text-sm font-medium text-blue-600 transition hover:text-blue-700"
+          onClick={() => navigate('/notifications')}
+          className='flex items-center gap-1 text-sm font-medium text-primary transition hover:opacity-80'
         >
           View All
           <ChevronRight size={16} />
@@ -78,33 +75,28 @@ function WarrantyAlerts({ warranties = [] }) {
       {displayNotifications.length === 0 ? (
         <EmptyState
           icon={ShieldAlert}
-          title="No Warranty Alerts"
-          description="No warranties are currently expiring soon."
+          title='No Warranty Alerts'
+          description='No warranties are currently expiring soon.'
         />
       ) : (
-        <div className="space-y-4">
+        <div className='space-y-4'>
           {displayNotifications.slice(0, 5).map((notification) => {
             const styles = getBadgeStyles(notification.priority);
 
             return (
               <button
                 key={notification.id}
-                onClick={() =>
-                  navigate(`/warranty/${notification.warrantyId}`)
-                }
-                className="flex w-full items-center gap-4 rounded-2xl border border-gray-100 p-4 text-left transition hover:bg-gray-50"
+                onClick={() => navigate(`/warranty/${notification.warrantyId}`)}
+                className='flex w-full items-center gap-4 rounded-2xl border border-default bg-surface p-4 text-left transition-theme hover:bg-surface-hover'
               >
                 <div
                   className={`flex h-11 w-11 items-center justify-center rounded-xl ${styles.iconBg}`}
                 >
-                  <ShieldAlert
-                    size={20}
-                    className={styles.icon}
-                  />
+                  <ShieldAlert size={20} className={styles.icon} />
                 </div>
 
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-medium text-gray-900">
+                <div className='min-w-0 flex-1'>
+                  <h3 className='font-medium text-primary'>
                     {notification.productName}
                   </h3>
 
@@ -112,7 +104,7 @@ function WarrantyAlerts({ warranties = [] }) {
                     {notification.title}
                   </p>
 
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className='mt-1 text-xs text-secondary'>
                     Expires on {notification.formattedExpiryDate}
                   </p>
                 </div>
@@ -121,7 +113,7 @@ function WarrantyAlerts({ warranties = [] }) {
           })}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 

@@ -1,18 +1,21 @@
+/* =========================
+   Light Theme (Default)
+========================= */
 :root {
   /* Colors */
-  --bg-primary: #050505;;
-  --bg-secondary: #111214;
-  --border-color: #232428;
+  --bg-primary: #F6F6F7;
+  --bg-secondary: #FFFFFF;
+  --border-color: #E5E7EB;
 
-  --text-primary: #ffffff;
-  --text-secondary: #a1a1aa;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
 
-  --accent-primary: #7ef0c2;
-  --accent-secondary: #57d9ac;
+  --accent-primary: #7EF0C2;
+  --accent-secondary: #57D9AC;
 
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --error: #ef4444;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --error: #EF4444;
 
   /* Radius */
   --radius-sm: 12px;
@@ -21,8 +24,31 @@
   --radius-xl: 24px;
 
   /* Shadows */
-  --shadow-card: 0px 10px 40px rgba(0, 0, 0, 0.25);
+  --shadow-card: 0px 10px 40px rgba(0, 0, 0, 0.08);
 
   /* Container */
+  --container-width: 1280px;
+}
+
+/* =========================
+   Dark Theme
+========================= */
+html.dark {
+  --bg-primary: #050505;
+  --bg-secondary: #111214;
+  --border-color: #232428;
+
+  --text-primary: #FFFFFF;
+  --text-secondary: #A1A1AA;
+
+  --accent-primary: #7EF0C2;
+  --accent-secondary: #57D9AC;
+
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --error: #EF4444;
+
+  --shadow-card: 0px 10px 40px rgba(0, 0, 0, 0.25);
+
   --container-width: 1280px;
 }

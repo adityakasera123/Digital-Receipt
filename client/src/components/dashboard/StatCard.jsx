@@ -1,32 +1,25 @@
-import { TrendingUp } from "lucide-react";
+import { TrendingUp } from 'lucide-react';
+import Card from '../ui/Card';
 
 function StatCard({ title, value, subtitle, icon: Icon }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-500">
-            {title}
-          </p>
+    <Card className='flex items-start justify-between'>
+      <div>
+        <p className='text-sm font-medium text-secondary'>{title}</p>
 
-          <h2 className="mt-3 text-3xl font-bold text-gray-900">
-            {value}
-          </h2>
+        <h2 className='mt-3 text-3xl font-bold text-primary'>{value}</h2>
 
-          <div className="mt-3 flex items-center gap-2">
-            <TrendingUp size={16} className="text-green-600" />
+        <div className='mt-3 flex items-center gap-2'>
+          <TrendingUp size={16} className='text-green-500' />
 
-            <p className="text-sm text-gray-500">
-              {subtitle}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
-          <Icon size={22} className="text-gray-700" />
+          <p className='text-sm text-secondary'>{subtitle}</p>
         </div>
       </div>
-    </div>
+
+      <div className='flex h-12 w-12 items-center justify-center rounded-xl bg-surface border border-default transition-theme'>
+        <Icon size={22} className='text-secondary' />
+      </div>
+    </Card>
   );
 }
 

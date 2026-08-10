@@ -1,15 +1,15 @@
-import { Search } from "lucide-react";
-import { useContext, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Search } from 'lucide-react';
+import { useContext, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-import { AuthContext } from "../../context/AuthContext";
-import NotificationBell from "./NotificationBell";
+import { AuthContext } from '../../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 function Topbar() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -17,50 +17,48 @@ function Topbar() {
     const query = search.trim();
 
     if (!query) {
-      navigate("/search");
+      navigate('/search');
       return;
     }
 
     navigate(`/search?q=${encodeURIComponent(query)}`);
-    setSearch("");
+    setSearch('');
   };
 
   return (
-    <header className="flex h-20 items-center justify-between border-b border-gray-200 bg-white px-8">
+    <header className='flex h-20 items-center justify-between border-b border-default bg-surface px-8 transition-theme'>
       {/* Search */}
-      <form onSubmit={handleSubmit} className="w-full max-w-md">
-        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
-          <Search size={18} className="text-gray-400" />
+      <form onSubmit={handleSubmit} className='flex-1'>
+        <div className='input-surface flex w-full max-w-xl items-center gap-3 rounded-2xl px-4 py-3 transition-theme'>
+          <Search className='h-5 w-5 text-secondary' />
 
           <input
-            type="text"
+            type='text'
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search receipts..."
-            className="w-full bg-transparent text-sm text-black outline-none placeholder:text-gray-400"
+            placeholder='Search receipts...'
+            className='w-full bg-transparent text-sm text-primary outline-none placeholder:text-secondary'
           />
         </div>
       </form>
 
       {/* Right Side */}
-      <div className="ml-8 flex items-center gap-4">
+      <div className='ml-8 flex items-center gap-4'>
         {/* Notification Bell */}
         <NotificationBell />
 
         {/* User */}
-        <div className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black font-semibold text-white">
-            {user?.displayName?.charAt(0) || "U"}
+        <div className='flex items-center gap-3 rounded-xl border border-default bg-surface px-3 py-2 transition-theme'>
+          <div className='button-primary flex h-10 w-10 items-center justify-center rounded-full font-semibold'>
+            {user?.displayName?.charAt(0) || 'U'}
           </div>
 
           <div>
-            <p className="text-sm font-semibold text-gray-900">
-              {user?.displayName || "User"}
+            <p className='text-sm font-semibold text-primary'>
+              {user?.displayName || 'User'}
             </p>
 
-            <p className="text-xs text-gray-500">
-              Personal Plan
-            </p>
+            <p className='text-xs text-secondary'>Personal Plan</p>
           </div>
         </div>
       </div>

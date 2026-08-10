@@ -8,8 +8,9 @@ html {
 
 body {
   background: var(--bg-primary);
-
- font-family: "Manrope", sans-serif;
+  color: var(--text-primary);
+  font-family: 'Manrope', sans-serif;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 .container-custom {
   width: 100%;
@@ -22,4 +23,85 @@ body {
   .container-custom {
     padding-inline: 50px;
   }
+}
+
+/* =========================
+   Billvora Design System
+========================= */
+
+.bg-app {
+  background: var(--bg-primary);
+}
+
+.bg-surface {
+  background: var(--bg-secondary);
+}
+
+.bg-surface-hover {
+  background: color-mix(in srgb, var(--bg-secondary) 88%, var(--text-primary) 12%);
+}
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.border-default {
+  border-color: var(--border-color);
+}
+
+.shadow-surface {
+  box-shadow: var(--shadow-card);
+}
+
+/* Reusable card */
+.card-surface {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  box-shadow: var(--shadow-card);
+}
+
+/* Reusable input */
+.input-surface {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.input-surface::placeholder {
+  color: var(--text-secondary);
+}
+
+/* Primary button (Black) */
+.button-primary {
+  background: #000000;
+  color: #ffffff;
+}
+
+.button-primary:hover {
+  background: #111111;
+}
+
+/* Secondary button */
+.button-secondary {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.button-secondary:hover {
+  background: color-mix(in srgb, var(--bg-secondary) 90%, var(--text-primary) 10%);
+}
+
+/* Smooth theme transition */
+.transition-theme {
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
 }

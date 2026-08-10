@@ -6,34 +6,45 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-} from "recharts";
+} from 'recharts';
+import Card from '../ui/Card';
+import { useTheme } from '../../context/ThemeContext';
 
 function ExpenseChart({ data = [] }) {
-  return (
-    <div className="w-full rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            Monthly Spending
-          </h2>
+  const { resolvedTheme } = useTheme();
 
-          <p className="mt-1 text-sm text-gray-500">
+  const isDark = resolvedTheme === 'dark';
+
+  const gridColor = isDark ? '#232428' : '#E5E7EB';
+  const axisColor = isDark ? '#A1A1AA' : '#6B7280';
+  const tooltipBg = isDark ? '#111214' : '#FFFFFF';
+  const tooltipBorder = isDark ? '#232428' : '#E5E7EB';
+  const tooltipText = isDark ? '#FFFFFF' : '#111827';
+  const lineColor = '#7EF0C2';
+
+  return (
+    <Card className='transition-theme'>
+      <div className='flex items-center justify-between'>
+        <div>
+          <h2 className='text-2xl font-bold text-primary'>Monthly Spending</h2>
+
+          <p className='mt-1 text-sm text-secondary'>
             Track your monthly expenses
           </p>
         </div>
 
-        <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+        <button className='button-secondary rounded-xl px-4 py-2 text-sm font-medium transition-theme'>
           This Month
         </button>
       </div>
 
-      <div className="mt-8 h-[420px]">
+      <div className='mt-8 h-[420px]'>
         {data.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-gray-500">
+          <div className='flex h-full items-center justify-center text-secondary'>
             No spending data available
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width='100%' height='100%'>
             <LineChart
               data={data}
               margin={{
@@ -44,57 +55,62 @@ function ExpenseChart({ data = [] }) {
               }}
             >
               <CartesianGrid
-                stroke="#E5E7EB"
-                strokeDasharray="4 4"
+                stroke={gridColor}
+                strokeDasharray='4 4'
                 vertical={false}
               />
 
               <XAxis
-                dataKey="month"
+                dataKey='month'
                 tickLine={false}
                 axisLine={false}
-                tick={{ fill: "#6B7280", fontSize: 13 }}
+                tick={{ fill: axisColor, fontSize: 13 }}
               />
 
               <YAxis
                 tickFormatter={(value) => `₹${Math.round(value / 1000)}k`}
                 tickLine={false}
                 axisLine={false}
-                tick={{ fill: "#6B7280", fontSize: 13 }}
+                tick={{ fill: axisColor, fontSize: 13 }}
               />
 
               <Tooltip
                 formatter={(value) => [
-                  `₹${Number(value).toLocaleString("en-IN")}`,
-                  "Spending",
+                  `₹${Number(value).toLocaleString('en-IN')}`,
+                  'Spending',
                 ]}
                 contentStyle={{
-                  borderRadius: "12px",
-                  border: "1px solid #E5E7EB",
-                  boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+                  background: tooltipBg,
+                  borderRadius: '12px',
+                  border: `1px solid ${tooltipBorder}`,
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.18)',
+                  color: tooltipText,
                 }}
+                labelStyle={{ color: tooltipText }}
+                itemStyle={{ color: tooltipText }}
               />
 
               <Line
-                type="monotone"
-                dataKey="amount"
-                stroke="#2563EB"
+                type='monotone'
+                dataKey='amount'
+                stroke={lineColor}
                 strokeWidth={4}
                 dot={{
                   r: 4,
-                  fill: "#2563EB",
+                  fill: lineColor,
                 }}
                 activeDot={{
                   r: 7,
-                  stroke: "#2563EB",
+                  stroke: lineColor,
                   strokeWidth: 2,
+                  fill: lineColor,
                 }}
               />
             </LineChart>
           </ResponsiveContainer>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 

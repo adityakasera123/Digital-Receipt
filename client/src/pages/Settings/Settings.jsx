@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import ThemeSelector from '../../components/settings/ThemeSelector';
 
 import {
 User,
@@ -326,12 +327,25 @@ const handleDeleteAccount = async () => {
 };
 const initial = (displayName || email || 'A').charAt(0).toUpperCase();
 
-return ( <div className="min-h-screen bg-[#F6F6F7] p-6"> <div className="mx-auto max-w-7xl"> <div className="mb-6"> <h1 className="text-3xl font-bold text-gray-900">Settings</h1> <p className="mt-1 text-gray-500">
+return ( <div
+  className="min-h-screen p-6"
+  style={{
+    background: 'var(--bg-primary)',
+    color: 'var(--text-primary)',
+  }}
+> <div className="mx-auto max-w-7xl"> <div className="mb-6"> <h1 className="text-3xl font-bold text-gray-900">Settings</h1> <p className="mt-1 text-gray-500">
 Manage your account, notifications, security, and data preferences. </p> </div>
 
 
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_1fr]">
-      <aside className="rounded-3xl border border-gray-200 bg-white p-3">
+      <aside
+  className="rounded-3xl border p-3"
+  style={{
+    background: 'var(--bg-secondary)',
+    borderColor: 'var(--border-color)',
+    color: 'var(--text-primary)',
+  }}
+>
         <nav className="space-y-1">
           {sections.map((section) => {
             const Icon = section.icon;
@@ -355,7 +369,14 @@ Manage your account, notifications, security, and data preferences. </p> </div>
         </nav>
       </aside>
 
-      <section className="rounded-3xl border border-gray-200 bg-white p-8">
+      <section
+  className="rounded-3xl border p-8"
+  style={{
+    background: 'var(--bg-secondary)',
+    borderColor: 'var(--border-color)',
+    color: 'var(--text-primary)',
+  }}
+>
         {activeSection === 'profile' && (
           <>
             <div className="flex items-center gap-4">
@@ -526,6 +547,29 @@ Manage your account, notifications, security, and data preferences. </p> </div>
           </>
         )}
         {activeSection === 'security' && <SecuritySection />}
+        {activeSection === 'appearance' && (
+  <>
+    <div>
+      <h2 className='text-2xl font-semibold text-gray-900'>Appearance</h2>
+      <p className='mt-1 text-gray-500'>
+        Personalize how Billvora looks across your devices.
+      </p>
+    </div>
+
+    <div className='mt-8 space-y-8'>
+      <div>
+        <h3 className='text-lg font-semibold text-gray-900'>Theme</h3>
+        <p className='mt-1 text-sm text-gray-500'>
+          Choose between light, dark, or system appearance.
+        </p>
+
+        <div className='mt-4'>
+          <ThemeSelector />
+        </div>
+      </div>
+    </div>
+  </>
+)}
         {activeSection === 'data' && (
   <div className="space-y-8">
     <div>
