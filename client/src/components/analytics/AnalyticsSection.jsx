@@ -1,3 +1,5 @@
+import Card from '../ui/Card';
+
 const AnalyticsSection = ({
   title,
   description,
@@ -5,15 +7,15 @@ const AnalyticsSection = ({
   children,
 }) => {
   return (
-    <section className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-      <div className="mb-8 flex items-start justify-between">
+    <Card className="transition-theme">
+      <div className="mb-6 flex items-start justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-xl font-semibold text-primary">
             {title}
           </h2>
 
           {description && (
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-secondary">
               {description}
             </p>
           )}
@@ -23,7 +25,7 @@ const AnalyticsSection = ({
       </div>
 
       {children}
-    </section>
+    </Card>
   );
 };
 

@@ -1,22 +1,22 @@
-import AnalyticsHeader from "../../components/analytics/AnalyticsHeader";
-import AnalyticsSummaryGrid from "../../components/analytics/AnalyticsSummaryGrid";
-import MonthlyExpenseChart from "../../components/analytics/MonthlyExpenseChart";
-import CategorySpending from "../../components/analytics/CategorySpending";
-import QuickInsights from "../../components/analytics/QuickInsights";
-import RecentActivity from "../../components/analytics/RecentActivity";
-import AnalyticsSkeleton from "../../components/analytics/AnalyticsSkeleton";
+import AnalyticsHeader from '../../components/analytics/AnalyticsHeader';
+import AnalyticsSummaryGrid from '../../components/analytics/AnalyticsSummaryGrid';
+import MonthlyExpenseChart from '../../components/analytics/MonthlyExpenseChart';
+import CategorySpending from '../../components/analytics/CategorySpending';
+import QuickInsights from '../../components/analytics/QuickInsights';
+import RecentActivity from '../../components/analytics/RecentActivity';
+import AnalyticsSkeleton from '../../components/analytics/AnalyticsSkeleton';
 
-import useAnalytics from "../../hooks/useAnalytics";
+import useAnalytics from '../../hooks/useAnalytics';
 
 const Analytics = () => {
   const { loading, analytics } = useAnalytics();
 
   if (loading) {
-  return <AnalyticsSkeleton />;
-}
+    return <AnalyticsSkeleton />;
+  }
 
   return (
-    <div className="space-y-6">
+    <div className='min-h-screen bg-background p-6 transition-theme'>
       {/* Header */}
       <AnalyticsHeader />
 
@@ -24,17 +24,13 @@ const Analytics = () => {
       <AnalyticsSummaryGrid analytics={analytics} />
 
       {/* Charts */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="xl:col-span-2">
-          <MonthlyExpenseChart
-            data={analytics.monthlyExpenses}
-          />
+      <div className='grid grid-cols-1 gap-6 xl:grid-cols-3'>
+        <div className='xl:col-span-2'>
+          <MonthlyExpenseChart data={analytics.monthlyExpenses} />
         </div>
 
         <div>
-          <CategorySpending
-            categories={analytics.categorySpending}
-          />
+          <CategorySpending categories={analytics.categorySpending} />
         </div>
       </div>
 
@@ -42,9 +38,7 @@ const Analytics = () => {
       <QuickInsights analytics={analytics} />
 
       {/* Recent Activity */}
-      <RecentActivity
-        receipts={analytics.receipts}
-      />
+      <RecentActivity receipts={analytics.receipts} />
     </div>
   );
 };

@@ -1,20 +1,20 @@
-import AnalyticsSection from "./AnalyticsSection";
-import CategoryProgress from "./CategoryProgress";
-import AnalyticsEmptyState from "./AnalyticsEmptyState";
+import AnalyticsSection from './AnalyticsSection';
+import CategoryProgress from './CategoryProgress';
+import AnalyticsEmptyState from './AnalyticsEmptyState';
 
 const CategorySpending = ({ categories = [] }) => {
   return (
     <AnalyticsSection
-      title="Category Spending"
-      description="See where your money is spent."
+      title='Category Spending'
+      description='See where your money is spent.'
     >
       {categories.length === 0 ? (
         <AnalyticsEmptyState
-          title="No Category Data"
-          description="Upload receipts to see category-wise spending insights."
+          title='No Category Data'
+          description='Upload receipts to see category-wise spending insights.'
         />
       ) : (
-        <div className="space-y-8">
+        <div className='space-y-8 transition-theme'>
           {categories.map((category) => (
             <CategoryProgress
               key={category.title}

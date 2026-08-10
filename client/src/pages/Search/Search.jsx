@@ -1,14 +1,14 @@
-import { useEffect, useState, useContext } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState, useContext } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import SearchBar from "../../components/search/SearchBar";
-import SearchFilters from "../../components/search/SearchFilters";
-import SearchSort from "../../components/search/SearchSort";
-import SearchResults from "../../components/search/SearchResults";
-import SearchSkeleton from "../../components/search/SearchSkeleton";
+import SearchBar from '../../components/search/SearchBar';
+import SearchFilters from '../../components/search/SearchFilters';
+import SearchSort from '../../components/search/SearchSort';
+import SearchResults from '../../components/search/SearchResults';
+import SearchSkeleton from '../../components/search/SearchSkeleton';
 
-import { getReceipts } from "../../services/receiptService";
-import { AuthContext } from "../../context/AuthContext";
+import { getReceipts } from '../../services/receiptService';
+import { AuthContext } from '../../context/AuthContext';
 
 const Search = () => {
   const navigate = useNavigate();
@@ -16,9 +16,9 @@ const Search = () => {
 
   const { user } = useContext(AuthContext);
 
-  const [query, setQuery] = useState(searchParams.get("q") || "");
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [sortBy, setSortBy] = useState("newest");
+  const [query, setQuery] = useState(searchParams.get('q') || '');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [sortBy, setSortBy] = useState('newest');
 
   const [receipts, setReceipts] = useState([]);
   const [results, setResults] = useState([]);
@@ -37,7 +37,7 @@ const Search = () => {
         const data = await getReceipts(user.uid);
         setReceipts(data);
       } catch (error) {
-        console.error("Failed to load receipts:", error);
+        console.error('Failed to load receipts:', error);
       } finally {
         setLoading(false);
       }
@@ -48,7 +48,7 @@ const Search = () => {
 
   // Read URL Query
   useEffect(() => {
-    setQuery(searchParams.get("q") || "");
+    setQuery(searchParams.get('q') || '');
   }, [searchParams]);
 
   // Search + Filter + Sort
@@ -56,7 +56,7 @@ const Search = () => {
     let filtered = [...receipts];
 
     // Category Filter
-    if (selectedCategory !== "All") {
+    if (selectedCategory !== 'All') {
       filtered = filtered.filter(
         (receipt) => receipt.category === selectedCategory
       );
@@ -77,22 +77,22 @@ const Search = () => {
 
     // Sorting
     switch (sortBy) {
-      case "highest":
+      case 'highest':
         filtered.sort((a, b) => Number(b.amount) - Number(a.amount));
         break;
 
-      case "lowest":
+      case 'lowest':
         filtered.sort((a, b) => Number(a.amount) - Number(b.amount));
         break;
 
-      case "oldest":
+      case 'oldest':
         filtered.sort(
           (a, b) =>
             new Date(a.purchaseDate) - new Date(b.purchaseDate)
         );
         break;
 
-      case "newest":
+      case 'newest':
       default:
         filtered.sort(
           (a, b) =>
@@ -108,15 +108,15 @@ const Search = () => {
   const handleView = (id) => {
     navigate(`/receipts/${id}`, {
       state: {
-        from: "search",
+        from: 'search',
       },
     });
   };
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-6xl px-6 py-8">
+      <main className='min-h-screen bg-background transition-theme'>
+        <div className='mx-auto max-w-7xl p-8'>
           <SearchSkeleton />
         </div>
       </main>
@@ -124,31 +124,31 @@ const Search = () => {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-6xl px-6 py-8">
+    <main className='min-h-screen bg-background transition-theme'>
+      <div className='mx-auto max-w-7xl p-8'>
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">
+        <div className='mb-8'>
+          <h1 className='text-4xl font-bold tracking-tight text-primary'>
             Search
           </h1>
 
-          <p className="mt-2 text-sm text-slate-500">
+          <p className='mt-2 text-secondary'>
             Find receipts by product, store or category.
           </p>
         </div>
 
         {/* Search Bar */}
-        <div className="mb-8">
+        <div className='mb-8'>
           <SearchBar
             value={query}
             onChange={setQuery}
             onSearch={setQuery}
-            placeholder="Search receipts..."
+            placeholder='Search receipts...'
           />
         </div>
 
         {/* Filters + Sorting */}
-        <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className='mb-8 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between'>
           <SearchFilters
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
@@ -161,10 +161,10 @@ const Search = () => {
         </div>
 
         {/* Result Count */}
-        <div className="mb-6">
-          <p className="text-sm font-medium text-slate-500">
+        <div className='mb-6'>
+          <p className='text-sm font-medium text-secondary'>
             Showing {results.length} receipt
-            {results.length !== 1 ? "s" : ""}
+            {results.length !== 1 ? 's' : ''}
           </p>
         </div>
 

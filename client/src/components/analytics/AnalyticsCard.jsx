@@ -1,44 +1,44 @@
-const AnalyticsCard = ({
+import Card from '../ui/Card';
+
+function AnalyticsCard({
   title,
   value,
   subtitle,
-  icon,
+  icon: Icon,
   trend,
-  trendColor = "text-emerald-600",
-}) => {
+}) {
   return (
-    <div className="group rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-      {/* Top */}
-      <div className="flex items-start justify-between">
+    <Card className='transition-theme'>
+      <div className='flex items-start justify-between'>
         <div>
-          <p className="text-sm font-medium text-gray-500">
+          <p className='text-sm font-medium text-secondary'>
             {title}
           </p>
 
-          <h2 className="mt-4 text-4xl font-bold tracking-tight text-gray-900">
+          <h3 className='mt-3 text-3xl font-bold text-primary'>
             {value}
-          </h2>
-        </div>
+          </h3>
 
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition-colors duration-300 group-hover:bg-black group-hover:text-white">
-          {icon}
-        </div>
-      </div>
+          <p className='mt-2 text-sm text-secondary'>
+            {subtitle}
+          </p>
 
-      {/* Bottom */}
-      <div className="mt-6 flex items-center justify-between">
-        <p className="text-sm text-gray-500">
-          {subtitle}
-        </p>
-
-        {trend && (
-          <span className={`text-sm font-semibold ${trendColor}`}>
+          <p className='mt-4 text-xs font-medium text-secondary'>
             {trend}
-          </span>
-        )}
+          </p>
+        </div>
+
+        <div className='flex h-12 w-12 items-center justify-center rounded-xl border border-default bg-surface'>
+          {Icon && (
+            <Icon
+              size={22}
+              className='text-primary'
+            />
+          )}
+        </div>
       </div>
-    </div>
+    </Card>
   );
-};
+}
 
 export default AnalyticsCard;

@@ -1,4 +1,4 @@
-import AnalyticsSection from "./AnalyticsSection";
+import AnalyticsSection from './AnalyticsSection';
 
 import {
   ResponsiveContainer,
@@ -8,21 +8,21 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-} from "recharts";
+} from 'recharts';
 
 const MonthlyExpenseChart = ({ data = [] }) => {
   return (
     <AnalyticsSection
-      title="Monthly Spending"
-      description="Track your monthly expenses."
+      title='Monthly Spending'
+      description='Track your monthly expenses.'
       action={
-        <button className="rounded-full border border-gray-200 px-5 py-2 text-sm font-medium transition hover:bg-gray-100">
+        <button className='button-secondary rounded-xl px-4 py-2 text-sm font-medium transition-theme'>
           This Year
         </button>
       }
     >
-      <div className="h-96">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className='h-80'>
+        <ResponsiveContainer width='100%' height='100%'>
           <LineChart
             data={data}
             margin={{
@@ -33,42 +33,54 @@ const MonthlyExpenseChart = ({ data = [] }) => {
             }}
           >
             <CartesianGrid
-              stroke="#F1F5F9"
+              stroke='var(--border-color)'
+              strokeDasharray='4 4'
               vertical={false}
             />
 
             <XAxis
-              dataKey="month"
+              dataKey='month'
               tickLine={false}
               axisLine={false}
+              tick={{ fill: 'var(--text-secondary)', fontSize: 13 }}
             />
 
             <YAxis
               tickLine={false}
               axisLine={false}
               allowDecimals={false}
-              domain={[0, "auto"]}
+              domain={[0, 'auto']}
+              tick={{ fill: 'var(--text-secondary)', fontSize: 13 }}
             />
 
             <Tooltip
               formatter={(value) => [
-                `₹${Number(value).toLocaleString("en-IN")}`,
-                "Expenses",
+                `₹${Number(value).toLocaleString('en-IN')}`,
+                'Expenses',
               ]}
+              contentStyle={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '16px',
+                color: 'var(--text-primary)',
+              }}
+              labelStyle={{ color: 'var(--text-primary)' }}
+              itemStyle={{ color: 'var(--text-primary)' }}
             />
 
             <Line
-              type="monotone"
-              dataKey="amount"
-              stroke="#2563EB"
+              type='monotone'
+              dataKey='amount'
+              stroke='var(--accent-primary)'
               strokeWidth={3}
               connectNulls
               dot={{
                 r: 5,
-                fill: "#2563EB",
+                fill: 'var(--accent-primary)',
               }}
               activeDot={{
                 r: 8,
+                fill: 'var(--accent-primary)',
               }}
             />
           </LineChart>

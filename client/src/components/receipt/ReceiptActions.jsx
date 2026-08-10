@@ -1,96 +1,94 @@
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 
-import ConfirmModal from "../common/ConfirmModal";
-import { deleteReceipt } from "../../services/receiptService";
-import toast from "react-hot-toast";
+import ConfirmModal from '../common/ConfirmModal';
+import { deleteReceipt } from '../../services/receiptService';
+import toast from 'react-hot-toast';
 
 import {
   Pencil,
   Download,
   Eye,
   Trash2,
-} from "lucide-react";
+} from 'lucide-react';
+import Card from '../ui/Card';
 
 function ReceiptActions({ onView, receiptId }) {
   const navigate = useNavigate();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
   const handleDelete = async () => {
-  try {
-    await deleteReceipt(receiptId);
+    try {
+      await deleteReceipt(receiptId);
 
-    toast.success("Receipt deleted successfully");
+      toast.success('Receipt deleted successfully');
 
-    setShowDeleteModal(false);
+      setShowDeleteModal(false);
 
-    navigate("/receipts");
-  } catch (error) {
-    console.error(error);
-    toast.error("Failed to delete receipt");
-  }
-};
-  
+      navigate('/receipts');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to delete receipt');
+    }
+  };
+
   return (
-    <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+    <>
+      <Card className="transition-theme">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-primary">
+              Receipt Actions
+            </h2>
 
-      <div className="flex items-center justify-between">
+            <p className="mt-2 text-secondary">
+              Manage and perform actions on this receipt.
+            </p>
+          </div>
 
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">
-            Receipt Actions
-          </h2>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={onView}
+              className="button-secondary inline-flex items-center gap-2 rounded-xl px-5 py-3 font-medium transition-theme"
+            >
+              <Eye size={18} />
+              View
+            </button>
 
-          <p className="mt-2 text-slate-500">
-            Manage and perform actions on this receipt.
-          </p>
+            <button className="button-secondary inline-flex items-center gap-2 rounded-xl px-5 py-3 font-medium transition-theme">
+              <Download size={18} />
+              Download
+            </button>
+
+            <button
+              onClick={() => navigate(`/receipts/edit/${receiptId}`)}
+              className="button-secondary inline-flex items-center gap-2 rounded-xl px-5 py-3 font-medium transition-theme"
+            >
+              <Pencil size={18} />
+              Edit
+            </button>
+
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-red-50 px-5 py-3 font-medium text-red-600 transition-all duration-300 hover:bg-red-100 dark:border-red-800 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
+            >
+              <Trash2 size={18} />
+              Delete
+            </button>
+          </div>
         </div>
+      </Card>
 
-        <div className="flex flex-wrap gap-3">
-
-          <button  onClick={onView}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 font-medium text-slate-700 transition-all duration-300 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
-          >
-            <Eye size={18} />
-            View
-          </button>
-
-          <button
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 font-medium text-slate-700 transition-all duration-300 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-600"
-          >
-            <Download size={18} />
-            Download
-          </button>
-
-          <button
-           onClick={() => navigate(`/receipts/edit/${receiptId}`)}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 font-medium text-slate-700 transition-all duration-300 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600"
-          >
-            <Pencil size={18} />
-            Edit
-          </button>
-
-          <button
-  onClick={() => setShowDeleteModal(true)}
-  className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-3 font-medium text-red-600 transition-all duration-300 hover:bg-red-100"
->
-  <Trash2 size={18} />
-  Delete
-</button>
-
-        </div>
-
-      </div>
       <ConfirmModal
-  isOpen={showDeleteModal}
-  title="Delete Receipt"
-  message="Are you sure you want to permanently delete this receipt? This action cannot be undone."
-  confirmText="Delete"
-  cancelText="Cancel"
-  onCancel={() => setShowDeleteModal(false)}
-  onConfirm={handleDelete}
-/>
-
-    </div>
+        isOpen={showDeleteModal}
+        title="Delete Receipt"
+        message="Are you sure you want to permanently delete this receipt? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onCancel={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+      />
+    </>
   );
 }
 

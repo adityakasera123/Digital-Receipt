@@ -1,47 +1,72 @@
-import { Receipt } from "lucide-react";
+import { Receipt } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import Card from '../ui/Card';
 
-import AnalyticsSection from "./AnalyticsSection";
-import ActivityItem from "./ActivityItem";
-import AnalyticsEmptyState from "./AnalyticsEmptyState";
-
-const RecentActivity = ({ receipts = [] }) => {
+function RecentActivity({ receipts = [] }) {
+  const navigate = useNavigate();
   const recentReceipts = [...receipts].slice(0, 5);
 
   return (
-    <AnalyticsSection
-      title="Recent Activity"
-      description="Latest receipt activity."
-      action={
-        <button className="text-sm font-semibold text-blue-600 hover:text-blue-700">
+    <Card className='transition-theme'>
+      <div className='mb-6 flex items-start justify-between'>
+        <div>
+          <h2 className='text-2xl font-bold text-primary'>
+            Recent Activity
+          </h2>
+
+          <p className='mt-2 text-secondary'>
+            Latest receipt activity.
+          </p>
+        </div>
+
+        <button
+          onClick={() => navigate('/receipts')}
+          className='text-sm font-medium text-blue-600 transition hover:text-blue-500'
+        >
           View All →
         </button>
-      }
-    >
+      </div>
+
       {recentReceipts.length === 0 ? (
-        <AnalyticsEmptyState
-          title="No Recent Activity"
-          description="Upload your first receipt to start tracking your purchases."
-        />
+        <div className='flex h-40 items-center justify-center text-secondary'>
+          No recent activity
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className='space-y-4'>
           {recentReceipts.map((receipt) => (
-            <ActivityItem
+            <div
               key={receipt.id}
-              id={receipt.id}
-              icon={<Receipt size={20} />}
-              title={receipt.productName || "Untitled Product"}
-              subtitle={`${receipt.storeName || "Unknown Store"} • ₹${Number(
-                receipt.amount || 0
-              ).toLocaleString("en-IN")}`}
-              time={receipt.purchaseDate || "--"}
-              iconBg="bg-blue-100"
-              iconColor="text-blue-600"
-            />
+              className='flex items-center justify-between rounded-2xl border border-default bg-surface p-4 transition-theme hover:bg-surface-hover'
+            >
+              <div className='flex items-center gap-4'>
+                <div className='flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100'>
+                  <Receipt
+                    size={20}
+                    className='text-blue-600'
+                  />
+                </div>
+
+                <div>
+                  <h3 className='font-semibold text-primary'>
+                    {receipt.productName || 'Untitled Product'}
+                  </h3>
+
+                  <p className='text-sm text-secondary'>
+                    {receipt.storeName || 'Unknown Store'} • ₹
+                    {Number(receipt.amount || 0).toLocaleString('en-IN')}
+                  </p>
+                </div>
+              </div>
+
+              <span className='text-sm text-secondary'>
+                {receipt.purchaseDate || '--'}
+              </span>
+            </div>
           ))}
         </div>
       )}
-    </AnalyticsSection>
+    </Card>
   );
-};
+}
 
 export default RecentActivity;

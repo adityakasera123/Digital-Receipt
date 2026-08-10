@@ -16,7 +16,6 @@ import ReceiptActions from "../../../components/receipt/ReceiptActions";
 function ReceiptDetail() {
   const { id } = useParams();
 
-  // ✅ New
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -41,21 +40,20 @@ function ReceiptDetail() {
 
   if (loading) {
     return (
-      <div className="container-custom py-8">
-        <h1 className="text-2xl font-bold">Loading...</h1>
+      <div className="flex items-center justify-center py-20 text-primary">
+        Loading...
       </div>
     );
   }
 
   if (!receipt) {
     return (
-      <div className="container-custom py-8">
-        <h1 className="text-2xl font-bold">Receipt not found</h1>
+      <div className="flex items-center justify-center py-20 text-primary">
+        Receipt not found
       </div>
     );
   }
 
-  // ✅ Back Logic
   const handleBack = () => {
     if (location.state?.from === "search") {
       navigate(-1);
@@ -65,11 +63,11 @@ function ReceiptDetail() {
   };
 
   return (
-    <div className="container-custom py-8">
-      {/* 👇 Ye line change hui hai */}
+    <div className="transition-theme">
+      {/* Top header stays exactly where it was */}
       <ReceiptHeader onBack={handleBack} />
 
-      <div className="mt-6 grid grid-cols-12 gap-6 items-stretch">
+      <div className="mt-6 grid grid-cols-12 items-stretch gap-6">
         <div className="col-span-4">
           <ReceiptPreview receipt={receipt} />
         </div>
@@ -97,7 +95,7 @@ function ReceiptDetail() {
         >
           <button
             onClick={() => setIsPreviewOpen(false)}
-            className="absolute right-6 top-6 rounded-full bg-white p-2 shadow-lg"
+            className="bg-surface border-default text-primary absolute right-6 top-6 rounded-full border p-2 shadow-lg transition-theme"
           >
             ✕
           </button>
@@ -105,7 +103,7 @@ function ReceiptDetail() {
           <img
             src={receipt.receiptImage}
             alt={receipt.storeName}
-            className="max-h-[90vh] max-w-[90vw] rounded-2xl bg-white object-contain"
+            className="bg-surface max-h-[90vh] max-w-[90vw] rounded-2xl object-contain"
             onClick={(e) => e.stopPropagation()}
           />
         </div>

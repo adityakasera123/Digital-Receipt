@@ -1,44 +1,41 @@
-const CardSkeleton = () => (
-  <div className="animate-pulse rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-    <div className="mb-6 flex items-center justify-between">
-      <div>
-        <div className="h-4 w-24 rounded bg-gray-200"></div>
-        <div className="mt-3 h-8 w-20 rounded bg-gray-300"></div>
-      </div>
+const SkeletonBlock = ({ className = '' }) => (
+  <div
+    className={`animate-pulse rounded-xl bg-surface-secondary ${className}`}
+  />
+);
 
-      <div className="h-12 w-12 rounded-2xl bg-gray-200"></div>
+const CardSkeleton = () => (
+  <div className='rounded-3xl border border-default bg-surface p-6 transition-theme'>
+    <div className='flex items-center justify-between'>
+      <SkeletonBlock className='h-5 w-24' />
+      <SkeletonBlock className='h-12 w-12 rounded-2xl' />
     </div>
 
-    <div className="h-3 w-28 rounded bg-gray-200"></div>
+    <SkeletonBlock className='mt-6 h-10 w-28' />
+    <SkeletonBlock className='mt-3 h-4 w-32' />
   </div>
 );
 
-const SectionSkeleton = ({ height = "h-96" }) => (
-  <div
-    className={`animate-pulse rounded-3xl border border-gray-200 bg-white p-8 shadow-sm ${height}`}
-  >
-    <div className="mb-8">
-      <div className="h-6 w-48 rounded bg-gray-300"></div>
+const SectionSkeleton = ({ height = 'h-96' }) => (
+  <div className='rounded-3xl border border-default bg-surface p-6 transition-theme'>
+    <SkeletonBlock className='h-7 w-48' />
+    <SkeletonBlock className='mt-3 h-4 w-64' />
 
-      <div className="mt-3 h-4 w-64 rounded bg-gray-200"></div>
-    </div>
-
-    <div className="h-full rounded-2xl bg-gray-100"></div>
+    <div className={`mt-6 ${height} rounded-2xl bg-surface-secondary animate-pulse`} />
   </div>
 );
 
 const AnalyticsSkeleton = () => {
   return (
-    <div className="space-y-6">
+    <div className='space-y-8 transition-theme'>
       {/* Header */}
-      <div className="animate-pulse">
-        <div className="h-8 w-56 rounded bg-gray-300"></div>
-
-        <div className="mt-3 h-4 w-80 rounded bg-gray-200"></div>
+      <div>
+        <SkeletonBlock className='h-10 w-64' />
+        <SkeletonBlock className='mt-3 h-4 w-80' />
       </div>
 
       {/* Cards */}
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-4'>
         <CardSkeleton />
         <CardSkeleton />
         <CardSkeleton />
@@ -46,8 +43,8 @@ const AnalyticsSkeleton = () => {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="xl:col-span-2">
+      <div className='grid grid-cols-1 gap-6 xl:grid-cols-3'>
+        <div className='xl:col-span-2'>
           <SectionSkeleton />
         </div>
 
@@ -55,7 +52,7 @@ const AnalyticsSkeleton = () => {
       </div>
 
       {/* Insights */}
-      <SectionSkeleton height="h-72" />
+      <SectionSkeleton height='h-72' />
 
       {/* Recent Activity */}
       <SectionSkeleton />
