@@ -1,5 +1,14 @@
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../firebase/firebase';
+import {
+collection,
+getDocs,
+query,
+where,
+deleteDoc,
+doc,
+} from 'firebase/firestore';
+import { db, storage } from '../firebase/firebase';
+import { deleteObject, ref } from 'firebase/storage';
+import { deleteUser } from 'firebase/auth';
 
 function downloadJson(filename, data) {
 const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -66,6 +75,7 @@ warranties,
 
 downloadJson('billvora-warranties-backup.json', payload);
 }
+
 export async function exportNotifications(userId) {
 const notificationsRef = collection(db, 'notifications');
 
@@ -89,7 +99,6 @@ notifications,
 
 downloadJson('billvora-notifications-backup.json', payload);
 }
-
 
 export async function exportCompleteBackup(userId) {
 const receiptsRef = collection(db, 'receipts');
@@ -132,9 +141,6 @@ notifications,
 downloadJson('billvora-complete-backup.json', payload);
 }
 
-
-import { deleteDoc } from 'firebase/firestore';
-
 export async function deleteAllNotifications(userId) {
 const notificationsRef = collection(db, 'notifications');
 
@@ -153,10 +159,6 @@ await Promise.all(deletePromises);
 
 return snapshot.size;
 }
-
-
-import { deleteObject, ref } from 'firebase/storage';
-import { storage } from '../firebase/firebase';
 
 export async function deleteAllReceipts(userId) {
 const receiptsRef = collection(db, 'receipts');
@@ -228,10 +230,6 @@ await Promise.all(deletePromises);
 return snapshot.size;
 }
 
-
-
-import { deleteUser } from 'firebase/auth';
-
 export async function deleteAccount(user) {
 if (!user) {
 throw new Error('User not found');
@@ -239,16 +237,16 @@ throw new Error('User not found');
 
 const userId = user.uid;
 
-// Delete all notifications
+// Delete notifications
 await deleteAllNotifications(userId);
 
-// Delete all receipts (this also deletes linked warranties and receipt images)
+// Delete receipts (also deletes linked warranties and receipt images)
 await deleteAllReceipts(userId);
 
 // Delete any remaining warranties
 await deleteAllWarranties(userId);
 
-// Delete user settings
+// Delete notification settings document
 try {
 await deleteDoc(doc(db, 'users', userId, 'settings', 'notifications'));
 } catch (error) {
