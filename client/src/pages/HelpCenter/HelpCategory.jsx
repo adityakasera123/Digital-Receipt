@@ -69,7 +69,7 @@ function HelpCategory() {
         {/* Header */}
         <div className='mb-10'>
           <div className='flex items-center gap-4'>
-            <div className='button-primary flex h-14 w-14 items-center justify-center rounded-2xl'>
+            <div className='button-primary flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl'>
               <Icon size={25} />
             </div>
 

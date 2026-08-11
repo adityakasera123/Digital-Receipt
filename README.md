@@ -1062,3 +1062,446 @@ Dashboard
 ✅ Loading
 
 ✅ Empty State
+
+
+
+
+
+
+
+
+
+
+Date*** 11-Aug-2026
+
+
+# Billvora Product Roadmap
+
+## Product Development Roadmap
+
+Billvora is being developed as a long-term **AI-powered Personal Purchase Management System** that helps users securely store receipts, track warranties and return windows, manage purchase documents, and receive intelligent spending insights.
+
+The product roadmap is divided into four major development phases. Each phase builds upon the previous one and gradually transforms Billvora from a receipt storage application into a complete intelligent purchase management platform.
+
+---
+
+# Phase 1 — MVP Completion
+
+## Objective
+
+The objective of Phase 1 is to complete the Minimum Viable Product and ensure that Billvora delivers the full value of a Personal Purchase Management System before introducing advanced automation and AI capabilities.
+
+This phase focuses on completing the core user experience, purchase lifecycle management, support infrastructure, and account management features.
+
+## Help Center Completion
+
+The Help Center currently has its UI foundation in place. This phase will transform it into a complete user support system.
+
+Features:
+
+* Frequently Asked Questions (FAQ)
+* Contact Support
+* Report a Bug
+* Feature Request
+* Privacy Policy
+* Terms & Conditions
+* App Version Information
+
+The Help Center will become the primary support and guidance portal for users using Billvora.
+
+## Return Window Tracking
+
+One of the major problems faced by online shoppers is missing return and replacement deadlines.
+
+Billvora will introduce Return Window Tracking alongside Warranty Tracking.
+
+Each purchase will support:
+
+* Shopping Platform
+* Return Start Date
+* Return End Date
+* Return Window Duration
+* Remaining Return Days
+
+Supported platforms:
+
+* Amazon
+* Flipkart
+* Myntra
+* Other
+
+Dashboard integration:
+
+* Return Windows Ending Soon widget
+
+Notification reminders:
+
+* 3 Days Remaining
+* Last Day Reminder
+
+This feature will allow users to manage returns before deadlines expire.
+
+## Purchase Timeline
+
+Billvora will provide a chronological timeline of all purchases, allowing users to visually understand their purchase history.
+
+Example:
+
+January 2026
+
+* Laptop Purchased
+
+February 2026
+
+* Earbuds Purchased
+
+March 2026
+
+* Phone Repair
+
+The timeline will be generated automatically using purchase dates from receipts.
+
+## Profile Completion
+
+The user profile system will be expanded to include:
+
+* Profile Picture Upload
+* Avatar Management
+* Better Account Information Display
+* Improved Account Settings Experience
+
+## Dashboard Completion
+
+The dashboard will be enhanced with additional widgets and purchase intelligence.
+
+Additions:
+
+* Return Windows Ending Soon
+* Purchase Timeline Preview
+* Better Quick Actions
+* More Informative Statistics
+* Improved Spending Overview
+
+---
+
+# Phase 2 — OCR Integration
+
+## Objective
+
+Phase 2 introduces automation by minimizing manual data entry during receipt upload.
+
+Billvora will automatically read receipt images and extract important information.
+
+Technology:
+
+* Tesseract OCR
+
+## OCR Receipt Scanning
+
+When a user uploads a receipt image or invoice PDF, Billvora will automatically detect:
+
+* Product Name
+* Store Name
+* Purchase Date
+* Amount
+* GST Number
+* Invoice Number
+
+The extracted data will automatically populate the receipt form, allowing the user to simply verify and save the information.
+
+## Auto Category Detection
+
+Based on OCR data, Billvora will automatically assign categories.
+
+Examples:
+
+* Laptop → Electronics
+* Pizza → Food
+* Medicine → Healthcare
+* Furniture → Furniture
+
+This will significantly reduce manual input and improve consistency across receipts.
+
+## OCR Workflow
+
+User uploads receipt
+
+↓
+
+OCR extracts text
+
+↓
+
+Important fields identified
+
+↓
+
+Category automatically assigned
+
+↓
+
+Receipt form pre-filled
+
+↓
+
+User reviews and saves
+
+---
+
+# Phase 3 — AI Intelligence Layer
+
+## Objective
+
+Phase 3 transforms Billvora from a storage application into an intelligent personal purchase assistant.
+
+Artificial Intelligence will analyze purchases, spending patterns, warranties, and shopping behavior to provide proactive recommendations.
+
+## AI Receipt Reader
+
+AI will improve OCR accuracy and understand receipts at a semantic level.
+
+Capabilities:
+
+* Better Product Identification
+* Brand Detection
+* Missing Field Suggestions
+* Duplicate Receipt Detection
+* Confidence Scoring
+* Smart Field Validation
+
+Example:
+
+Receipt uploaded
+
+↓
+
+OCR detects partial product
+
+↓
+
+AI suggests “Apple AirPods Pro”
+
+↓
+
+User confirms
+
+## Smart Search
+
+Billvora will support natural language search queries.
+
+Examples:
+
+* Show my laptop receipt
+* Amazon purchases
+* Medicine receipts
+* Electronics bought in January
+* Purchases above ₹10,000
+
+Users will no longer need exact keywords to find receipts.
+
+## Spending Insights
+
+AI will automatically analyze expenses and generate personalized insights.
+
+Examples:
+
+* You spent ₹18,000 on Electronics this month.
+* Food expenses increased by 25%.
+* Electronics account for 45% of your total spending.
+
+Visual analytics:
+
+* Monthly Spending
+* Category Spending
+* Yearly Spending
+* Expense Trends
+* Category Comparison
+
+## AI Purchase Insights
+
+Long-term purchase behavior analysis.
+
+AI will identify:
+
+* Frequently Purchased Categories
+* Shopping Frequency
+* Average Order Value
+* Seasonal Spending Patterns
+* Brand Preferences
+* Warranty Risk Analysis
+
+## Smart Suggestions
+
+AI-powered proactive recommendations.
+
+Examples:
+
+* Consider extending warranty for this device.
+* Electronics spending is increasing rapidly.
+* You purchased a similar product recently.
+* Your return window ends tomorrow.
+* This product may require servicing soon.
+
+Billvora will become a proactive assistant rather than a passive storage application.
+
+---
+
+# Phase 4 — Productization & Production Readiness
+
+## Objective
+
+Phase 4 prepares Billvora for real users, deployment, portfolio presentation, and long-term scalability.
+
+## Responsive Audit
+
+Comprehensive testing across multiple devices.
+
+Target devices:
+
+* Android Phones
+* iPhones
+* Tablets
+* iPads
+* MacBook Air
+* Windows Laptops
+* Large Desktop Displays
+
+Areas:
+
+* Layout
+* Spacing
+* Typography
+* Cards
+* Tables
+* Forms
+* Charts
+* Navigation
+
+## Performance Optimization
+
+Improve application speed and scalability.
+
+Optimizations:
+
+* Firebase Query Optimization
+* Lazy Loading
+* Code Splitting
+* Image Optimization
+* Bundle Size Reduction
+* Chart Performance Improvements
+
+## Error Handling
+
+Improve production reliability.
+
+Features:
+
+* Better Empty States
+* Retry Actions
+* Network Error Handling
+* Offline UI
+* Loading Improvements
+* Graceful Failure Recovery
+
+## Deployment
+
+Production deployment using:
+
+* Vercel
+* Firebase Hosting (optional)
+
+Tasks:
+
+* Environment Variables
+* Production Firebase Configuration
+* Security Rules
+* Custom Domain
+* SSL Setup
+
+## Branding
+
+Finalize the product identity.
+
+Includes:
+
+* Logo
+* Favicon
+* Meta Tags
+* Open Graph Preview
+* Progressive Web App (PWA)
+* App Icons
+
+## Portfolio Package
+
+Create professional presentation materials.
+
+Includes:
+
+* GitHub README
+* Architecture Diagram
+* Feature Screenshots
+* Demo Video
+* Resume Project Description
+* LinkedIn Launch Post
+* Product Case Study
+
+The goal is to make Billvora portfolio-ready, recruiter-ready, and startup-ready.
+
+---
+
+# Post V1 Roadmap
+
+After Version 1 is fully completed, development will continue toward a more intelligent and collaborative platform.
+
+## Version 2
+
+Focus:
+
+* OCR Integration
+* Auto Category Detection
+* Smart Search
+* Advanced Analytics
+* Better Expense Tracking
+
+## Version 3
+
+Focus:
+
+* AI Receipt Reader
+* AI Spending Insights
+* Smart Purchase Suggestions
+* Digital Locker
+* Family Vault
+* Shared Warranty Management
+* Better Data Export
+
+## Premium Roadmap
+
+Future premium capabilities:
+
+* Cloud Backup
+* Multi-device Sync
+* AI Financial Reports
+* Product Resale Value Estimation
+* Price Drop Alerts
+* Purchase Reminder System
+* Service Reminders
+* Subscription Tracking
+* Multiple Currency Support
+* Business Asset Management Mode
+
+---
+
+# Long-Term Vision
+
+Billvora aims to evolve from a receipt storage application into a trusted **AI-powered Personal Purchase Management Platform**.
+
+The long-term vision is to provide users with a complete digital history of every purchase they make, intelligently organize their purchase documents, manage warranties and return windows, analyze spending behavior, and assist future purchase decisions using artificial intelligence.
+
+Billvora is not just about storing receipts.
+
+It is about building a personal financial and purchase intelligence platform that remains useful throughout the entire lifecycle of every product a user owns.
+
+
+
+
