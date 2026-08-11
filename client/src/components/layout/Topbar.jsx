@@ -26,7 +26,7 @@ function Topbar({ onMenuClick }) {
   };
 
   return (
-    <header className="flex h-16 shrink-0 items-center border-b border-default bg-surface px-4 transition-theme lg:px-6">
+    <header className="flex h-16 lg:h-20 items-center border-b border-default bg-surface px-4 transition-theme lg:px-8">
       {/* Mobile Menu Button */}
       <button
         type="button"
@@ -40,9 +40,9 @@ function Topbar({ onMenuClick }) {
       {/* Search Bar */}
       <form
         onSubmit={handleSubmit}
-        className="min-w-0 flex-1 lg:max-w-md"
+        className="min-w-0 flex-1 lg:max-w-2xl"
       >
-        <div className="flex h-10 items-center gap-2 rounded-xl border border-default bg-surface px-3 transition-theme focus-within:border-blue-500">
+        <div className="flex h-10 lg:h-12 items-center gap-2 rounded-xl lg:rounded-2xl border border-default bg-surface px-3 lg:px-4 transition-theme focus-within:border-blue-500">
           <Search
             size={16}
             className="shrink-0 text-secondary"
@@ -67,11 +67,11 @@ function Topbar({ onMenuClick }) {
         <button
           type="button"
           onClick={() => navigate('/settings')}
-          className="flex shrink-0 items-center gap-3 rounded-xl border border-default bg-surface p-2 text-left transition-theme hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-blue-500/20 lg:px-3 lg:py-2"
+          className="flex shrink-0 items-center gap-3 rounded-2xl border border-default bg-surface p-2 lg:px-4 lg:py-2 text-left transition-theme hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           aria-label="Open profile settings"
         >
           {/* Avatar */}
-          <div className="button-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-semibold">
+          <div className="button-primary flex h-10 w-10 lg:h-11 lg:w-11 shrink-0 items-center justify-center rounded-full font-semibold">
             {user?.displayName?.charAt(0).toUpperCase() || 'U'}
           </div>
 
