@@ -26,9 +26,19 @@ import Analytics from "../pages/Analytics/Analytics";
 import Notifications from "../pages/Notifications/Notifications";
 import Settings from "../pages/Settings/Settings";
 
+// Help Center
 import HelpCenter from "../pages/HelpCenter/HelpCenter";
 import HelpCategory from "../pages/HelpCenter/HelpCategory";
 import HelpArticle from "../pages/HelpCenter/HelpArticle";
+
+// Billvora 6.4 Help Pages
+import FAQ from "../pages/HelpCenter/FAQ";
+import ContactSupport from "../pages/HelpCenter/ContactSupport";
+import ReportBug from "../pages/HelpCenter/ReportBug";
+import FeatureRequest from "../pages/HelpCenter/FeatureRequest";
+import PrivacyPolicy from "../pages/HelpCenter/PrivacyPolicy";
+import Terms from "../pages/HelpCenter/Terms";
+import AppVersion from "../pages/HelpCenter/AppVersion";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 
@@ -100,20 +110,45 @@ function AppRoutes() {
 
         {/* Settings */}
         <Route path="/settings" element={<Settings />} />
-      </Route>
-      <Route
-  path="/help-center"
-  element={<HelpCenter />}
-/>
-<Route
-  path="/help-center/:categoryId"
-  element={<HelpCategory />}
-/>
 
-<Route
-  path="/help-center/:categoryId/:articleId"
-  element={<HelpArticle />}
-/>
+        {/* Help Center */}
+        <Route path="/help-center" element={<HelpCenter />} />
+        <Route
+          path="/help-center/:categoryId"
+          element={<HelpCategory />}
+        />
+        <Route
+          path="/help-center/:categoryId/:articleId"
+          element={<HelpArticle />}
+        />
+
+        {/* Billvora 6.4 Help Pages */}
+        <Route path="/help-center/faq" element={<FAQ />} />
+        <Route
+          path="/help-center/contact-support"
+          element={<ContactSupport />}
+        />
+        <Route
+          path="/help-center/report-bug"
+          element={<ReportBug />}
+        />
+        <Route
+          path="/help-center/feature-request"
+          element={<FeatureRequest />}
+        />
+        <Route
+          path="/help-center/privacy-policy"
+          element={<PrivacyPolicy />}
+        />
+        <Route
+          path="/help-center/terms"
+          element={<Terms />}
+        />
+        <Route
+          path="/help-center/app-version"
+          element={<AppVersion />}
+        />
+      </Route>
     </Routes>
   );
 }
