@@ -2,15 +2,25 @@ import { useState } from "react";
 
 const initialReceiptData = {
   productName: "",
-
   storeName: "",
   category: "",
   amount: "",
   purchaseDate: "",
   paymentMethod: "",
+
+  // Warranty
   hasWarranty: false,
   warrantyDuration: "",
   warrantyExpiry: "",
+
+  // Return Window
+  returnTracking: false,
+  platform: "",
+  returnType: "Return",
+  returnDurationDays: 7,
+  returnStartDate: "",
+  returnEndDate: "",
+
   notes: "",
   receiptImage: null,
 };
@@ -49,8 +59,8 @@ const useReceiptForm = () => {
     const errors = {};
 
     if (!receiptData.productName.trim()) {
-  errors.productName = "Product Name is required";
-}
+      errors.productName = "Product Name is required";
+    }
 
     if (!receiptData.storeName.trim()) {
       errors.storeName = "Store Name is required";
@@ -78,6 +88,7 @@ const useReceiptForm = () => {
       errors.receiptImage = "Receipt image is required";
     }
 
+    // Warranty validation
     if (receiptData.hasWarranty) {
       if (!receiptData.warrantyDuration) {
         errors.warrantyDuration = "Warranty Duration is required";
@@ -85,6 +96,17 @@ const useReceiptForm = () => {
 
       if (!receiptData.warrantyExpiry) {
         errors.warrantyExpiry = "Warranty Expiry is required";
+      }
+    }
+
+    // Return Window validation
+    if (receiptData.returnTracking) {
+      if (!receiptData.platform) {
+        errors.platform = "Platform is required";
+      }
+
+      if (!receiptData.returnStartDate) {
+        errors.returnStartDate = "Return Start Date is required";
       }
     }
 

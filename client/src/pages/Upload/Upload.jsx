@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -6,6 +6,7 @@ import UploadHeader from "../../components/receipt/UploadHeader";
 import UploadWorkspace from "../../components/receipt/UploadWorkspace";
 import ReceiptForm from "../../components/receipt/ReceiptForm";
 import WarrantyForm from "../../components/receipt/WarrantyForm";
+import ReturnWindowCard from "../../components/returnWindow/ReturnWindowCard";
 import NotesField from "../../components/receipt/NotesField";
 import UploadActions from "../../components/receipt/UploadActions";
 
@@ -14,6 +15,7 @@ import { saveReceipt } from "../../services/receiptService";
 import { saveWarranty } from "../../services/warrantyService";
 
 import useReceiptForm from "../../hooks/useReceiptForm";
+import { calculateReturnEndDate } from "../../utils/returnUtils";
 import { AuthContext } from "../../context/AuthContext";
 
 const Upload = () => {
@@ -22,12 +24,42 @@ const Upload = () => {
 
   const {
     receiptData,
+    setReceiptData,
     errors,
     setErrors,
     handleInputChange,
     handleFileChange,
     validateReceipt,
   } = useReceiptForm();
+
+  // Auto calculate Return End Date
+  useEffect(() => {
+    if (
+      receiptData.returnTracking &&
+      receiptData.returnStartDate &&
+      receiptData.returnDurationDays
+    ) {
+      const endDate = calculateReturnEndDate(
+        receiptData.returnStartDate,
+        receiptData.returnDurationDays
+      );
+
+      setReceiptData((prev) => ({
+        ...prev,
+        returnEndDate: endDate,
+      }));
+    } else {
+      setReceiptData((prev) => ({
+        ...prev,
+        returnEndDate: "",
+      }));
+    }
+  }, [
+    receiptData.returnTracking,
+    receiptData.returnStartDate,
+    receiptData.returnDurationDays,
+    setReceiptData,
+  ]);
 
   const handleSaveReceipt = async () => {
     const result = validateReceipt();
@@ -59,6 +91,14 @@ const Upload = () => {
         ...receiptData,
         receiptImage: imageUrl,
         userId: uid,
+
+        // Return Window Tracking
+        returnTracking: receiptData.returnTracking,
+        platform: receiptData.platform,
+        returnType: receiptData.returnType,
+        returnDurationDays: Number(receiptData.returnDurationDays),
+        returnStartDate: receiptData.returnStartDate,
+        returnEndDate: receiptData.returnEndDate,
       });
 
       // Save warranty if enabled
@@ -84,7 +124,7 @@ const Upload = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <UploadHeader />
 
       <UploadWorkspace
@@ -100,6 +140,12 @@ const Upload = () => {
       />
 
       <WarrantyForm
+        receiptData={receiptData}
+        onInputChange={handleInputChange}
+        errors={errors}
+      />
+
+      <ReturnWindowCard
         receiptData={receiptData}
         onInputChange={handleInputChange}
         errors={errors}
