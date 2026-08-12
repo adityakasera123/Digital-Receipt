@@ -15,17 +15,30 @@ import {
   where,
 } from "firebase/firestore";
 
+// ===============================
 // Save Receipt
+// ===============================
 export const saveReceipt = async (receiptData) => {
   const docRef = await addDoc(collection(db, "receipts"), {
     ...receiptData,
+
+    // Return Window Tracking (6.5)
+    returnTracking: receiptData.returnTracking || false,
+    platform: receiptData.platform || "",
+    returnType: receiptData.returnType || "Return",
+    returnDurationDays: Number(receiptData.returnDurationDays || 7),
+    returnStartDate: receiptData.returnStartDate || "",
+    returnEndDate: receiptData.returnEndDate || "",
+
     createdAt: serverTimestamp(),
   });
 
   return docRef.id;
 };
 
-// Get All Receipts (Current Logged-in User Only)
+// ===============================
+// Get All Receipts (Current User)
+// ===============================
 export const getReceipts = async (userId) => {
   if (!userId) return [];
 
@@ -43,7 +56,9 @@ export const getReceipts = async (userId) => {
   }));
 };
 
+// ===============================
 // Get Receipt By ID
+// ===============================
 export const getReceiptById = async (id) => {
   const docRef = doc(db, "receipts", id);
   const docSnap = await getDoc(docRef);
@@ -58,16 +73,28 @@ export const getReceiptById = async (id) => {
   };
 };
 
+// ===============================
 // Update Receipt
+// ===============================
 export const updateReceipt = async (id, receiptData) => {
   const docRef = doc(db, "receipts", id);
 
   await updateDoc(docRef, {
     ...receiptData,
+
+    // Return Window Tracking (6.5)
+    returnTracking: receiptData.returnTracking || false,
+    platform: receiptData.platform || "",
+    returnType: receiptData.returnType || "Return",
+    returnDurationDays: Number(receiptData.returnDurationDays || 7),
+    returnStartDate: receiptData.returnStartDate || "",
+    returnEndDate: receiptData.returnEndDate || "",
   });
 };
 
-// Delete Receipt + Firebase Storage Image + Linked Warranty
+// ===============================
+// Delete Receipt + Storage Image + Linked Warranty
+// ===============================
 export const deleteReceipt = async (receiptId) => {
   const receiptRef = doc(db, "receipts", receiptId);
 
