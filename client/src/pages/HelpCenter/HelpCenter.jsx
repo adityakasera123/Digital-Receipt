@@ -40,11 +40,11 @@ navigate(`/help-center/${categoryId}`);
 const searchResults = useMemo(() => {
 const query = searchQuery.trim().toLowerCase();
 
-
 if (!query) return [];
 
 const results = [];
 
+// Existing help articles
 helpCategories.forEach((category) => {
   const articles = helpArticles[category.id] || [];
 
@@ -59,7 +59,10 @@ helpCategories.forEach((category) => {
       categoryTitle.includes(query)
     ) {
       results.push({
-        ...article,
+        id: article.id,
+        type: 'article',
+        title: article.title,
+        description: article.description,
         categoryId: category.id,
         categoryTitle: category.title,
       });
@@ -67,8 +70,28 @@ helpCategories.forEach((category) => {
   });
 });
 
-return results;
+// FAQ items
+faqData.forEach((faq, index) => {
+  const question = faq.question.toLowerCase();
+  const answer = faq.answer.toLowerCase();
+  const category = faq.category.toLowerCase();
 
+  if (
+    question.includes(query) ||
+    answer.includes(query) ||
+    category.includes(query)
+  ) {
+    results.push({
+      id: `faq-${index}`,
+      type: 'faq',
+      title: faq.question,
+      description: faq.answer,
+      categoryTitle: faq.category,
+    });
+  }
+});
+
+return results;
 
 }, [searchQuery]);
 
@@ -212,11 +235,17 @@ Back to Dashboard </button>
               <button
                 key={`${article.categoryId}-${article.id}`}
                 type='button'
-                onClick={() =>
-                  navigate(
-                    `/help-center/${article.categoryId}/${article.id}`
-                  )
-                }
+                onClick={() => {
+                  if (article.type === 'article') {
+                    navigate(`/help-center/${article.categoryId}/${article.id}`);
+                  } else {
+                    setSearchQuery('');
+                    setTimeout(() => {
+                      const faqSection = document.getElementById('faq-section');
+                      faqSection?.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                  }
+                }}
                 className='group flex w-full items-start gap-4 rounded-2xl border border-default bg-surface p-5 text-left transition-theme hover:bg-surface-hover'
               >
                 <div className='min-w-0 flex-1'>
@@ -286,7 +315,7 @@ Back to Dashboard </button>
           </div>
         </div>
 
-        <div className='mt-10'>
+        <div id='faq-section' className='mt-10'>
           <div className='mb-5'>
             <h2 className='text-xl font-semibold text-primary'>
               Frequently Asked Questions
