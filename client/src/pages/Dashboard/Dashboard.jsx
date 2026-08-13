@@ -1,17 +1,17 @@
 import {
-  getTotalSpending,
-  getActiveWarranties,
-  getSavedDocuments,
-  getExpiringSoon,
-  getActiveReturnWindows,
-  getEndingSoonReturns,
-  getExpiredReturns,
-  getReturnAlerts,
+getTotalSpending,
+getActiveWarranties,
+getSavedDocuments,
+getExpiringSoon,
+getActiveReturnWindows,
+getEndingSoonReturns,
+getExpiredReturns,
+getReturnAlerts,
 } from "../../utils/dashboardUtils";
 
 import {
-  calculateMonthlyExpenses,
-  calculateCategorySpending,
+calculateMonthlyExpenses,
+calculateCategorySpending,
 } from "../../utils/analyticsHelpers";
 
 import { useContext, useEffect, useState } from "react";
@@ -34,189 +34,200 @@ import { useWarrantyNotifications } from "../../hooks/useWarrantyNotifications";
 import { getReceipts } from "../../services/receiptService";
 import { getWarranties } from "../../services/warrantyService";
 import {
-  shouldShowPopup,
-  markPopupShown,
+shouldShowPopup,
+markPopupShown,
 } from "../../services/notificationService";
 
 import DashboardSkeleton from "../../components/common/skeleton/DashboardSkeleton";
 import {
-  Receipt,
-  ShieldCheck,
-  IndianRupee,
-  FileText,
-  RotateCcw,
+Receipt,
+ShieldCheck,
+IndianRupee,
+FileText,
+RotateCcw,
 } from "lucide-react";
 
 function Dashboard() {
-  const { user, loading } = useContext(AuthContext);
-  const navigate = useNavigate();
+const { user, loading } = useContext(AuthContext);
+const navigate = useNavigate();
 
-  const [receipts, setReceipts] = useState([]);
-  const [warranties, setWarranties] = useState([]);
-  const [dashboardLoading, setDashboardLoading] = useState(true);
+const [receipts, setReceipts] = useState([]);
+const [warranties, setWarranties] = useState([]);
+const [dashboardLoading, setDashboardLoading] = useState(true);
 
-  const { popupNotification, snooze } = useWarrantyNotifications();
-  const [showReminderModal, setShowReminderModal] = useState(false);
+const { popupNotification, snooze } = useWarrantyNotifications();
+const [showReminderModal, setShowReminderModal] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
+useEffect(() => {
+if (!user) return;
 
-    const loadDashboardData = async () => {
-      try {
-        setDashboardLoading(true);
 
-        const [receiptsData, warrantiesData] = await Promise.all([
-          getReceipts(user.uid),
-          getWarranties(user.uid),
-        ]);
+const loadDashboardData = async () => {
+  try {
+    setDashboardLoading(true);
 
-        setReceipts(receiptsData);
-        setWarranties(warrantiesData);
-      } catch (error) {
-        console.error("Failed to load dashboard data:", error);
-      } finally {
-        setDashboardLoading(false);
-      }
-    };
+    const [receiptsData, warrantiesData] = await Promise.all([
+      getReceipts(user.uid),
+      getWarranties(user.uid),
+    ]);
 
-    loadDashboardData();
-  }, [user]);
-
-  useEffect(() => {
-    const checkPopup = async () => {
-      if (!popupNotification?.id) return;
-
-      try {
-        const canShow = await shouldShowPopup(popupNotification.id);
-
-        if (canShow) {
-          setShowReminderModal(true);
-        }
-      } catch (error) {
-        console.error("Popup frequency check failed:", error);
-      }
-    };
-
-    checkPopup();
-  }, [popupNotification]);
-
-  if (loading || dashboardLoading) {
-    return <DashboardSkeleton />;
+    setReceipts(receiptsData);
+    setWarranties(warrantiesData);
+  } catch (error) {
+    console.error("Failed to load dashboard data:", error);
+  } finally {
+    setDashboardLoading(false);
   }
+};
 
-  const totalSpending = getTotalSpending(receipts);
-  const activeWarranties = getActiveWarranties(warranties);
-  const savedDocuments = getSavedDocuments(receipts);
-  const expiringSoon = getExpiringSoon(warranties);
+loadDashboardData();
 
-  const activeReturns = getActiveReturnWindows(receipts);
-  const endingSoonReturns = getEndingSoonReturns(receipts);
-  const expiredReturns = getExpiredReturns(receipts);
-  const returnAlerts = getReturnAlerts(receipts);
 
-  const monthlyExpenses = calculateMonthlyExpenses(receipts);
-  const categorySpending = calculateCategorySpending(receipts);
+}, [user]);
 
-  return (
-    <>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-primary">
-          Welcome back, {user?.displayName || "User"} 👋
-        </h1>
+useEffect(() => {
+const checkPopup = async () => {
+if (!popupNotification?.id) return;
 
-        <p className="mt-2 text-secondary">
-          Manage all your receipts, warranties and purchases from one place.
-        </p>
-      </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Total Receipts"
-          value={receipts.length}
-          subtitle="Uploaded purchases"
-          icon={Receipt}
-        />
+  try {
+    const canShow = await shouldShowPopup(popupNotification.id);
 
-        <StatCard
-          title="Active Warranties"
-          value={activeWarranties}
-          subtitle={`${expiringSoon} expiring soon`}
-          icon={ShieldCheck}
-        />
+    if (canShow) {
+      setShowReminderModal(true);
+    }
+  } catch (error) {
+    console.error("Popup frequency check failed:", error);
+  }
+};
 
-        <StatCard
-          title="Total Spending"
-          value={`₹${totalSpending.toLocaleString("en-IN")}`}
-          subtitle="Total purchase value"
-          icon={IndianRupee}
-        />
+checkPopup();
 
-        <StatCard
-          title="Return Windows"
-          value={activeReturns}
-          subtitle={`${endingSoonReturns} ending soon • ${expiredReturns} expired`}
-          icon={RotateCcw}
-        />
-      </div>
 
-      {/* Recent Receipts + Warranty Alerts */}
-      <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <RecentReceipts receipts={receipts} />
-        <WarrantyAlerts warranties={warranties} />
-      </div>
+}, [popupNotification]);
 
-      {/* Return Alerts */}
-      <div className="mt-6">
-        <ReturnAlerts receipts={returnAlerts} />
-      </div>
+if (loading || dashboardLoading) {
+return <DashboardSkeleton />;
+}
 
-      {/* Quick Actions */}
-      <div className="mt-6">
-        <div className="card-surface transition-theme p-6">
-          <QuickActions />
-        </div>
-      </div>
+const totalSpending = getTotalSpending(receipts);
+const activeWarranties = getActiveWarranties(warranties);
+const savedDocuments = getSavedDocuments(receipts);
+const expiringSoon = getExpiringSoon(warranties);
 
-      {/* Recent Activity */}
-      <div className="mt-6">
-        <RecentActivity receipts={receipts} />
-      </div>
+const activeReturns = getActiveReturnWindows(receipts);
+const endingSoonReturns = getEndingSoonReturns(receipts);
+const expiredReturns = getExpiredReturns(receipts);
+const returnAlerts = getReturnAlerts(receipts);
 
-      {/* Urgent Reminder Modal */}
-      <UrgentReminderModal
-        isOpen={showReminderModal && !!popupNotification}
-        notification={popupNotification}
-        onClose={async () => {
-          setShowReminderModal(false);
+const monthlyExpenses = calculateMonthlyExpenses(receipts);
+const categorySpending = calculateCategorySpending(receipts);
 
-          if (popupNotification?.id) {
-            await markPopupShown(popupNotification.id);
-          }
-        }}
-        onRemindLater={async () => {
-          setShowReminderModal(false);
+return (
+<>
+{/* Header */} <div className="mb-8"> <h1 className="text-3xl font-bold text-primary">
+Welcome back, {user?.displayName || "User"} 👋 </h1>
 
-          if (popupNotification?.id) {
-            await snooze(popupNotification.id, 1);
-            await markPopupShown(popupNotification.id);
-          }
-        }}
-        onViewWarranty={async () => {
-          setShowReminderModal(false);
+    <p className="mt-2 text-secondary">
+      Manage all your receipts, warranties and purchases from one place.
+    </p>
+  </div>
 
-          if (popupNotification?.id) {
-            await markPopupShown(popupNotification.id);
-          }
+  {/* Stats */}
+  <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+    <StatCard
+      title="Total Receipts"
+      value={receipts.length}
+      subtitle="Uploaded purchases"
+      icon={Receipt}
+    />
 
-          navigate(`/warranty/${popupNotification?.warrantyId}`, {
-            state: { from: "/dashboard" },
-          });
-        }}
-      />
-    </>
-  );
+    <StatCard
+      title="Active Warranties"
+      value={activeWarranties}
+      subtitle={`${expiringSoon} expiring soon`}
+      icon={ShieldCheck}
+    />
+
+    <StatCard
+      title="Total Spending"
+      value={`₹${totalSpending.toLocaleString("en-IN")}`}
+      subtitle="Total purchase value"
+      icon={IndianRupee}
+    />
+
+    <StatCard
+      title="Return Windows"
+      value={activeReturns}
+      subtitle={`${endingSoonReturns} ending soon • ${expiredReturns} expired`}
+      icon={RotateCcw}
+    />
+  </div>
+
+  {/* Recent Receipts + Warranty Alerts */}
+  <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
+    <RecentReceipts receipts={receipts} />
+    <WarrantyAlerts warranties={warranties} />
+  </div>
+
+  {/* Return Alerts */}
+  <div className="mt-6">
+    <ReturnAlerts receipts={returnAlerts} />
+  </div>
+
+  {/* Quick Actions */}
+  <div className="mt-6">
+    <div className="card-surface transition-theme p-6">
+      <QuickActions />
+    </div>
+  </div>
+
+  {/* Recent Activity */}
+  <div className="mt-6">
+    <RecentActivity receipts={receipts} />
+  </div>
+
+  {/* Urgent Reminder Modal */}
+  <UrgentReminderModal
+    isOpen={showReminderModal && !!popupNotification}
+    notification={popupNotification}
+    onClose={async () => {
+      setShowReminderModal(false);
+
+      if (popupNotification?.id) {
+        await markPopupShown(popupNotification.id);
+      }
+    }}
+    onRemindLater={async () => {
+      setShowReminderModal(false);
+
+      if (popupNotification?.id) {
+        await snooze(popupNotification.id, 1);
+        await markPopupShown(popupNotification.id);
+      }
+    }}
+    onViewWarranty={async () => {
+      setShowReminderModal(false);
+
+      if (popupNotification?.id) {
+        await markPopupShown(popupNotification.id);
+      }
+
+      if (popupNotification?.type === "return_window") {
+        navigate(`/receipts/${popupNotification?.receiptId}`, {
+          state: { from: "/dashboard" },
+        });
+      } else {
+        navigate(`/warranty/${popupNotification?.warrantyId}`, {
+          state: { from: "/dashboard" },
+        });
+      }
+    }}
+  />
+</>
+
+
+);
 }
 
 export default Dashboard;
