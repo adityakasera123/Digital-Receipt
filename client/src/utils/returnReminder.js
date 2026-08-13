@@ -70,6 +70,26 @@ if (daysRemaining === 1) {
   return;
 }
 
+// 2 days remaining
+if (daysRemaining === 2) {
+  notifications.push({
+    id: `return-2days-${receipt.id}`,
+    receiptId: receipt.id,
+    type: "return_window",
+    title: "Return window ending soon",
+    message: `${receipt.platform || "Return"} return window for ${receipt.productName} ends in 2 days.`,
+    priority: "high",
+    reminderDays: 2,
+    daysRemaining,
+    productName: receipt.productName,
+    storeName: receipt.storeName,
+    platform: receipt.platform,
+    returnEndDate: receipt.returnEndDate,
+    status,
+  });
+  return;
+}
+
 // 3 days remaining
 if (daysRemaining === 3) {
   notifications.push({
@@ -87,6 +107,7 @@ if (daysRemaining === 3) {
     returnEndDate: receipt.returnEndDate,
     status,
   });
+  return;
 }
 
 
@@ -105,18 +126,3 @@ notifications.find(
 ) || null,
 };
 };
-
-
-// TEMP TEST
-const testReceipts = [
-  {
-    id: "r1",
-    productName: "Nike Shoes",
-    platform: "Myntra",
-    storeName: "Myntra",
-    returnTracking: true,
-    returnEndDate: "2026-08-15", // 3 days remaining
-  },
-];
-
-console.log("RETURN TEST:", getReturnNotificationSummary(testReceipts));

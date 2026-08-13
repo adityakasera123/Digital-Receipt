@@ -15,6 +15,11 @@ import {
 import { db } from "../firebase/firebase";
 import { getNotificationSummary } from "../utils/warrantyReminder";
 
+// ===== Billvora 6.5 (Return Window) ADDITIONS =====
+import { getReceipts } from "./receiptService";
+import { getReturnNotificationSummary } from "../utils/returnReminder";
+// ================================================
+
 const notificationsRef = collection(db, "notifications");
 
 /**
@@ -43,7 +48,12 @@ export const fetchUserWarranties = async (userId) => {
  * Create or update notification
  */
 export const createOrUpdateNotification = async (userId, notification) => {
-  const notificationId = `${userId}_${notification.warrantyId}_${notification.reminderDays}_${notification.type}`;
+  const uniqueId =
+    notification.type === "return_window"
+      ? notification.receiptId
+      : notification.warrantyId;
+
+  const notificationId = `${userId}_${uniqueId}_${notification.reminderDays}_${notification.type}`;
 
   const notificationRef = doc(db, "notifications", notificationId);
 
@@ -139,15 +149,19 @@ export const getDashboardNotifications = async (userId) => {
     };
   }
 
- const warranties = await fetchUserWarranties(userId);
-console.log("WARRANTIES:", warranties);
+  // ===============================
+  // Existing Warranty Notifications
+  // ===============================
 
-const summary = getNotificationSummary(warranties);
-console.log("SUMMARY:", summary);
-console.log("SUMMARY.NOTIFICATIONS:", summary.notifications);
-console.log("SUMMARY LENGTH:", summary.notifications.length);
+  const warranties = await fetchUserWarranties(userId);
+  console.log("WARRANTIES:", warranties);
 
-  // Generate / sync notifications
+  const summary = getNotificationSummary(warranties);
+  console.log("SUMMARY:", summary);
+  console.log("SUMMARY.NOTIFICATIONS:", summary.notifications);
+  console.log("SUMMARY LENGTH:", summary.notifications.length);
+
+  // Generate / sync warranty notifications
   for (const notification of summary.notifications) {
     await createOrUpdateNotification(userId, {
       warrantyId: notification.warrantyId || notification.id || null,
@@ -165,11 +179,46 @@ console.log("SUMMARY LENGTH:", summary.notifications.length);
     });
   }
 
+  // ===============================
+  // Return Window Notifications (6.5)
+  // ===============================
+
+  const receipts = await getReceipts(userId);
+  const returnSummary = getReturnNotificationSummary(receipts);
+
+  console.log("RETURN SUMMARY:", returnSummary);
+  console.log(
+    "RETURN NOTIFICATIONS:",
+    returnSummary.notifications
+  );
+
+  // Generate / sync return notifications
+  for (const notification of returnSummary.notifications) {
+    await createOrUpdateNotification(userId, {
+      warrantyId: null,
+      receiptId: notification.receiptId,
+      type: "return_window",
+      title: notification.title,
+      message: notification.message,
+      priority: notification.priority,
+      reminderDays:
+        notification.reminderDays ?? notification.daysRemaining ?? 0,
+      productName: notification.productName,
+      storeName: notification.storeName,
+      platform: notification.platform,
+      returnEndDate: notification.returnEndDate,
+    });
+  }
+
+  // ===============================
+  // Existing Dashboard Notification Logic
+  // ===============================
+
   const persistedNotifications = await getNotifications(userId);
 
   const urgentNotifications = persistedNotifications.filter(
     (n) =>
-     (n.priority === "critical" || n.priority === "high") &&
+      (n.priority === "critical" || n.priority === "high") &&
       !n.isRead
   );
 
