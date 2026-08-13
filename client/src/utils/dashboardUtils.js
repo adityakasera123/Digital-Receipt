@@ -1,50 +1,72 @@
+import { getReturnStatus, getRemainingReturnDays } from "./returnUtils";
+
 // ===============================
-// Dashboard Utility Functions
+// Existing Dashboard Helpers
 // ===============================
 
-// Total Spending
-export const getTotalSpending = (receipts) => {
-  return receipts.reduce(
-    (total, receipt) => total + Number(receipt.amount || 0),
-    0
-  );
-};
+export const getTotalSpending = (receipts = []) =>
+  receipts.reduce((total, receipt) => total + Number(receipt.amount || 0), 0);
 
-// Total Saved Documents
-export const getSavedDocuments = (receipts) => {
-  return receipts.length;
-};
+export const getActiveWarranties = (warranties = []) =>
+  warranties.filter((warranty) => {
+    if (!warranty.expiryDate) return false;
+    return new Date(warranty.expiryDate) >= new Date();
+  }).length;
 
-// Active Warranties
-export const getActiveWarranties = (warranties) => {
+export const getSavedDocuments = (receipts = []) => receipts.length;
+
+export const getExpiringSoon = (warranties = []) => {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
 
   return warranties.filter((warranty) => {
     if (!warranty.expiryDate) return false;
 
     const expiry = new Date(warranty.expiryDate);
-    expiry.setHours(0, 0, 0, 0);
+    const diff = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
 
-    return expiry >= today;
+    return diff >= 0 && diff <= 30;
   }).length;
 };
 
-// Expiring Within Next 7 Days
-export const getExpiringSoon = (warranties) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+// ===============================
+// Return Window Dashboard Helpers (6.5)
+// ===============================
 
-  return warranties.filter((warranty) => {
-    if (!warranty.expiryDate) return false;
+export const getActiveReturnWindows = (receipts = []) =>
+  receipts.filter(
+    (receipt) =>
+      receipt.returnTracking &&
+      receipt.returnEndDate &&
+      getReturnStatus(receipt.returnEndDate) === "Active"
+  ).length;
 
-    const expiry = new Date(warranty.expiryDate);
-    expiry.setHours(0, 0, 0, 0);
+export const getEndingSoonReturns = (receipts = []) =>
+  receipts.filter(
+    (receipt) =>
+      receipt.returnTracking &&
+      receipt.returnEndDate &&
+      getReturnStatus(receipt.returnEndDate) === "Ending Soon"
+  ).length;
 
-    const diffDays = Math.ceil(
-      (expiry - today) / (1000 * 60 * 60 * 24)
+export const getExpiredReturns = (receipts = []) =>
+  receipts.filter(
+    (receipt) =>
+      receipt.returnTracking &&
+      receipt.returnEndDate &&
+      getReturnStatus(receipt.returnEndDate) === "Expired"
+  ).length;
+
+export const getReturnAlerts = (receipts = []) =>
+  receipts
+    .filter((receipt) => {
+      if (!receipt.returnTracking || !receipt.returnEndDate) return false;
+
+      const days = getRemainingReturnDays(receipt.returnEndDate);
+
+      return days >= 0 && days <= 3;
+    })
+    .sort(
+      (a, b) =>
+        getRemainingReturnDays(a.returnEndDate) -
+        getRemainingReturnDays(b.returnEndDate)
     );
-
-    return diffDays >= 0 && diffDays <= 7;
-  }).length;
-};
