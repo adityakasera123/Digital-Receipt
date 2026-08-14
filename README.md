@@ -1505,3 +1505,265 @@ It is about building a personal financial and purchase intelligence platform tha
 
 
 
+# Billvora
+
+A modern **Personal Purchase Management System** that helps users store digital receipts, track warranties, monitor return windows, receive smart reminders, and eventually interact with their purchase history through an **AI Assistant**.
+
+> Current Progress: **Version 6.6 Complete** | Next Milestone: **7.0 OCR Assist Mode**
+
+---
+
+## Why Billvora?
+
+Managing receipts, warranties, and return deadlines is messy. Bills get lost, warranty cards disappear, and return windows expire before we remember them.
+
+Billvora solves this by providing a **single digital vault** for all purchases with reminder automation and future AI-powered insights.
+
+---
+
+## Current Features
+
+### Authentication
+
+* Email / Password login
+* Signup
+* Forgot password
+* Protected routes
+* Firebase Authentication
+
+### Receipt Management
+
+* Upload receipt images
+* Manual receipt form
+* Edit receipt
+* Delete receipt
+* Receipt preview
+* Receipt detail page
+* Firebase Storage integration
+* Firestore persistence
+
+### Warranty Tracking
+
+* Add / edit / delete warranties
+* Expiry tracking
+* Warranty statistics
+* Dashboard integration
+
+### Return Window Tracking (v6.6)
+
+* Enable / disable return tracking
+* Platform selection
+* Return / replacement support
+* Preset durations
+* Custom duration support
+* Manual end-date override
+* Optional delivery date
+* Dashboard integration
+* Notification integration
+
+### Dashboard
+
+* Overview cards
+* Recent receipts
+* Warranty alerts
+* Return alerts
+* Search integration
+
+### Analytics
+
+* Monthly spending
+* Category breakdown
+* Warranty insights
+* Visual charts
+
+### Search
+
+* Live search
+* Filters
+* Sorting
+* Receipt navigation
+
+### Notifications
+
+* Bell notifications
+* Notification page
+* Popup reminders
+* Read / unread
+* Snooze
+* Mark all as read
+* Once-per-day popup control
+
+---
+
+## Notification Milestones
+
+### Warranty
+
+**Bell:** 30, 15, 7, 3, 1, 0 days
+
+**Popup:** 7, 3, 1, 0 days
+
+### Return Window
+
+**Bell:** 3, 1, 0 days
+
+**Popup:** 3, 1, 0 days
+
+---
+
+## Tech Stack
+
+### Frontend
+
+* React
+* Vite
+* Tailwind CSS v4
+* React Router
+* Framer Motion
+* Lucide React
+* React Hot Toast
+* clsx
+
+### Backend / Cloud
+
+* Firebase Authentication
+* Cloud Firestore
+* Firebase Storage
+
+### Planned
+
+* OCR API
+* AI Assistant
+* Smart receipt extraction
+
+---
+
+## Folder Structure
+
+```text
+client/
+├── public/
+├── src/
+│   ├── assets/
+│   ├── components/
+│   ├── context/
+│   ├── firebase/
+│   ├── hooks/
+│   ├── pages/
+│   ├── routes/
+│   ├── services/
+│   ├── utils/
+│   ├── styles/
+│   ├── App.jsx
+│   └── main.jsx
+└── README.md
+```
+
+---
+
+## Development Milestones
+
+### Completed
+
+* Authentication
+* Receipt CRUD
+* Warranty CRUD
+* Dashboard
+* Analytics
+* Search
+* Profile
+* Settings
+* Help Center
+* Notification System
+* Return Window Tracking (6.6)
+
+### In Progress
+
+* OCR Architecture (7.0)
+
+### Planned
+
+* OCR Text Extraction
+* Smart Field Detection
+* Auto-filled Receipt Forms
+* Ask Billvora AI Assistant
+* Family Vault
+* Subscription Tracking
+* Smart Budget Insights
+
+---
+
+## OCR Roadmap (7.0)
+
+Billvora follows an **OCR Assist Mode** approach.
+
+The OCR system will:
+
+* Extract available information from receipt images
+* Auto-fill detected fields
+* Leave unknown fields empty
+* Allow manual correction before saving
+
+Flow:
+
+```text
+Receipt Image
+      |
+      v
+OCR Processing
+      |
+      v
+Text Extraction
+      |
+      v
+Field Mapping
+      |
+      v
+Receipt Form Auto-fill
+      |
+      v
+User Review
+      |
+      v
+Save Receipt
+```
+
+---
+
+## Future Vision: Ask Billvora
+
+Instead of a traditional chatbot, Billvora will include an **AI Assistant** capable of understanding the user’s purchase history.
+
+Example queries:
+
+* Which warranty expires next?
+* What can I still return?
+* How much did I spend on electronics this month?
+* Show purchases above ₹20,000.
+* Compare July and August spending.
+
+---
+
+## Design Philosophy
+
+* Startup-grade SaaS UI
+* Minimal and premium aesthetics
+* Theme-aware components
+* Responsive layouts
+* Clean typography
+* Soft shadows and rounded surfaces
+* Consistent design tokens
+
+---
+
+## Project Status
+
+**Approximately 70% complete**
+
+Billvora is already functional as a real SaaS-style application and is currently entering the **OCR automation phase** before AI-powered purchase intelligence.
+
+---
+
+## License
+
+This project is being built as a portfolio-quality startup product and is currently under active development.
