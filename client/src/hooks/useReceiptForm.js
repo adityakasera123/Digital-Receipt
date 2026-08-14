@@ -21,9 +21,11 @@ const initialReceiptData = {
   returnTracking: false,
   platform: "",
   returnType: "Return",
+  returnDurationType: "preset",
   returnDurationDays: 7,
   returnStartDate: "",
   returnEndDate: "",
+  returnEndDateManual: false,
 
   notes: "",
   receiptImage: null,

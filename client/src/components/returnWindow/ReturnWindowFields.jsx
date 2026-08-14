@@ -11,8 +11,6 @@ const platforms = [
   "Other",
 ];
 
-const durations = [7, 10, 14, 15, 30];
-
 export default function ReturnWindowFields({ receiptData, onInputChange }) {
   return (
     <div className="space-y-5">
@@ -38,6 +36,7 @@ export default function ReturnWindowFields({ receiptData, onInputChange }) {
 
       {receiptData.returnTracking && (
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          {/* Platform */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-primary">Platform</label>
             <select
@@ -55,6 +54,7 @@ export default function ReturnWindowFields({ receiptData, onInputChange }) {
             </select>
           </div>
 
+          {/* Return Type */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-primary">Return Type</label>
             <select
@@ -68,25 +68,86 @@ export default function ReturnWindowFields({ receiptData, onInputChange }) {
             </select>
           </div>
 
+          {/* Return Duration */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-primary">Return Duration</label>
+            <label className="text-sm font-medium text-primary">
+              Return Duration
+            </label>
+
             <select
-              name="returnDurationDays"
-              value={receiptData.returnDurationDays || 7}
-              onChange={onInputChange}
+              value={
+                receiptData.returnDurationType === "custom"
+                  ? "custom"
+                  : String(receiptData.returnDurationDays || 7)
+              }
+              onChange={(e) => {
+                if (e.target.value === "custom") {
+                  onInputChange({
+                    target: {
+                      name: "returnDurationType",
+                      value: "custom",
+                    },
+                  });
+
+                  onInputChange({
+                    target: {
+                      name: "returnDurationDays",
+                      value: 7,
+                    },
+                  });
+                } else {
+                  onInputChange({
+                    target: {
+                      name: "returnDurationType",
+                      value: "preset",
+                    },
+                  });
+
+                  onInputChange({
+                    target: {
+                      name: "returnDurationDays",
+                      value: Number(e.target.value),
+                    },
+                  });
+                }
+              }}
               className="w-full rounded-2xl border border-default bg-surface px-4 py-3 text-primary transition-theme"
             >
-              {durations.map((days) => (
-                <option key={days} value={days}>
-                  {days} Days
-                </option>
-              ))}
+              <option value="3">3 Days</option>
+              <option value="4">4 Days</option>
+              <option value="5">5 Days</option>
+              <option value="7">7 Days</option>
+              <option value="10">10 Days</option>
+              <option value="15">15 Days</option>
+              <option value="30">30 Days</option>
+              <option value="custom">Custom</option>
             </select>
+
+            {receiptData.returnDurationType === "custom" && (
+              <div className="pt-3">
+                <label className="mb-2 block text-sm font-medium text-primary">
+                  Enter custom days
+                </label>
+
+                <input
+                  type="number"
+                  min="1"
+                  max="365"
+                  name="returnDurationDays"
+                  value={receiptData.returnDurationDays || ""}
+                  onChange={onInputChange}
+                  placeholder="Enter number of days"
+                  className="w-full rounded-2xl border border-default bg-surface px-4 py-3 text-primary transition-theme"
+                />
+              </div>
+            )}
           </div>
 
           {/* Return Start Date */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-primary">Return Start Date</label>
+            <label className="text-sm font-medium text-primary">
+              Return Start Date
+            </label>
             <input
               type="date"
               name="returnStartDate"
@@ -96,7 +157,7 @@ export default function ReturnWindowFields({ receiptData, onInputChange }) {
             />
           </div>
 
-          {/* NEW: Optional Delivery Date */}
+          {/* Optional Delivery Date */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-primary">
               Delivery Date (Optional)
@@ -114,15 +175,39 @@ export default function ReturnWindowFields({ receiptData, onInputChange }) {
             </p>
           </div>
 
-          {/* Return End Date */}
+          {/* Editable Return End Date */}
           <div className="space-y-2 md:col-span-2">
-            <label className="text-sm font-medium text-primary">Return End Date</label>
-            <div className="flex items-center gap-3 rounded-2xl border border-default bg-surface-secondary px-4 py-3 text-primary">
-              <RotateCcw className="h-4 w-4 text-secondary" />
-              <span>
-                {receiptData.returnEndDate || "Auto calculated"}
-              </span>
+            <label className="text-sm font-medium text-primary">
+              Return End Date
+            </label>
+
+            <div className="relative">
+              <RotateCcw className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary" />
+
+              <input
+                type="date"
+                name="returnEndDate"
+                value={receiptData.returnEndDate || ""}
+                onChange={(e) => {
+                  onInputChange(e);
+
+                  onInputChange({
+                    target: {
+                      name: "returnEndDateManual",
+                      value: true,
+                      type: "checkbox",
+                      checked: true,
+                    },
+                  });
+                }}
+                className="w-full rounded-2xl border border-default bg-surface px-10 py-3 text-primary transition-theme"
+              />
             </div>
+
+            <p className="text-xs text-secondary">
+              By default this date is auto-calculated. You can override it
+              manually if the store provides a different return deadline.
+            </p>
           </div>
         </div>
       )}

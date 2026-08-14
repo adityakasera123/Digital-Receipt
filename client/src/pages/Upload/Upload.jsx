@@ -32,13 +32,16 @@ const Upload = () => {
     validateReceipt,
   } = useReceiptForm();
 
-  // Auto calculate Return End Date
+  // Auto calculate Return End Date (unless manually overridden)
   useEffect(() => {
     if (
       receiptData.returnTracking &&
       receiptData.returnStartDate &&
       receiptData.returnDurationDays
     ) {
+      // Do not auto-update if user has manually overridden the end date
+      if (receiptData.returnEndDateManual) return;
+
       const endDate = calculateReturnEndDate(
         receiptData.returnStartDate,
         receiptData.returnDurationDays,
@@ -53,6 +56,7 @@ const Upload = () => {
       setReceiptData((prev) => ({
         ...prev,
         returnEndDate: "",
+        returnEndDateManual: false,
       }));
     }
   }, [
@@ -60,6 +64,7 @@ const Upload = () => {
     receiptData.returnStartDate,
     receiptData.returnDurationDays,
     receiptData.deliveryDate,
+    receiptData.returnEndDateManual,
     setReceiptData,
   ]);
 
