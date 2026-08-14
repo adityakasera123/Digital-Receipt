@@ -41,7 +41,8 @@ const Upload = () => {
     ) {
       const endDate = calculateReturnEndDate(
         receiptData.returnStartDate,
-        receiptData.returnDurationDays
+        receiptData.returnDurationDays,
+        receiptData.deliveryDate
       );
 
       setReceiptData((prev) => ({
@@ -58,6 +59,7 @@ const Upload = () => {
     receiptData.returnTracking,
     receiptData.returnStartDate,
     receiptData.returnDurationDays,
+    receiptData.deliveryDate,
     setReceiptData,
   ]);
 

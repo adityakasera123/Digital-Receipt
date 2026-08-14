@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, ShieldAlert } from "lucide-react";
+import { Bell, ShieldAlert, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { useWarrantyNotifications } from "../../hooks/useWarrantyNotifications";
@@ -28,7 +28,6 @@ setOpen(false);
 }
 };
 
-
 document.addEventListener("mousedown", handleClickOutside);
 
 return () => {
@@ -37,7 +36,6 @@ return () => {
     handleClickOutside
   );
 };
-
 
 }, []);
 
@@ -65,10 +63,7 @@ return () => {
 
 }, [refreshNotifications]);
 
-return ( <div
-   className="relative"
-   ref={dropdownRef}
- >
+return ( <div className="relative" ref={dropdownRef}>
 {/* Bell Button */}
 <button
 onClick={() => setOpen(!open)}
@@ -112,7 +107,7 @@ className="relative flex h-11 w-11 items-center justify-center rounded-xl border
           </p>
 
           <p className="mt-1 text-xs text-gray-500">
-            Your warranty reminders will appear here.
+            Your warranty and return reminders will appear here.
           </p>
         </div>
       ) : (
@@ -122,9 +117,17 @@ className="relative flex h-11 w-11 items-center justify-center rounded-xl border
               key={notification.id}
               onClick={async () => {
                 await markAsRead(notification.id);
-                navigate(`/warranty/${notification.warrantyId}`, {
-                  state: { from: "/notifications" },
-                });
+
+                if (notification.type === "return_window") {
+                  navigate(`/receipts/${notification.receiptId}`, {
+                    state: { from: "/notifications" },
+                  });
+                } else {
+                  navigate(`/warranty/${notification.warrantyId}`, {
+                    state: { from: "/notifications" },
+                  });
+                }
+
                 setOpen(false);
               }}
               className={`flex w-full items-start gap-3 rounded-xl p-3 text-left transition hover:bg-gray-50 ${
@@ -132,10 +135,17 @@ className="relative flex h-11 w-11 items-center justify-center rounded-xl border
               }`}
             >
               <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-orange-100">
-                <ShieldAlert
-                  size={18}
-                  className="text-orange-600"
-                />
+                {notification.type === "return_window" ? (
+                  <RotateCcw
+                    size={18}
+                    className="text-orange-600"
+                  />
+                ) : (
+                  <ShieldAlert
+                    size={18}
+                    className="text-orange-600"
+                  />
+                )}
               </div>
 
               <div className="min-w-0 flex-1">
@@ -148,7 +158,9 @@ className="relative flex h-11 w-11 items-center justify-center rounded-xl border
                 </p>
 
                 <p className="mt-1 text-xs text-gray-500">
-                  {notification.formattedExpiryDate || notification.message}
+                  {notification.type === "return_window"
+                    ? notification.message
+                    : notification.formattedExpiryDate || notification.message}
                 </p>
               </div>
             </button>
@@ -170,7 +182,6 @@ className="relative flex h-11 w-11 items-center justify-center rounded-xl border
     </div>
   )}
 </div>
-
 
 );
 }

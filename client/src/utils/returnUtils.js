@@ -1,7 +1,10 @@
-export function calculateReturnEndDate(startDate, durationDays) {
-  if (!startDate || !durationDays) return "";
+export function calculateReturnEndDate(startDate, durationDays, deliveryDate = "") {
+  // Use delivery date if available, otherwise use return start date
+  const baseDate = deliveryDate || startDate;
 
-  const date = new Date(startDate);
+  if (!baseDate || !durationDays) return "";
+
+  const date = new Date(baseDate);
   date.setDate(date.getDate() + Number(durationDays));
 
   return date.toISOString().split("T")[0];

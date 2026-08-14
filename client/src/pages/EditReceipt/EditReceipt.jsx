@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import UploadWorkspace from "../../components/receipt/UploadWorkspace";
 import ReceiptForm from "../../components/receipt/ReceiptForm";
 import WarrantyForm from "../../components/receipt/WarrantyForm";
+import ReturnWindowCard from "../../components/returnWindow/ReturnWindowCard";
 import NotesField from "../../components/receipt/NotesField";
 import UploadActions from "../../components/receipt/UploadActions";
 
@@ -32,7 +33,8 @@ const EditReceipt = () => {
     handleFileChange,
     validateReceipt,
   } = useReceiptForm();
-    useEffect(() => {
+
+  useEffect(() => {
     const fetchReceipt = async () => {
       try {
         const data = await getReceiptById(id);
@@ -53,71 +55,88 @@ const EditReceipt = () => {
     };
 
     fetchReceipt();
-  }, [id]);
+  }, [id, navigate, setReceiptData]);
+
   const handleUpdateReceipt = async () => {
-  if (!validateReceipt()) return;
+    const result = validateReceipt();
 
-  try {
-    let imageUrl = receiptData.receiptImage;
+    setErrors(result.errors);
 
-    // Agar user ne nayi image select ki hai
-    if (receiptData.receiptImage instanceof File) {
-      imageUrl = await uploadReceiptImage(receiptData.receiptImage);
+    if (!result.isValid) {
+      const firstError = Object.values(result.errors)[0];
+      toast.error(firstError);
+      return;
     }
 
-    const updatedReceipt = {
-      ...receiptData,
-      receiptImage: imageUrl,
-    };
+    try {
+      let imageUrl = receiptData.receiptImage;
 
-    await updateReceipt(id, updatedReceipt);
+      // Agar user ne nayi image select ki hai
+      if (receiptData.receiptImage instanceof File) {
+        imageUrl = await uploadReceiptImage(receiptData.receiptImage);
+      }
 
-    toast.success("Receipt updated successfully");
+      const updatedReceipt = {
+        ...receiptData,
+        receiptImage: imageUrl,
+      };
 
-    navigate(`/receipts/${id}`);
-  } catch (error) {
-    console.error(error);
-    toast.error("Failed to update receipt");
+      await updateReceipt(id, updatedReceipt);
+
+      toast.success("Receipt updated successfully");
+
+      navigate(`/receipts/${id}`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update receipt");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <p className="text-slate-500">Loading...</p>
+      </div>
+    );
   }
-};
-if (loading) {
+
   return (
-    <div className="flex h-[60vh] items-center justify-center">
-      <p className="text-slate-500">Loading...</p>
+    <div className="space-y-8">
+      <UploadWorkspace
+        receiptData={receiptData}
+        onFileChange={handleFileChange}
+        errors={errors}
+      />
+
+      <ReceiptForm
+        receiptData={receiptData}
+        onInputChange={handleInputChange}
+        errors={errors}
+      />
+
+      <WarrantyForm
+        receiptData={receiptData}
+        onInputChange={handleInputChange}
+        errors={errors}
+      />
+
+      <ReturnWindowCard
+        receiptData={receiptData}
+        onInputChange={handleInputChange}
+        errors={errors}
+      />
+
+      <NotesField
+        receiptData={receiptData}
+        onInputChange={handleInputChange}
+      />
+
+      <UploadActions
+        mode="edit"
+        onSave={handleUpdateReceipt}
+      />
     </div>
   );
-}
-return (
-  <div className="space-y-8">
-    <UploadWorkspace
-      receiptData={receiptData}
-      onFileChange={handleFileChange}
-      errors={errors}
-    />
-
-    <ReceiptForm
-      receiptData={receiptData}
-      onInputChange={handleInputChange}
-      errors={errors}
-    />
-
-    <WarrantyForm
-      receiptData={receiptData}
-      onInputChange={handleInputChange}
-      errors={errors}
-    />
-
-    <NotesField
-      receiptData={receiptData}
-      onInputChange={handleInputChange}
-    />
-
-    <UploadActions
-      mode="edit"
-      onSave={handleUpdateReceipt}
-    />
-  </div>
-);
 };
 
 export default EditReceipt;

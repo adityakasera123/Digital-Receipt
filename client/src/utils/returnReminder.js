@@ -50,7 +50,7 @@ if (daysRemaining === 0) {
   return;
 }
 
-// Tomorrow
+// Tomorrow (1 day remaining)
 if (daysRemaining === 1) {
   notifications.push({
     id: `return-1day-${receipt.id}`,
@@ -70,7 +70,7 @@ if (daysRemaining === 1) {
   return;
 }
 
-// 2 days remaining
+// 2 days remaining (bell only)
 if (daysRemaining === 2) {
   notifications.push({
     id: `return-2days-${receipt.id}`,
@@ -78,7 +78,7 @@ if (daysRemaining === 2) {
     type: "return_window",
     title: "Return window ending soon",
     message: `${receipt.platform || "Return"} return window for ${receipt.productName} ends in 2 days.`,
-    priority: "high",
+    priority: "medium",
     reminderDays: 2,
     daysRemaining,
     productName: receipt.productName,
@@ -90,7 +90,7 @@ if (daysRemaining === 2) {
   return;
 }
 
-// 3 days remaining
+// 3 days remaining (bell + popup)
 if (daysRemaining === 3) {
   notifications.push({
     id: `return-3days-${receipt.id}`,
@@ -98,8 +98,28 @@ if (daysRemaining === 3) {
     type: "return_window",
     title: "Return window ending soon",
     message: `${receipt.platform || "Return"} return window for ${receipt.productName} ends in 3 days.`,
-    priority: "medium",
+    priority: "high",
     reminderDays: 3,
+    daysRemaining,
+    productName: receipt.productName,
+    storeName: receipt.storeName,
+    platform: receipt.platform,
+    returnEndDate: receipt.returnEndDate,
+    status,
+  });
+  return;
+}
+
+// 5 days remaining (bell only)
+if (daysRemaining === 5) {
+  notifications.push({
+    id: `return-5days-${receipt.id}`,
+    receiptId: receipt.id,
+    type: "return_window",
+    title: "Return window reminder",
+    message: `${receipt.platform || "Return"} return window for ${receipt.productName} ends in 5 days.`,
+    priority: "medium",
+    reminderDays: 5,
     daysRemaining,
     productName: receipt.productName,
     storeName: receipt.storeName,

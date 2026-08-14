@@ -6,6 +6,10 @@ const initialReceiptData = {
   category: "",
   amount: "",
   purchaseDate: "",
+
+  // Optional: Delivery Date
+  deliveryDate: "",
+
   paymentMethod: "",
 
   // Warranty
@@ -108,6 +112,8 @@ const useReceiptForm = () => {
       if (!receiptData.returnStartDate) {
         errors.returnStartDate = "Return Start Date is required";
       }
+
+      // Delivery Date is optional
     }
 
     return {

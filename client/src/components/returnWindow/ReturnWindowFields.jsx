@@ -84,6 +84,7 @@ export default function ReturnWindowFields({ receiptData, onInputChange }) {
             </select>
           </div>
 
+          {/* Return Start Date */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-primary">Return Start Date</label>
             <input
@@ -95,6 +96,25 @@ export default function ReturnWindowFields({ receiptData, onInputChange }) {
             />
           </div>
 
+          {/* NEW: Optional Delivery Date */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-primary">
+              Delivery Date (Optional)
+            </label>
+            <input
+              type="date"
+              name="deliveryDate"
+              value={receiptData.deliveryDate || ""}
+              onChange={onInputChange}
+              className="w-full rounded-2xl border border-default bg-surface px-4 py-3 text-primary transition-theme"
+            />
+            <p className="text-xs text-secondary">
+              Leave empty for offline purchases. If provided, return countdown
+              will start from the delivery date.
+            </p>
+          </div>
+
+          {/* Return End Date */}
           <div className="space-y-2 md:col-span-2">
             <label className="text-sm font-medium text-primary">Return End Date</label>
             <div className="flex items-center gap-3 rounded-2xl border border-default bg-surface-secondary px-4 py-3 text-primary">
