@@ -1,4 +1,4 @@
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -10,12 +10,21 @@ import ReturnWindowCard from "../../components/returnWindow/ReturnWindowCard";
 import NotesField from "../../components/receipt/NotesField";
 import UploadActions from "../../components/receipt/UploadActions";
 
+import OCRProcessingScreen from "../../components/receipt/OCRProcessingScreen";
+import OCRReviewBanner from "../../components/receipt/OCRReviewBanner";
+import OCRFailureState from "../../components/receipt/OCRFailureState";
+
 import { uploadReceiptImage } from "../../services/storageService";
 import { saveReceipt } from "../../services/receiptService";
 import { saveWarranty } from "../../services/warrantyService";
+import { extractReceiptData } from "../../services/ocrService";
 
 import useReceiptForm from "../../hooks/useReceiptForm";
+import { useOCR } from "../../hooks/useOCR";
+
 import { calculateReturnEndDate } from "../../utils/returnUtils";
+import { OCR_STATES } from "../../constants/ocrConstants";
+
 import { AuthContext } from "../../context/AuthContext";
 
 const Upload = () => {
@@ -28,18 +37,46 @@ const Upload = () => {
     errors,
     setErrors,
     handleInputChange,
-    handleFileChange,
+    handleFileChange: originalHandleFileChange,
     validateReceipt,
   } = useReceiptForm();
 
-  // Auto calculate Return End Date (unless manually overridden)
+  const {
+    ocrState,
+    setOCRState,
+    ocrData,
+    setOCRData,
+    ocrError,
+    setOCRError,
+  } = useOCR();
+
+  // Preview URL for OCR modal
+  const previewImage = useMemo(() => {
+    if (!receiptData.receiptImage) return null;
+
+    return receiptData.receiptImage instanceof File
+      ? URL.createObjectURL(receiptData.receiptImage)
+      : receiptData.receiptImage;
+  }, [receiptData.receiptImage]);
+
+  useEffect(() => {
+    return () => {
+      if (
+        previewImage &&
+        receiptData.receiptImage instanceof File
+      ) {
+        URL.revokeObjectURL(previewImage);
+      }
+    };
+  }, [previewImage, receiptData.receiptImage]);
+
+  // Auto calculate Return End Date
   useEffect(() => {
     if (
       receiptData.returnTracking &&
       receiptData.returnStartDate &&
       receiptData.returnDurationDays
     ) {
-      // Do not auto-update if user has manually overridden the end date
       if (receiptData.returnEndDateManual) return;
 
       const endDate = calculateReturnEndDate(
@@ -68,14 +105,75 @@ const Upload = () => {
     setReceiptData,
   ]);
 
+  // OCR-first upload flow
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    originalHandleFileChange(file);
+
+    try {
+      setOCRError(null);
+      setOCRState(OCR_STATES.PROCESSING);
+
+      const result = await extractReceiptData(file);
+
+      setOCRData(result);
+
+      setReceiptData((prev) => ({
+        ...prev,
+        productName: result.productName || prev.productName,
+        storeName: result.storeName || prev.storeName,
+        purchaseDate: result.purchaseDate || prev.purchaseDate,
+        amount: result.amount || prev.amount,
+      }));
+
+      setOCRState(OCR_STATES.REVIEW);
+    } catch (error) {
+      console.error(error);
+      setOCRError(error.message);
+      setOCRState(OCR_STATES.FAILED);
+    }
+  };
+
+  const handleRetryOCR = async () => {
+    if (!receiptData.receiptImage) return;
+
+    try {
+      setOCRError(null);
+      setOCRState(OCR_STATES.PROCESSING);
+
+      const result = await extractReceiptData(receiptData.receiptImage);
+
+      setOCRData(result);
+
+      setReceiptData((prev) => ({
+        ...prev,
+        productName: result.productName || prev.productName,
+        storeName: result.storeName || prev.storeName,
+        purchaseDate: result.purchaseDate || prev.purchaseDate,
+        amount: result.amount || prev.amount,
+      }));
+
+      setOCRState(OCR_STATES.REVIEW);
+    } catch (error) {
+      console.error(error);
+      setOCRError(error.message);
+      setOCRState(OCR_STATES.FAILED);
+    }
+  };
+
+  const handleManualEntry = () => {
+    setOCRState(OCR_STATES.REVIEW);
+  };
+
   const handleSaveReceipt = async () => {
     const result = validateReceipt();
 
     setErrors(result.errors);
 
     if (!result.isValid) {
-      const firstError = Object.values(result.errors)[0];
-      toast.error(firstError);
+      toast.error(Object.values(result.errors)[0]);
       return;
     }
 
@@ -87,19 +185,15 @@ const Upload = () => {
     try {
       const uid = user.uid;
 
-      // Upload image to Firebase Storage
       const imageUrl = await uploadReceiptImage(
         receiptData.receiptImage,
         uid
       );
 
-      // Save receipt with current user UID
       const receiptId = await saveReceipt({
         ...receiptData,
         receiptImage: imageUrl,
         userId: uid,
-
-        // Return Window Tracking
         returnTracking: receiptData.returnTracking,
         platform: receiptData.platform,
         returnType: receiptData.returnType,
@@ -108,7 +202,6 @@ const Upload = () => {
         returnEndDate: receiptData.returnEndDate,
       });
 
-      // Save warranty if enabled
       if (receiptData.hasWarranty) {
         await saveWarranty({
           receiptId,
@@ -140,33 +233,58 @@ const Upload = () => {
         errors={errors}
       />
 
-      <ReceiptForm
-        receiptData={receiptData}
-        onInputChange={handleInputChange}
-        errors={errors}
-      />
+      {ocrState === OCR_STATES.PROCESSING && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xs sm:max-w-sm lg:max-w-md">
+            <OCRProcessingScreen image={previewImage} />
+          </div>
+        </div>
+      )}
 
-      <WarrantyForm
-        receiptData={receiptData}
-        onInputChange={handleInputChange}
-        errors={errors}
-      />
+      {ocrState === OCR_STATES.FAILED && (
+        <OCRFailureState
+          image={previewImage}
+          onRetry={handleRetryOCR}
+          onManualEntry={handleManualEntry}
+        />
+      )}
 
-      <ReturnWindowCard
-        receiptData={receiptData}
-        onInputChange={handleInputChange}
-        errors={errors}
-      />
+      {ocrState === OCR_STATES.REVIEW && (
+        <OCRReviewBanner confidence={ocrData?.confidence || 0.91} />
+      )}
 
-      <NotesField
-        receiptData={receiptData}
-        onInputChange={handleInputChange}
-      />
+      {ocrState !== OCR_STATES.PROCESSING && (
+        <>
+          <ReceiptForm
+            receiptData={receiptData}
+            onInputChange={handleInputChange}
+            errors={errors}
+            ocrData={ocrData}
+          />
 
-      <UploadActions
-        mode="add"
-        onSave={handleSaveReceipt}
-      />
+          <WarrantyForm
+            receiptData={receiptData}
+            onInputChange={handleInputChange}
+            errors={errors}
+          />
+
+          <ReturnWindowCard
+            receiptData={receiptData}
+            onInputChange={handleInputChange}
+            errors={errors}
+          />
+
+          <NotesField
+            receiptData={receiptData}
+            onInputChange={handleInputChange}
+          />
+
+          <UploadActions
+            mode="add"
+            onSave={handleSaveReceipt}
+          />
+        </>
+      )}
     </div>
   );
 };
