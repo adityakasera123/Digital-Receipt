@@ -75,41 +75,89 @@ function extractProduct(lines) {
     const productLines = [];
 
     for (let i = goodsIndex + 1; i < cleaned.length; i++) {
-  const line = cleaned[i];
+      const line = cleaned[i];
 
-  // Stop when footer starts
-  if (
-    /consignor details|consignee details|place of origin|destination|registration no/i.test(line)
-  ) {
-    break;
+      if (
+        /consignor details|consignee details|place of origin|destination|registration no/i.test(
+          line
+        )
+      ) {
+        break;
+      }
+
+      // Skip GTA table headers
+      if (
+        /^(goods|qty|gross weight of|value of goods|consignment)$/i.test(line)
+      ) {
+        continue;
+      }
+
+      // Skip numbers and weights
+      if (/^[0-9.,₹ ]+$/.test(line)) continue;
+      if (/grams?/i.test(line)) continue;
+
+      productLines.push(line);
+    }
+
+    if (productLines.length) {
+      return productLines
+        .join(" ")
+        .replace(/\(1\)/g, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+    }
   }
 
-  // Skip table headers
-  if (
-    /^(goods|qty|gross weight of|value of goods|consignment)$/i.test(line)
-  ) {
-    continue;
+  // -------- Normal Flipkart PDF Invoice --------
+  const productIndex = cleaned.findIndex((line) => /^product$/i.test(line));
+
+  if (productIndex !== -1) {
+    let i = productIndex + 1;
+
+    // Skip column headers after "Product"
+    while (
+      i < cleaned.length &&
+      /^(description|qty|gross|amount|discount|taxable|value|igst|cgst|sgst|cess|total)$/i.test(
+        cleaned[i]
+      )
+    ) {
+      i++;
+    }
+
+    const productLines = [];
+
+    while (i < cleaned.length) {
+      const line = cleaned[i];
+
+      if (/^hsn:/i.test(line)) break;
+      if (/^[0-9.,₹ ]+$/.test(line)) break;
+      if (
+        /shipping and handling|total qty|total price|seller registered address|declaration|ordered through/i.test(
+          line
+        )
+      ) {
+        break;
+      }
+
+      // Skip SKU / IMEI lines
+      if (/imei|srno|trk_/i.test(line)) {
+        i++;
+        continue;
+      }
+
+      productLines.push(line);
+      i++;
+    }
+
+    if (productLines.length) {
+      return productLines
+        .join(" ")
+        .replace(/\|/g, " ")
+        .replace(/TrackPants/gi, "Track Pants")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+    }
   }
-
-  // Skip numbers and weights
-  if (/^[0-9.,₹ ]+$/.test(line)) continue;
-  if (/grams?/i.test(line)) continue;
-
-  productLines.push(line);
-}
-
-   if (productLines.length) {
-  return productLines
-    .join(" ")
-    .replace(/\(1\)/g, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-}
-  }
-
-  // -------- Existing Flipkart PDF / Thermal logic continues below --------
-  // (baaki tumhara existing code same rahega)
-
 
   // -------- Old Flipkart Thermal Receipt --------
   for (let i = 0; i < cleaned.length; i++) {
