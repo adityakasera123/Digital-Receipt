@@ -129,6 +129,17 @@ try {
   // Google Vision + Parser
   const result = await processReceipt(file);
 
+  // ---------------- DEBUG ----------------
+  console.log("================ OCR RESULT ================");
+  console.log("Full Result:", result);
+  console.log("Product:", result.productName);
+  console.log("Store:", result.storeName);
+  console.log("Date:", result.purchaseDate);
+  console.log("Amount:", result.amount);
+  console.log("Category:", result.category);
+  console.log("============================================");
+  // ---------------------------------------
+
   setOCRData(result);
 
   // Autofill receipt form
@@ -142,10 +153,15 @@ try {
     category: result.category || "",
   }));
 
-  console.log("Billvora OCR Result:", result);
+  console.log("Setting Receipt State:", {
+    productName: result.productName,
+    storeName: result.storeName,
+    purchaseDate: result.purchaseDate,
+    amount: result.amount,
+    category: result.category,
+  });
 
   setOCRState(OCR_STATES.REVIEW);
-  console.log("Parsed OCR Result:", result);
 } catch (error) {
   console.error(error);
   setOCRError(error.message || "OCR failed");
@@ -166,9 +182,12 @@ try {
 
   const result = await processReceipt(receiptData.receiptImage);
 
+  console.log("================ OCR RETRY ================");
+  console.log(result);
+  console.log("===========================================");
+
   setOCRData(result);
 
-  // Autofill receipt form
   setReceiptData((prev) => ({
     ...prev,
     productName: result.productName || "",
@@ -178,8 +197,6 @@ try {
     paymentMethod: result.paymentMethod || "",
     category: result.category || "",
   }));
-
-  console.log("Billvora OCR Retry:", result);
 
   setOCRState(OCR_STATES.REVIEW);
 } catch (error) {
