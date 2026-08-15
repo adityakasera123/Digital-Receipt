@@ -120,3 +120,35 @@ export const formatDisplayDate = (value) => {
     year: "numeric",
   }).format(date);
 };
+
+/**
+ * OCR parser helper
+ * Converts receipt dates like:
+ * 28.10.2019
+ * 28-10-2019
+ * 28/10/19
+ * into ISO format: 2019-10-28
+ */
+export const normalizeOCRDate = (dateString) => {
+  if (!dateString) return "";
+
+  const cleaned = String(dateString)
+    .trim()
+    .replace(/\./g, "/")
+    .replace(/-/g, "/");
+
+  const parts = cleaned.split("/");
+
+  if (parts.length !== 3) return "";
+
+  let [day, month, year] = parts;
+
+  day = day.padStart(2, "0");
+  month = month.padStart(2, "0");
+
+  if (year.length === 2) {
+    year = `20${year}`;
+  }
+
+  return `${year}-${month}-${day}`;
+};
