@@ -110,6 +110,7 @@ const ReceiptForm = ({ receiptData, onInputChange, errors, ocrData }) => {
             <option value=''>Select Category</option>
             <option>Electronics</option>
             <option>Fashion</option>
+            <option>Skin Care</option>
             <option>Food</option>
             <option>Travel</option>
             <option>Home</option>

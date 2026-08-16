@@ -1,12 +1,19 @@
 import { parseAmazonReceipt } from "./amazonParser";
 import { detectFlipkart, parseFlipkartReceipt } from "./flipkartParser";
+import { isMyntraInvoice, parseMyntraInvoice } from "./myntraParser";
 
 export function parseReceipt(text) {
   if (!text) return emptyResult();
 
   const lower = text.toLowerCase();
 
-  // 1. Flipkart first
+  // 1. Myntra
+  if (isMyntraInvoice(text)) {
+    console.log("Using Myntra parser");
+    return parseMyntraInvoice(text);
+  }
+
+  // 2. Flipkart first
   const flipkart = detectFlipkart(text);
 
   if (
@@ -19,7 +26,7 @@ export function parseReceipt(text) {
     return parseFlipkartReceipt(text);
   }
 
-  // 2. Amazon
+  // 3. Amazon
   if (
     lower.includes("amazon.in") ||
     lower.includes("amazon seller services") ||
