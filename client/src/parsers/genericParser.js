@@ -291,11 +291,17 @@ function isPaymentText(value = "") {
 }
 
 function isTaxLine(value = "") {
+  const text = clean(value)
+    .replace(/[:.]+$/g, "")
+    .trim();
+
   return (
-    /\b(?:igst|cgst|sgst|cess|gst)\b/i.test(value) &&
-    /%|\d+(?:\.\d+)?/.test(value)
+    /^(?:igst|cgst|sgst|gst|cess)$/i.test(text) ||
+    /\b(?:igst|cgst|sgst|cess|gst)\b/i.test(text) &&
+    /%|\d+(?:\.\d+)?/.test(text)
   );
 }
+
 
 function isProductMetadataLine(value = "") {
   const text = lower(value);
@@ -521,13 +527,49 @@ function looksLikeBusinessName(value = "") {
    * Generic invoice words such as "Value"
    * must not pass through this fallback.
    */
-  if (
-    /^[A-Za-z][A-Za-z0-9&.'-]{2,40}$/.test(text)
-  ) {
-    return true;
-  }
+  /*
+ * Compact brand-like names:
+ *
+ * TrendyDuniya
+ * Amazon
+ * Flipkart
+ * Myntra
+ *
+ * Also allow clean multi-word
+ * business / brand names.
+ */
+if (
+  /^[A-Za-z][A-Za-z0-9&.'-]{2,40}$/.test(
+    text
+  )
+) {
+  return true;
+}
 
-  return false;
+const words =
+  text.split(/\s+/).filter(Boolean);
+
+/*
+ * Clean multi-word business names
+ * are valid even when they don't contain
+ * explicit words like Shop / Store / Mart.
+ *
+ * Example:
+ * Apna Billbook
+ * Trendy Duniya
+ * Vijay Electrical
+ */
+if (
+  words.length >= 2 &&
+  words.length <= 4 &&
+  words.every((word) =>
+    /^[A-Za-z][A-Za-z.'-]*$/.test(word)
+  )
+) {
+  return true;
+}
+
+return false;
 }
 
 
@@ -572,26 +614,61 @@ function extractStore(text) {
     "particulars",
     "description",
     "details",
+    "service tax invoice",
+"tax invoice",
+"sales invoice",
+"retail invoice",
+"purchase invoice",
+"bill",
+"receipt",
+"invoice copy",
   ]);
 
-  const isGenericStoreCandidate = (
-    value = ""
-  ) => {
-    const normalized = lower(
-      clean(value)
-    )
-      .replace(/[.:]+$/g, "")
-      .trim();
+ const isGenericStoreCandidate = (
+  value = ""
+) => {
+  const normalized = lower(
+    clean(value)
+  )
+    .replace(/[.:]+$/g, "")
+    .trim();
 
-    return (
-      genericStoreWords.has(
-        normalized
-      ) ||
-      /^(?:p\.?m\.?|s\.?n\.?|sr\.?\s*no\.?)$/i.test(
-        normalized
-      )
-    );
-  };
+  /*
+   * Generic invoice / table words
+   * should never become store names.
+   */
+  if (
+    genericStoreWords.has(
+      normalized
+    )
+  ) {
+    return true;
+  }
+
+  /*
+   * Common OCR / invoice noise.
+   */
+ if (
+  /^(?:p\.?m\.?|s\.?n\.?|sr\.?\s*no\.?|box|item|unit|qty|quantity|price|gst|cgst|sgst|igst|amount|total|tax|rate|service\s+tax\s+invoice|tax\s+invoice|sales\s+invoice|invoice\s+copy|bill|receipt)$/i.test(
+    normalized
+  )
+) {
+  return true;
+}
+
+  /*
+   * Pure numeric / identifier noise.
+   */
+  if (
+    /^\d[\d\s./#:-]*$/.test(
+      normalized
+    )
+  ) {
+    return true;
+  }
+
+  return false;
+};
 
   const addCandidate = (
     value,
@@ -1052,51 +1129,103 @@ function extractStore(text) {
       );
     }
   }
+/*
+ * ==================================================
+ * 3. TOP-OF-INVOICE BUSINESS CANDIDATES
+ * ==================================================
+ */
+
+for (
+  let i = 0;
+  i < Math.min(
+    lines.length,
+    60
+  );
+  i++
+) {
+  const candidate =
+    clean(lines[i])
+      .split(",")[0]
+      .trim();
+
+  if (!candidate) {
+    continue;
+  }
+
+  /*
+   * Generic invoice words should never
+   * become store candidates.
+   */
+  if (
+    isGenericStoreCandidate(
+      candidate
+    )
+  ) {
+    continue;
+  }
 
   /*
    * ==================================================
-   * 3. TOP-OF-INVOICE BUSINESS CANDIDATES
+   * HARD STOP — TABLE / INVOICE COLUMN HEADERS
    * ==================================================
+   *
+   * Prevent OCR table headers such as:
+   *
+   * S.No.
+   * Item name
+   * HSN/SAC
+   * Quantity
+   * Unit
+   * Price
+   * GST
+   * Amount
+   * Total
+   * CGST
+   * SGST
+   *
+   * from being selected as the store.
    */
 
-  for (
-    let i = 0;
-    i < Math.min(
-      lines.length,
-      60
-    );
-    i++
+  if (
+    /^(?:s\.?\s*no\.?|serial\s*(?:no\.?|number)|item\s*name|hsn(?:\/|\s*)sac|quantity|qty|unit|price|gst|amount|total|cgst|sgst|igst|tax|taxable\s*amount|tax\s*summary|subtotal|grand\s*total|paid\s*amount)$/i.test(
+      candidate
+    )
   ) {
-    const candidate =
-      clean(lines[i])
-        .split(",")[0]
-        .trim();
-
-    if (!candidate) {
-      continue;
-    }
-
-    /*
-     * Generic invoice words such as
-     * "Value", "Date", "GST", etc.
-     * should never enter this pool.
-     */
-    if (
-      isGenericStoreCandidate(
-        candidate
-      )
-    ) {
-      continue;
-    }
-
-    addCandidate(
-      candidate,
-      45 -
-        Math.min(i, 20),
-      "top-invoice"
-    );
+    continue;
   }
 
+  /*
+   * Skip obvious invoice metadata labels.
+   */
+  if (
+    /^(?:date|time|bill\s*(?:no|number)|invoice\s*(?:no|number)|order\s*(?:no|number)|payment\s*(?:method|status)|order\s*status|customer\s*type|created\s*by|terms?\s*(?:&|and)\s*conditions?)\s*:?\s*$/i.test(
+      candidate
+    )
+  ) {
+    continue;
+  }
+
+  /*
+   * Avoid pure numeric / identifier candidates.
+   */
+  if (
+    /^\d[\d\s./#:-]*$/.test(
+      candidate
+    )
+  ) {
+    continue;
+  }
+
+  /*
+   * Add genuine business-looking candidate.
+   */
+  addCandidate(
+    candidate,
+    45 -
+      Math.min(i, 20),
+    "top-invoice"
+  );
+}
   /*
    * ==================================================
    * BEST MERCHANT
@@ -1273,6 +1402,59 @@ function findDescriptionTable(
 ) {
   let best = null;
 
+  const isHeaderLine = (value = "") => {
+    const text = lower(value);
+
+    return (
+      /^(?:s\.?\s*no\.?|serial\s*(?:no|number)?)$/i.test(text) ||
+      /^(?:description|particulars|item|item\s+name|product|product\s+name)$/i.test(text) ||
+      /^(?:hsn|hsn\/\s*sac|sku)$/i.test(text) ||
+      /^(?:qty|quantity)$/i.test(text) ||
+      /^(?:unit|uom)$/i.test(text) ||
+      /^(?:price|unit\s+price|rate)$/i.test(text) ||
+      /^(?:gst|tax|taxes)$/i.test(text) ||
+      /^(?:amount|gross\s+amount|total\s+amount)$/i.test(text)
+    );
+  };
+
+  const isSummaryLine = (value = "") => {
+    const text = lower(value);
+
+    return (
+      /^(?:tax\s+summary|item\s+total|subtotal|sub\s+total|tax\s+amount|total\s+tax|grand\s+total|paid\s+amount|round\s+off)$/i.test(
+        text
+      ) ||
+      /^hsn\s+code\s+tax/i.test(text)
+    );
+  };
+
+  const isLikelyProductRow = (value = "") => {
+    const text = cleanProductCandidate(value);
+
+    if (!text) {
+      return false;
+    }
+
+    if (
+      isSummaryLine(text) ||
+      isNumberOnly(text) ||
+      isLikelyNumericRow(text) ||
+      isTaxLine(text) ||
+      isTableNoise(text) ||
+      isPaymentText(text) ||
+      isFooterNoise(text) ||
+      isAddress(text)
+    ) {
+      return false;
+    }
+
+    return (
+      /[A-Za-z]/.test(text) &&
+      text.length >= 2 &&
+      text.length <= 250
+    );
+  };
+
   for (let i = 0; i < lines.length; i++) {
     if (
       excludedRange &&
@@ -1283,62 +1465,195 @@ function findDescriptionTable(
     }
 
     /*
-     * OCR may return table headers as:
-     *
-     * Description | HSN | Qty | ...
-     *
-     * OR split them over multiple lines.
+     * Ignore obvious invoice-summary sections.
      */
+    if (isSummaryLine(lines[i])) {
+      continue;
+    }
 
-    const windows = [
-      lines.slice(i, i + 1).join(" "),
-      lines.slice(i, i + 2).join(" "),
-      lines.slice(i, i + 3).join(" "),
-    ];
+    /*
+     * Build a contiguous header block.
+     *
+     * Example:
+     *
+     * S.No.
+     * Item name
+     * HSN/SAC
+     * Quantity
+     * Unit
+     * Price
+     * GST
+     * Amount
+     */
+    const headerLines = [];
 
-    for (
-      let size = 0;
-      size < windows.length;
-      size++
+    let j = i;
+
+    while (
+      j < lines.length &&
+      j < i + 12
     ) {
-      const score =
-        scoreTableHeader(
-          windows[size]
-        );
+      const line = clean(lines[j]);
 
-      if (score < 10) {
+      if (!line) {
+        j++;
+        continue;
+      }
+
+      if (isSummaryLine(line)) {
+        break;
+      }
+
+      if (isHeaderLine(line)) {
+        headerLines.push(line);
+        j++;
         continue;
       }
 
       /*
-       * A real invoice table MUST have
-       * Description / Product / Item evidence.
+       * Header block has ended.
        */
+      break;
+    }
 
-      if (
-        !/\b(?:description|particulars|item|product)\b/i.test(
-          windows[size]
-        )
-      ) {
+    if (
+      headerLines.length < 2
+    ) {
+      continue;
+    }
+
+    const headerText =
+      headerLines.join(" ");
+
+    const headerScore =
+      scoreTableHeader(headerText);
+
+    /*
+     * Must contain an actual product/item
+     * description concept.
+     */
+    if (
+      !/\b(?:description|particulars|item|product)\b/i.test(
+        headerText
+      )
+    ) {
+      continue;
+    }
+
+    /*
+     * Require at least two useful
+     * invoice columns besides the
+     * description itself.
+     */
+    let columnEvidence = 0;
+
+    if (/\b(?:hsn|sku)\b/i.test(headerText)) {
+      columnEvidence++;
+    }
+
+    if (/\b(?:qty|quantity)\b/i.test(headerText)) {
+      columnEvidence++;
+    }
+
+    if (/\b(?:unit|uom)\b/i.test(headerText)) {
+      columnEvidence++;
+    }
+
+    if (/\b(?:price|rate)\b/i.test(headerText)) {
+      columnEvidence++;
+    }
+
+    if (/\b(?:gst|tax|taxes)\b/i.test(headerText)) {
+      columnEvidence++;
+    }
+
+    if (/\bamount\b/i.test(headerText)) {
+      columnEvidence++;
+    }
+
+    if (columnEvidence < 2) {
+      continue;
+    }
+
+    /*
+     * Find a real product-like row
+     * immediately after the header.
+     */
+    let productRowIndex = -1;
+
+    for (
+      let k = j;
+      k < Math.min(
+        lines.length,
+        j + 8
+      );
+      k++
+    ) {
+      const candidate =
+        cleanProductCandidate(
+          lines[k]
+        );
+
+      if (!candidate) {
         continue;
       }
 
-      const candidate = {
-        index: i,
-        endIndex: i + size,
-        score,
-      };
+      if (isSummaryLine(candidate)) {
+        break;
+      }
 
       if (
-        !best ||
-        candidate.score > best.score ||
-        (
-          candidate.score === best.score &&
-          candidate.index > best.index
+        isLikelyProductRow(
+          candidate
         )
       ) {
-        best = candidate;
+        productRowIndex = k;
+        break;
       }
+    }
+
+    /*
+     * A table without a plausible
+     * product row is not our product table.
+     */
+    if (
+      productRowIndex === -1
+    ) {
+      continue;
+    }
+
+    /*
+     * Strong bonus for having an
+     * actual product row.
+     */
+    const score =
+      headerScore +
+      columnEvidence * 2 +
+      20;
+
+    const candidate = {
+      index: i,
+      endIndex: j - 1,
+      score,
+    };
+
+    /*
+     * Prefer the stronger table.
+     *
+     * If scores are equal, prefer
+     * the EARLIER table because
+     * invoice product tables normally
+     * appear before summaries/taxes.
+     */
+    if (
+      !best ||
+      candidate.score > best.score ||
+      (
+        candidate.score === best.score &&
+        candidate.index < best.index
+      )
+    ) {
+      best = candidate;
     }
   }
 
@@ -1350,9 +1665,9 @@ function isLikelyTableColumnLine(
 ) {
   const text = lower(value);
 
-  return /^(?:hsn|sku|qty|quantity|gross|gross\s+amount|discount|taxable|taxable\s+value|tax|taxes|total|rate|price|amount)\b/i.test(
-    text
-  );
+ return /^(?:hsn|sku|qty|quantity|unit|uom|gross|gross\s+amount|discount|taxable|taxable\s+value|tax|taxes|total|rate|price|amount)\b/i.test(
+  text
+);
 }
 
 function isLikelyNumericRow(
@@ -1514,6 +1829,14 @@ const productKeywords = [
   "curtain",
 ];
 
+function isProductReference(value = "") {
+  const text = clean(value);
+
+  return /^(?:item|sku|code|id|item\s*no|item\s*number)[\s:_-]*[A-Z]*\d[\w-]*$/i.test(
+    text
+  );
+}
+
 function looksLikeProduct(value = "") {
   const text =
     cleanProductCandidate(value);
@@ -1542,16 +1865,25 @@ function looksLikeProduct(value = "") {
     return false;
   }
 
-  /*
-   * Invoice metadata must never become product.
-   */
-  if (
-    /^(?:invoice|order|gstin|gst|total|subtotal|tax|discount|payment|terms|conditions|bill\s+to|ship\s+to|other\s+charges|customer\s+address|details)\b/i.test(
-      text
-    )
-  ) {
-    return false;
-  }
+ /*
+ * Tax labels must never become products.
+ */
+if (
+  /^(?:igst|cgst|sgst|gst|cess)\s*:?\s*$/i.test(
+    text
+  )
+) {
+  return false;
+}
+
+
+if (
+  /^(?:invoice|order|gstin|gst|grand\s+total|paid\s+amount|total|subtotal|tax|discount|payment|payment\s+method|terms|conditions|bill\s+to|ship\s+to|other\s+charges|round\s+off|item\s+total|subtotal|cgst|sgst|igst|tax\s+summary)\b/i.test(
+    text
+  )
+) {
+  return false;
+}
 
   if (
     /\b(?:qty\s+gross|gross\s+amount|taxable\s+value|net\s+units|unit\s+price)\b/i.test(
@@ -2010,6 +2342,7 @@ function extractProductDetails(text) {
       lines,
       metadataRange
     );
+    console.log("🔎 PRODUCT TABLE DETECTION:", table);
 
   const candidates = [];
 
@@ -2088,8 +2421,27 @@ function extractProductDetails(text) {
     if (!normalized) {
       return true;
     }
+const isKeyValueMetadata =
+  /^[a-z][a-z\s./#()_-]{1,40}\s*:\s*\S/i.test(
+    normalized
+  );
 
+if (isKeyValueMetadata) {
+  const key = normalized
+    .split(":")[0]
+    .trim();
+
+  const metadataKeyPattern =
+  /^(?:date|time|invoice|bill|order|payment|customer|created|contact|phone|mobile|email|address|gst|hsn|tax|status|type|account|bank|ifsc|round|subtotal|total|discount|quantity|qty|unit|price|amount|mrp|seller|buyer|billing|shipping|delivery|reference|ref|code|id|number|no)(?:\s+[a-z]+)*$/i;
+
+  if (metadataKeyPattern.test(key)) {
+    return true;
+  }
+}
     return (
+        /^(?:time|invoice\s+time|order\s+time)\s*:?\s*\d{1,2}:\d{2}(?::\d{2})?\s*(?:am|pm)?$/i.test(
+  normalized
+) ||
       /^(?:tax\s+invoice|original\s+for\s+recipient|sold\s+by\b|billed\s+by\b|ship\s+to\b|bill\s+to\b|bill\s+to\/ship\s+to\b)$/i.test(
         normalized
       ) ||
@@ -2159,10 +2511,9 @@ for (
     continue;
   }
 
-  const match =
-    lines[i].match(
-      /^(?:product\s*name|product|item\s*name|item|description|particulars)\s*:?\s*(.*)$/i
-    );
+  const match = lines[i].match(
+ /^(?:product\s*name|product|item\s*name|item|description|particulars).../
+);
 
   if (!match) {
     continue;
@@ -2688,12 +3039,13 @@ for (
     }
   }
 
-  /*
-   * ==================================================
-   * 4. KEYWORD FALLBACK
-   * ==================================================
-   */
+/*
+ * ==================================================
+ * 4. KEYWORD FALLBACK
+ * ==================================================
+ */
 
+if (!table) {
   for (
     let i = 0;
     i < lines.length;
@@ -2712,20 +3064,12 @@ for (
         lines[i]
       );
 
-    /*
-     * Footer roles.
-     */
     if (
-      isProductRoleNoise(
-        first
-      )
+      isProductRoleNoise(first)
     ) {
       continue;
     }
 
-    /*
-     * Legal / footer text.
-     */
     if (
       /^(?:this\s+is|tax\s+is|applicable\s+to|other\s+charges|computer\s+generated|does\s+not\s+require|terms|conditions|charges\s+for\s+logistics?)\b/i.test(
         first
@@ -2780,9 +3124,7 @@ for (
       }
 
       if (
-        isProductRoleNoise(
-          next
-        )
+        isProductRoleNoise(next)
       ) {
         break;
       }
@@ -2796,17 +3138,13 @@ for (
       }
 
       if (
-        isProductSectionEnd(
-          next
-        )
+        isProductSectionEnd(next)
       ) {
         break;
       }
 
       if (
-        isLikelyTableColumnLine(
-          next
-        )
+        isLikelyTableColumnLine(next)
       ) {
         break;
       }
@@ -2835,6 +3173,7 @@ for (
         "keyword-fallback",
     });
   }
+}
 
   /*
    * ==================================================
@@ -2879,10 +3218,13 @@ for (
     winner.score
   );
 
-  console.log(
-    "Product Candidates:",
-    candidates
-  );
+ console.table(
+  candidates.map((candidate) => ({
+    value: candidate.value,
+    score: candidate.score,
+    source: candidate.source,
+  }))
+);
 
   console.log(
     "========================================="
@@ -3164,6 +3506,48 @@ function extractAmount(text) {
    * ==================================================
    */
 
+  /*
+ * ==================================================
+ * LEVEL 1A
+ * HANDWRITTEN / LOCAL BILL FINAL TOTAL
+ * ==================================================
+ *
+ * OCR may read:
+ *
+ * G. Total 460-20
+ * G Total 460-20
+ *
+ * Meaning:
+ * ₹460.20
+ */
+
+const gTotalMatch =
+  text.match(
+    /\bG\.?\s*Total\s*:?\s*(?:₹|rs\.?)?\s*([\d,]+)\s*[-–]\s*(\d{1,2})\b/i
+  );
+
+if (gTotalMatch) {
+  const rupees =
+    parseMoney(
+      gTotalMatch[1]
+    );
+
+  const paise =
+    Number(
+      gTotalMatch[2]
+    );
+
+  if (
+    rupees > 0 &&
+    paise >= 0 &&
+    paise <= 99
+  ) {
+    return Number(
+      `${rupees}.${String(paise).padStart(2, "0")}`
+    );
+  }
+}
+
   const explicitPatterns = [
     /grand\s*total\s*:?\s*(?:₹|rs\.?)?\s*([\d,]+(?:\.\d{1,2})?)/i,
 
@@ -3192,6 +3576,135 @@ function extractAmount(text) {
     }
   }
 
+/*
+ * ==================================================
+ * LEVEL 2A
+ * GRAND TOTAL
+ * ==================================================
+ *
+ * Grand Total has highest priority.
+ *
+ * OCR may produce:
+ *
+ * Grand Total:
+ * *57499
+ *
+ * Grand Total: 57499
+ *
+ * Grand Total: ₹57499
+ */
+
+for (
+  let i = lines.length - 1;
+  i >= 0;
+  i--
+) {
+  const line =
+    clean(lines[i]);
+
+  if (
+    !/\bgrand\s+total\b/i.test(line)
+  ) {
+    continue;
+  }
+
+  /*
+   * Case 1:
+   *
+   * Grand Total: 57499
+   * Grand Total: ₹57499
+   * Grand Total: *57499
+   */
+
+  const directMatch =
+    line.match(
+      /(?:₹|Rs\.?|[*])\s*([\d,]+(?:\.\d{1,2})?)/i
+    ) ||
+    line.match(
+      /\b(\d[\d,]*(?:\.\d{1,2})?)\b/
+    );
+
+  if (directMatch) {
+    const amount =
+      parseMoney(
+        directMatch[1]
+      );
+
+    if (amount > 0) {
+      return amount;
+    }
+  }
+
+  /*
+   * Case 2:
+   *
+   * Grand Total:
+   * *57499
+   */
+
+  for (
+    let j = i + 1;
+    j < Math.min(
+      lines.length,
+      i + 5
+    );
+    j++
+  ) {
+    const next =
+      clean(lines[j]);
+
+    if (!next) {
+      continue;
+    }
+
+    /*
+     * Currency / OCR-star amount.
+     */
+    const prefixedMatch =
+      next.match(
+        /(?:₹|Rs\.?|[*])\s*([\d,]+(?:\.\d{1,2})?)/i
+      );
+
+    if (prefixedMatch) {
+      const amount =
+        parseMoney(
+          prefixedMatch[1]
+        );
+
+      if (amount > 0) {
+        return amount;
+      }
+    }
+
+    /*
+     * Plain number is safe here because
+     * we are specifically inside Grand Total.
+     */
+    const plainMatch =
+      next.match(
+        /^\s*(\d[\d,]*(?:\.\d{1,2})?)\s*$/
+      );
+
+    if (plainMatch) {
+      const amount =
+        parseMoney(
+          plainMatch[1]
+        );
+
+      if (amount > 0) {
+        return amount;
+      }
+    }
+
+    if (
+      /^(?:paid\s+amount|terms?\b|notes?\b)/i.test(
+        next
+      )
+    ) {
+      break;
+    }
+  }
+}
 
   /*
    * ==================================================
@@ -3523,79 +4036,190 @@ function extractAmount(text) {
 ========================================================================== */
 
 function extractPaymentMethod(text) {
-  const value =
-    lower(text);
+  const lines = getLines(text);
+
+  const normalizePayment = (value = "") => {
+    const payment = clean(value).toLowerCase();
+
+    if (
+      /\b(?:cash\s+on\s+delivery|cod|c\.?o\.?d\.?)\b/i.test(payment)
+    ) {
+      return "Cash on Delivery";
+    }
+
+    if (/\bcash\b/i.test(payment)) {
+      return "Cash";
+    }
+
+    if (
+      /\b(?:upi|gpay|google\s*pay|phonepe|paytm)\b/i.test(payment)
+    ) {
+      return "UPI";
+    }
+
+    if (/\bcredit\s+card\b/i.test(payment)) {
+      return "Credit Card";
+    }
+
+    if (/\bdebit\s+card\b/i.test(payment)) {
+      return "Debit Card";
+    }
+
+    if (
+      /\b(?:visa|mastercard|rupay)\b/i.test(payment)
+    ) {
+      return "Card";
+    }
+
+    if (
+      /\b(?:net\s+banking|internet\s+banking|online\s+banking)\b/i.test(
+        payment
+      )
+    ) {
+      return "Net Banking";
+    }
+
+    if (
+      /\b(?:wallet|amazon\s+pay|mobikwik|freecharge)\b/i.test(
+        payment
+      )
+    ) {
+      return "Wallet";
+    }
+
+    return "";
+  };
 
   /*
-   * COD first.
+   * ==================================================
+   * 1. EXPLICIT PAYMENT LABEL
+   * ==================================================
+   *
+   * Examples:
+   * Payment Method: CASH
+   * Payment Mode: UPI
+   * Payment Type: Credit Card
+   * Paid Via: PhonePe
    */
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    const match = line.match(
+      /^(?:payment\s*(?:method|mode|type)|paid\s*(?:via|through|by)|payment)\s*:?\s*(.+)$/i
+    );
+
+    if (match) {
+      const detected = normalizePayment(match[1]);
+
+      if (detected) {
+        console.log(
+          "Payment Source: explicit-label"
+        );
+
+        console.log(
+          "Payment Value:",
+          detected
+        );
+
+        return detected;
+      }
+    }
+  }
+
+  /*
+   * ==================================================
+   * 2. STRONG PAYMENT PHRASES
+   * ==================================================
+   */
+
+  const fullText = lower(text);
+
   if (
-    /\b(?:cod|c\.?o\.?d\.?|cash\s+on\s+delivery|cash\s+on\s+del)\b/i.test(
-      value
+    /\b(?:cash\s+on\s+delivery|paid\s+in\s+cash|payment\s+received\s+in\s+cash)\b/i.test(
+      fullText
     )
   ) {
-    return "Cash on Delivery";
+    console.log(
+      "Payment Source: strong-cash"
+    );
+
+    return "Cash";
   }
 
   if (
-    /\b(?:upi|gpay|google\s*pay|phonepe|paytm)\b/i.test(
-      value
+    /\b(?:paid\s+(?:via|through|by)\s+(?:upi|gpay|google\s*pay|phonepe|paytm))\b/i.test(
+      fullText
     )
   ) {
+    console.log(
+      "Payment Source: strong-upi"
+    );
+
     return "UPI";
   }
 
   if (
-    /\bcredit\s+card\b/i.test(
-      value
+    /\b(?:paid\s+(?:via|through|by)\s+credit\s+card)\b/i.test(
+      fullText
     )
   ) {
     return "Credit Card";
   }
 
   if (
-    /\bdebit\s+card\b/i.test(
-      value
+    /\b(?:paid\s+(?:via|through|by)\s+debit\s+card)\b/i.test(
+      fullText
     )
   ) {
     return "Debit Card";
   }
 
-  if (
-    /\b(?:visa|mastercard|rupay)\b/i.test(
-      value
-    )
-  ) {
-    return "Card";
-  }
+  /*
+   * ==================================================
+   * 3. STANDALONE PAYMENT EVIDENCE
+   * ==================================================
+   *
+   * Only use this when no explicit payment
+   * field was found.
+   */
 
-  if (
-    /\b(?:net\s+banking|internet\s+banking|online\s+banking)\b/i.test(
-      value
-    )
-  ) {
-    return "Net Banking";
-  }
+  for (const line of lines) {
+    const payment = normalizePayment(line);
 
-  if (
-    /\b(?:wallet|amazon\s+pay|mobikwik|freecharge)\b/i.test(
-      value
-    )
-  ) {
-    return "Wallet";
-  }
+    if (payment) {
+      /*
+       * Avoid treating random invoice text as payment.
+       */
+      if (
+        /^(?:upi|phonepe|paytm|gpay|google\s*pay|cash|cod|credit\s+card|debit\s+card|visa|mastercard|rupay|net\s+banking|internet\s+banking|wallet)$/i.test(
+          clean(line)
+        )
+      ) {
+        console.log(
+          "Payment Source: standalone"
+        );
 
-  if (
-    /\b(?:cash\s+payment|paid\s+in\s+cash)\b/i.test(
-      value
-    )
-  ) {
-    return "Cash";
+        console.log(
+          "Payment Value:",
+          payment
+        );
+
+        return payment;
+      }
+    }
   }
 
   /*
-   * Never guess a payment method.
+   * ==================================================
+   * 4. NEVER GUESS
+   * ==================================================
    */
+
+  console.log(
+    "Payment Source: none"
+  );
+
   return "";
 }
 

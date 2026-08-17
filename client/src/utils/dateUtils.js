@@ -180,12 +180,32 @@ export const normalizeOCRDate = (dateString) => {
     day = day.padStart(2, "0");
     month = month.padStart(2, "0");
 
-    // Convert 2-digit years.
-    if (year.length === 2) {
-      year = Number(year) >= 70
-        ? `19${year}`
-        : `20${year}`;
-    }
+   // Convert 2-digit years.
+if (year.length === 2) {
+  year = Number(year) >= 70
+    ? `19${year}`
+    : `20${year}`;
+}
+
+/*
+ * OCR sometimes drops a digit from a 4-digit year.
+ *
+ * Example:
+ * 07/01/225 → 07/01/2025
+ *
+ * Only handle 3-digit years that look like
+ * a 20xx year with the leading "20" missing.
+ */
+if (year.length === 3) {
+  const numericYear = Number(year);
+
+  if (
+    numericYear >= 200 &&
+    numericYear <= 299
+  ) {
+    year = `20${year.slice(1)}`;
+  }
+}
 
     return `${year}-${month}-${day}`;
   }
