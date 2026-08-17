@@ -52,7 +52,9 @@ const ReceiptForm = ({ receiptData, onInputChange, errors, ocrData }) => {
           />
 
           {errors.productName && (
-            <p className='mt-2 text-sm text-red-500'>{errors.productName}</p>
+            <p className='mt-2 text-sm text-red-500'>
+              {errors.productName}
+            </p>
           )}
         </div>
 
@@ -72,7 +74,9 @@ const ReceiptForm = ({ receiptData, onInputChange, errors, ocrData }) => {
           />
 
           {errors.storeName && (
-            <p className='mt-2 text-sm text-red-500'>{errors.storeName}</p>
+            <p className='mt-2 text-sm text-red-500'>
+              {errors.storeName}
+            </p>
           )}
         </div>
 
@@ -91,7 +95,9 @@ const ReceiptForm = ({ receiptData, onInputChange, errors, ocrData }) => {
           />
 
           {errors.purchaseDate && (
-            <p className='mt-2 text-sm text-red-500'>{errors.purchaseDate}</p>
+            <p className='mt-2 text-sm text-red-500'>
+              {errors.purchaseDate}
+            </p>
           )}
         </div>
 
@@ -108,17 +114,19 @@ const ReceiptForm = ({ receiptData, onInputChange, errors, ocrData }) => {
             )} ${errors.category ? 'border-red-500' : ''}`}
           >
             <option value=''>Select Category</option>
-            <option>Electronics</option>
-            <option>Fashion</option>
-            <option>Skin Care</option>
-            <option>Food</option>
-            <option>Travel</option>
-            <option>Home</option>
-            <option>Others</option>
+            <option value='Electronics'>Electronics</option>
+            <option value='Fashion'>Fashion</option>
+            <option value='Skin Care'>Skin Care</option>
+            <option value='Food'>Food</option>
+            <option value='Travel'>Travel</option>
+            <option value='Home'>Home</option>
+            <option value='Others'>Others</option>
           </select>
 
           {errors.category && (
-            <p className='mt-2 text-sm text-red-500'>{errors.category}</p>
+            <p className='mt-2 text-sm text-red-500'>
+              {errors.category}
+            </p>
           )}
         </div>
 
@@ -138,7 +146,9 @@ const ReceiptForm = ({ receiptData, onInputChange, errors, ocrData }) => {
           />
 
           {errors.amount && (
-            <p className='mt-2 text-sm text-red-500'>{errors.amount}</p>
+            <p className='mt-2 text-sm text-red-500'>
+              {errors.amount}
+            </p>
           )}
         </div>
 
@@ -155,11 +165,14 @@ const ReceiptForm = ({ receiptData, onInputChange, errors, ocrData }) => {
             )} ${errors.paymentMethod ? 'border-red-500' : ''}`}
           >
             <option value=''>Select Payment Method</option>
-            <option>UPI</option>
-            <option>Credit Card</option>
-            <option>Debit Card</option>
-            <option>Cash</option>
-            <option>Net Banking</option>
+            <option value='UPI'>UPI</option>
+            <option value='Credit Card'>Credit Card</option>
+            <option value='Debit Card'>Debit Card</option>
+            <option value='Cash'>Cash</option>
+            <option value='Cash on Delivery'>Cash on Delivery</option>
+            <option value='Net Banking'>Net Banking</option>
+            <option value='Wallet'>Wallet</option>
+            <option value='Card'>Card</option>
           </select>
 
           {errors.paymentMethod && (

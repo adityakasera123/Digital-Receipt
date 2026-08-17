@@ -1,19 +1,34 @@
+// src/parsers/parserRouter.js
+
 import { parseAmazonReceipt } from "./amazonParser";
-import { detectFlipkart, parseFlipkartReceipt } from "./flipkartParser";
-import { isMyntraInvoice, parseMyntraInvoice } from "./myntraParser";
+import {
+  detectFlipkart,
+  parseFlipkartReceipt,
+} from "./flipkartParser";
+import {
+  isMyntraInvoice,
+  parseMyntraInvoice,
+} from "./myntraParser";
+import { parseGenericReceipt } from "./genericParser";
 
 export function parseReceipt(text) {
   if (!text) return emptyResult();
 
   const lower = text.toLowerCase();
 
+  // ==================================================
   // 1. Myntra
+  // ==================================================
+
   if (isMyntraInvoice(text)) {
     console.log("Using Myntra parser");
     return parseMyntraInvoice(text);
   }
 
-  // 2. Flipkart first
+  // ==================================================
+  // 2. Flipkart
+  // ==================================================
+
   const flipkart = detectFlipkart(text);
 
   if (
@@ -26,7 +41,10 @@ export function parseReceipt(text) {
     return parseFlipkartReceipt(text);
   }
 
+  // ==================================================
   // 3. Amazon
+  // ==================================================
+
   if (
     lower.includes("amazon.in") ||
     lower.includes("amazon seller services") ||
@@ -36,10 +54,12 @@ export function parseReceipt(text) {
     return parseAmazonReceipt(text);
   }
 
-  return {
-    ...emptyResult(),
-    storeName: "Unknown",
-  };
+  // ==================================================
+  // 4. Generic Parser Fallback
+  // ==================================================
+
+  console.log("Using Generic parser");
+  return parseGenericReceipt(text);
 }
 
 function emptyResult() {
