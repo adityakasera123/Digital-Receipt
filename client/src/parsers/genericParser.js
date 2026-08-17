@@ -484,14 +484,15 @@ function looksLikeBusinessName(value = "") {
     return false;
   }
 
-  if (
-    isAddress(text) ||
-    isNumberOnly(text) ||
-    isTableNoise(text) ||
-    isGenericBusinessWord(text)
-  ) {
-    return false;
-  }
+ if (
+  isAddress(text) ||
+  isNumberOnly(text) ||
+  isTableNoise(text) ||
+  isGenericBusinessWord(text) ||
+  /^(?:₹|rs\.?)\s*[\d,]+(?:\.\d{1,2})?$/i.test(text)
+) {
+  return false;
+}
 
   if (
     isFooterNoise(text) ||
@@ -1704,20 +1705,8 @@ function collectDescriptionProduct(lines, table) {
 
     /*
      * ==================================================
-     * HARD STOP — LEGAL / FOOTER / TERMS SECTION
+     * HARD STOP — LEGAL / FOOTER / TERMS
      * ==================================================
-     *
-     * Important for courier / logistics invoices.
-     *
-     * Example:
-     *
-     * House
-     * Hold.
-     * Juel for Solle
-     *
-     * 1/We hereby agree to the terms...
-     *
-     * The product must STOP before the legal text.
      */
     if (
       /^(?:1\s*\/\s*we|i\s*\/\s*we|we\s+hereby|i\s+hereby)\b/i.test(
@@ -1823,9 +1812,6 @@ function collectDescriptionProduct(lines, table) {
      * ==================================================
      * LEGAL SENTENCE DETECTION
      * ==================================================
-     *
-     * Prevent long legal paragraphs from becoming
-     * product descriptions.
      */
     if (
       /\b(?:applicable\s+to\s+your\s+order|computer\s+generated|does\s+not\s+require\s+signature|reverse\s+charge\s+basis|logistics?\s+fee|city\s+and\/or\s+online\s+payments?|terms\s+and\s+conditions|non[-\s]?negotiable|contraband|hazardous|banned\s+item|indian\s+postal\s+act)\b/i.test(
@@ -1845,12 +1831,11 @@ function collectDescriptionProduct(lines, table) {
 
     /*
      * OCR may accidentally attach the
-     * "Value" column header:
+     * "Value" column header.
+     *
+     * Example:
      *
      * Value Fancy bangles - 2.6
-     *
-     * Remove "Value" only when the remaining
-     * text clearly looks like a product.
      */
     if (
       /^value\s+/i.test(candidate)
@@ -1885,26 +1870,135 @@ function collectDescriptionProduct(lines, table) {
     if (!candidate) continue;
 
     /*
-     * Accept valid product lines.
+     * ==================================================
+     * OCR NON-PRODUCT PHRASES
+     * ==================================================
+     *
+     * Example:
+     *
+     * Not for Sale
+     *      ↓
+     * Juel for Solle
+     *
+     * Do not allow these OCR artifacts to become
+     * part of the product description.
      */
     if (
-      looksLikeProduct(candidate)
+      /(?:not\s+for\s+sale|juel\s+for\s+solle|for\s+sale)/i.test(
+        candidate
+      )
     ) {
-      parts.push(candidate);
       continue;
     }
 
     /*
-     * Once product collection has started,
-     * first invalid line finishes the product.
+     * ==================================================
+     * STRONG PRODUCT LINE
+     * ==================================================
+     */
+  if (!candidate) {
+  continue;
+}
+
+const isDescriptionContinuation =
+  /^[A-Za-z0-9][A-Za-z0-9\s.,()&/'-]{1,149}$/.test(
+    candidate
+  );
+
+if (
+  /^(?:tax\s+invoice|sold\s+by|billed\s+by|original\s+for\s+recipient|gstin|purchase\s+order|invoice\s+no|order\s+date|invoice\s+date|hsn|qty|gross\s+amount|discount|taxable\s+value|taxes|total|other\s+charges)$/i.test(
+    candidate
+  )
+) {
+  if (parts.length) break;
+  continue;
+}
+
+if (
+  /^(?:1\s*\/\s*we|i\s*\/\s*we|we\s+hereby|this\s+shipment|gst\s+is\s+to\s+be\s+paid|not\s+responsible|non[-\s]?negotiable|delivery\s+from)\b/i.test(
+    candidate
+  ) ||
+  /\b(?:terms\s+and\s+conditions|contraband|hazardous|banned\s+item|indian\s+postal\s+act)\b/i.test(
+    candidate
+  )
+) {
+  if (parts.length) break;
+  continue;
+}
+
+if (
+  isNumberOnly(candidate) ||
+  isTaxLine(candidate) ||
+  isLikelyNumericRow(candidate) ||
+  isTableNoise(candidate)
+) {
+  if (parts.length) break;
+  continue;
+}
+
+if (
+  looksLikeProduct(candidate) ||
+  (parts.length > 0 && isDescriptionContinuation)
+) {
+  parts.push(candidate);
+  continue;
+}
+
+if (parts.length) {
+  break;
+}
+    /*
+     * ==================================================
+     * MULTI-LINE PRODUCT CONTINUATION
+     * ==================================================
+     *
+     * E-commerce invoices commonly wrap one product
+     * across multiple OCR lines.
+     *
+     * Example:
+     *
+     * Blender Electric Juicer 6
+     * Blade USB Rechargable
+     * Blender Shaker for Juices,
+     * Shakes and Smoothies Usb
+     * Juicer (380ml) (MULTI) -
+     * Free Size
+     *
+     * The continuation lines may NOT individually
+     * satisfy looksLikeProduct(), but they are still
+     * part of the same description.
      */
     if (parts.length) {
+      const looksLikeContinuation =
+        /[A-Za-z]/.test(candidate) &&
+        candidate.length >= 2 &&
+        candidate.length <= 100 &&
+        !/^(?:hsn|qty|quantity|gross\s+amount|discount|taxable\s+value|taxes|total|description|particulars|item|product)$/i.test(
+          candidate
+        ) &&
+        !/^(?:invoice|order|purchase|payment|gst|igst|cgst|sgst)\b/i.test(
+          candidate
+        ) &&
+        !/^\d[\d\s.,%₹$-]*$/.test(candidate);
+
+      if (looksLikeContinuation) {
+        parts.push(candidate);
+        continue;
+      }
+
+      /*
+       * Product collection ends when the line is
+       * neither a valid product line nor a safe
+       * continuation.
+       */
       break;
     }
   }
 
   return unique(parts).join(" ");
 }
+
+
 function extractProductDetails(text) {
   const lines = getLines(text);
 
@@ -1923,9 +2017,8 @@ function extractProductDetails(text) {
    * ==================================================
    * PRODUCT FOOTER / ROLE NOISE
    * ==================================================
-   *
-   * These are document-role labels, not products.
    */
+
   const isProductRoleNoise = (
     value = ""
   ) => {
@@ -1945,6 +2038,7 @@ function extractProductDetails(text) {
    * PRODUCT SECTION STOP SIGNALS
    * ==================================================
    */
+
   const isProductSectionEnd = (
     value = ""
   ) => {
@@ -1956,6 +2050,59 @@ function extractProductDetails(text) {
       /^(?:invoice\s+no\.?|invoice\s+number|value|gst\s*(?:no|number)?|actual\s+weight|charged\s+weight|rate\s+per\s*kg|basic\s+freight|hamali|statistical\s+charges|door\s+delivery|other\s+charges|e-?way\s+cost|total|grand\s+total|green\s+tax|consignor\s+copy|booking\s+officer)$/i.test(
         normalized
       )
+    );
+  };
+
+  /*
+   * ==================================================
+   * DESCRIPTION / INVOICE METADATA NOISE
+   * ==================================================
+   *
+   * These lines can appear between the first
+   * product line and the remaining wrapped
+   * product description.
+   *
+   * Example:
+   *
+   * Description
+   * Blender Electric Juicer 6
+   * TAX INVOICE
+   * Sold by: ...
+   * GSTIN...
+   * Purchase Order No.
+   * ...
+   * HSN
+   * Qty
+   * Gross Amount
+   * Blade USB Rechargable
+   * ...
+   */
+
+  const isInvoiceMetadataNoise = (
+    value = ""
+  ) => {
+    const normalized = lower(
+      cleanProductCandidate(value)
+    ).trim();
+
+    if (!normalized) {
+      return true;
+    }
+
+    return (
+      /^(?:tax\s+invoice|original\s+for\s+recipient|sold\s+by\b|billed\s+by\b|ship\s+to\b|bill\s+to\b|bill\s+to\/ship\s+to\b)$/i.test(
+        normalized
+      ) ||
+      /^(?:gstin|gst\s*(?:no|number)|purchase\s+order\s+no\.?|purchase\s+order|invoice\s+no\.?|invoice\s+number|order\s+date|invoice\s+date|place\s+of\s+supply|hsn|qty|gross\s+amount|discount|taxable\s+value|taxes|total)$/i.test(
+        normalized
+      ) ||
+      /^(?:original\s+for\s+recipient|consignee|consignor)$/i.test(
+        normalized
+      ) ||
+      /^sold\s+by\s*:/i.test(normalized) ||
+      /^billed\s+from\s*:/i.test(normalized) ||
+      /^ship\s+to\s*:/i.test(normalized) ||
+      /^bill\s+to\s*:/i.test(normalized)
     );
   };
 
@@ -1982,164 +2129,412 @@ function extractProductDetails(text) {
             descriptionTable: true,
             afterDescription: true,
           }
-        ),
+        ) + 20,
         source:
           "description-table",
       });
     }
   }
 
+/*
+ * ==================================================
+ * 2. EXPLICIT PRODUCT / DESCRIPTION LABEL
+ * ==================================================
+ */
+
+for (
+  let i = 0;
+  i < lines.length;
+  i++
+) {
+  /*
+   * Never extract product from
+   * PRODUCT DETAILS section.
+   */
+  if (
+    metadataRange &&
+    i >= metadataRange.start &&
+    i < metadataRange.end
+  ) {
+    continue;
+  }
+
+  const match =
+    lines[i].match(
+      /^(?:product\s*name|product|item\s*name|item|description|particulars)\s*:?\s*(.*)$/i
+    );
+
+  if (!match) {
+    continue;
+  }
+
+  const label =
+    lower(
+      cleanProductCandidate(
+        lines[i]
+      )
+    );
+
+  const isDescriptionLabel =
+    /^(?:description|particulars)$/i.test(
+      label
+    );
+
+  const parts = [];
+
   /*
    * ==================================================
-   * 2. EXPLICIT PRODUCT LABEL
+   * PRODUCT ON SAME LINE
+   * ==================================================
+   *
+   * Example:
+   *
+   * Product: Samsung Cable
+   */
+  const first =
+    cleanProductCandidate(
+      match[1]
+    );
+
+  if (
+    first &&
+    !isProductRoleNoise(first) &&
+    looksLikeProduct(first)
+  ) {
+    parts.push(first);
+  }
+
+  /*
+   * ==================================================
+   * MULTI-LINE DESCRIPTION
+   * ==================================================
+   *
+   * Example:
+   *
+   * Description
+   * Blender Electric Juicer 6
+   * TAX INVOICE
+   * Sold by: ADITYA KASERA
+   * ...
+   * Blade USB Rechargable
+   * Blender Shaker for Juices,
+   * Shakes and Smoothies Usb
+   * Juicer (380ml) (MULTI) -
+   * Free Size
+   *
+   * The important point:
+   *
+   * After the first product line is found,
+   * continuation lines do NOT need to pass
+   * looksLikeProduct().
    * ==================================================
    */
 
   for (
-    let i = 0;
-    i < lines.length;
-    i++
+    let j = i + 1;
+    j < Math.min(
+      lines.length,
+      i + (isDescriptionLabel ? 30 : 12)
+    );
+    j++
   ) {
-    /*
-     * Never extract product from
-     * PRODUCT DETAILS section.
-     */
-    if (
-      metadataRange &&
-      i >= metadataRange.start &&
-      i < metadataRange.end
-    ) {
+    const raw =
+      lines[j];
+
+    const next =
+      cleanProductCandidate(raw);
+
+    if (!next) {
       continue;
     }
 
-    const match =
-      lines[i].match(
-        /^(?:product\s*name|product|item\s*name|item|description|particulars)\s*:?\s*(.*)$/i
-      );
-
-    if (!match) {
-      continue;
-    }
-
-    const parts = [];
-
-    const first =
-      cleanProductCandidate(
-        match[1]
-      );
-
+    /*
+     * ==================================================
+     * HARD STOP — LEGAL / FOOTER
+     * ==================================================
+     */
     if (
-      first &&
-      !isProductRoleNoise(first) &&
-      looksLikeProduct(first)
+      /^(?:1\s*\/\s*we|i\s*\/\s*we|we\s+hereby|i\s+hereby)\b/i.test(
+        next
+      ) ||
+      /^(?:this\s+shipment|gst\s+is\s+to\s+be\s+paid|not\s+responsible|non-?negotiable|delivery\s+from|for\s+g\.?\s*r\.?\s*logistics)/i.test(
+        next
+      ) ||
+      /\b(?:terms\s+and\s+conditions|reverse\s+of\s+this|non[-\s]?negotiable\s+way\s+bill|contraband|hazardous|banned\s+item|indian\s+postal\s+act)\b/i.test(
+        next
+      )
     ) {
-      parts.push(first);
+      break;
     }
 
     /*
-     * Collect wrapped multiline description.
+     * ==================================================
+     * FOOTER ROLE
+     * ==================================================
      */
-
-    for (
-      let j = i + 1;
-      j < Math.min(
-        lines.length,
-        i + 10
-      );
-      j++
+    if (
+      isProductRoleNoise(next)
     ) {
-      const next =
-        lines[j];
-
-      if (
-        isProductSectionEnd(next)
-      ) {
+      if (parts.length) {
         break;
       }
 
-      if (
-        isProductRoleNoise(next)
-      ) {
-        break;
-      }
+      continue;
+    }
 
-      if (
-        isTableNoise(next) ||
-        isNumberOnly(next) ||
-        isTaxLine(next)
-      ) {
-        if (parts.length) {
-          break;
+    /*
+     * ==================================================
+     * INVOICE METADATA
+     * ==================================================
+     *
+     * IMPORTANT:
+     * For Description labels we SKIP these
+     * instead of ending the product immediately.
+     *
+     * This is necessary because Google Vision
+     * may reorder OCR lines.
+     */
+    if (
+      isInvoiceMetadataNoise(next)
+    ) {
+      if (parts.length) {
+        /*
+         * Description may continue after metadata.
+         */
+        if (isDescriptionLabel) {
+          continue;
         }
 
-        continue;
+        break;
       }
 
+      continue;
+    }
+
+    /*
+     * ==================================================
+     * TABLE COLUMN HEADERS
+     * ==================================================
+     */
+    if (
+      isLikelyTableColumnLine(
+        next
+      )
+    ) {
+      if (parts.length) {
+        if (isDescriptionLabel) {
+          continue;
+        }
+
+        break;
+      }
+
+      continue;
+    }
+
+    /*
+     * ==================================================
+     * NUMERIC / TAX / TABLE NOISE
+     * ==================================================
+     */
+    if (
+      isTableNoise(next) ||
+      isNumberOnly(next) ||
+      isTaxLine(next) ||
+      isLikelyNumericRow(next)
+    ) {
+      if (parts.length) {
+        /*
+         * E-commerce OCR often places:
+         *
+         * HSN
+         * Qty
+         * Rs.409
+         *
+         * between wrapped product lines.
+         *
+         * So Description continues searching.
+         */
+        if (isDescriptionLabel) {
+          continue;
+        }
+
+        break;
+      }
+
+      continue;
+    }
+
+    /*
+     * ==================================================
+     * ADDRESS / SELLER NOISE
+     * ==================================================
+     */
+    if (
+      isAddress(next)
+    ) {
+      if (parts.length) {
+        if (isDescriptionLabel) {
+          continue;
+        }
+
+        break;
+      }
+
+      continue;
+    }
+
+    /*
+     * ==================================================
+     * CLEAN PRODUCT CANDIDATE
+     * ==================================================
+     */
+    let candidate =
+      cleanProductCandidate(
+        next
+      );
+
+    if (!candidate) {
+      continue;
+    }
+
+    /*
+     * Remove accidental "Value" prefix.
+     *
+     * Example:
+     *
+     * Value Fancy bangles - 2.6
+     */
+    if (
+      /^value\s+/i.test(
+        candidate
+      )
+    ) {
+      const withoutValue =
+        candidate
+          .replace(
+            /^value\s+/i,
+            ""
+          )
+          .trim();
+
       if (
-        isLikelyTableColumnLine(
-          next
+        looksLikeProduct(
+          withoutValue
         )
       ) {
-        if (parts.length) {
-          break;
-        }
-
-        continue;
+        candidate =
+          withoutValue;
       }
+    }
 
-      const candidate =
-        cleanProductCandidate(
-          next
-        );
+    /*
+     * ==================================================
+     * REJECT KNOWN OCR GARBAGE
+     * ==================================================
+     */
+    if (
+      /(?:not\s+for\s+sale|juel\s+for\s+solle)/i.test(
+        candidate
+      )
+    ) {
+      continue;
+    }
 
+    /*
+     * ==================================================
+     * FIRST PRODUCT LINE
+     * ==================================================
+     */
+    if (
+      parts.length === 0
+    ) {
       if (
-        candidate &&
-        !isProductRoleNoise(
-          candidate
-        ) &&
         looksLikeProduct(
           candidate
         )
       ) {
         parts.push(candidate);
-      } else if (parts.length) {
-        break;
       }
+
+      continue;
     }
 
-    if (parts.length) {
-      const value =
-        unique(parts).join(" ");
+    /*
+     * ==================================================
+     * MULTI-LINE PRODUCT CONTINUATION
+     * ==================================================
+     *
+     * THIS IS THE IMPORTANT FIX.
+     *
+     * These lines do NOT have to satisfy
+     * looksLikeProduct().
+     *
+     * Example:
+     *
+     * Blade USB Rechargable
+     * Blender Shaker for Juices,
+     * Shakes and Smoothies Usb
+     * Juicer (380ml) (MULTI) -
+     * Free Size
+     */
+    const isSafeContinuation =
+      /^[A-Za-z0-9][A-Za-z0-9\s.,()&/'-]{1,149}$/.test(
+        candidate
+      );
 
-      candidates.push({
-        value,
-        score: productScore(
+    if (
+      isSafeContinuation
+    ) {
+      parts.push(candidate);
+      continue;
+    }
+
+    /*
+     * Unknown unrelated text.
+     */
+    if (parts.length) {
+      break;
+    }
+  }
+
+  /*
+   * ==================================================
+   * CREATE EXPLICIT PRODUCT CANDIDATE
+   * ==================================================
+   */
+  if (parts.length) {
+    const value =
+      unique(parts).join(" ");
+
+    candidates.push({
+      value,
+      score:
+        productScore(
           value,
           {
             explicitLabel: true,
             afterDescription: true,
           }
+        ) +
+        (
+          isDescriptionLabel &&
+          parts.length > 1
+            ? 25
+            : 0
         ),
-        source:
-          "explicit-label",
-      });
-    }
+      source:
+        "explicit-label",
+    });
   }
+}
 
   /*
    * ==================================================
    * 3. NAME OF GOODS / GOODS SECTION
    * ==================================================
    *
-   * Important for logistics / transport documents:
-   *
-   * Name of Goods
-   * P.M.
-   * House
-   * Hold.
-   * Juel for Solle
-   *
-   * This section is stronger than keyword fallback.
+   * Important for logistics / transport documents.
    */
 
   for (
@@ -2191,7 +2586,7 @@ function extractProductDetails(text) {
       }
 
       /*
-       * Stop at the next invoice/charge section.
+       * Stop at invoice / charge section.
        */
       if (
         isProductSectionEnd(
@@ -2213,37 +2608,24 @@ function extractProductDetails(text) {
       }
 
       /*
-       * Legal/footer paragraph begins here.
+       * Legal / footer paragraph.
        */
-     /*
- * Legal / footer paragraph begins here.
- *
- * OCR may produce:
- *
- * 1/We hereby agree...
- * I/We hereby agree...
- * 1 / We hereby agree...
- * I / We hereby agree...
- *
- * These lines must NEVER become part
- * of the product description.
- */
-if (
-  /^(?:1\s*\/\s*we|i\s*\/\s*we|we\s+hereby|i\s+hereby)\b/i.test(
-    candidate
-  ) ||
-  /^(?:this\s+shipment|gst\s+is\s+to\s+be\s+paid|not\s+responsible|non-?negotiable|delivery\s+from|for\s+g\.?\s*r\.?\s*logistics)/i.test(
-    candidate
-  ) ||
-  /\b(?:terms\s+and\s+conditions|reverse\s+of\s+this|non[-\s]?negotiable\s+way\s+bill|contraband|hazardous|banned\s+item|indian\s+postal\s+act)\b/i.test(
-    candidate
-  )
-) {
-  break;
-}
+      if (
+        /^(?:1\s*\/\s*we|i\s*\/\s*we|we\s+hereby|i\s+hereby)\b/i.test(
+          candidate
+        ) ||
+        /^(?:this\s+shipment|gst\s+is\s+to\s+be\s+paid|not\s+responsible|non-?negotiable|delivery\s+from|for\s+g\.?\s*r\.?\s*logistics)/i.test(
+          candidate
+        ) ||
+        /\b(?:terms\s+and\s+conditions|reverse\s+of\s+this|non[-\s]?negotiable\s+way\s+bill|contraband|hazardous|banned\s+item|indian\s+postal\s+act)\b/i.test(
+          candidate
+        )
+      ) {
+        break;
+      }
 
       /*
-       * Skip obvious table / numeric noise.
+       * Skip table / numeric noise.
        */
       if (
         isTableNoise(candidate) ||
@@ -2254,8 +2636,7 @@ if (
       }
 
       /*
-       * Ignore OCR garbage from another script
-       * when it contains no Latin product text.
+       * Ignore OCR garbage from another script.
        */
       if (
         !/[A-Za-z]/.test(
@@ -2266,42 +2647,25 @@ if (
       }
 
       /*
-       * Short descriptive lines such as:
-       *
-       * House
-       * Hold.
-       *
-       * are valid in a goods section.
+       * Reject obvious OCR "Not for Sale"
+       * artifacts.
        */
-     /*
- * Ignore OCR phrases that are not actual goods.
- *
- * Example:
- * "Not for Sale"
- * can sometimes be read by OCR as:
- * "Juel for Solle"
- */
-if (
-  /(?:not\s+for\s+sale|juel\s+for\s+solle|for\s+sale)/i.test(
-    candidate
-  )
-) {
-  continue;
-}
+      if (
+        /(?:not\s+for\s+sale|juel\s+for\s+solle|for\s+sale)/i.test(
+          candidate
+        )
+      ) {
+        continue;
+      }
 
-/*
- * Short descriptive lines such as:
- *
- * House
- * Hold.
- *
- * are valid in a goods section.
- */
-if (
-  candidate.length >= 2
-) {
-  parts.push(candidate);
-}
+      /*
+       * Short descriptive goods lines are valid.
+       */
+      if (
+        candidate.length >= 2
+      ) {
+        parts.push(candidate);
+      }
     }
 
     if (parts.length) {
@@ -2327,7 +2691,6 @@ if (
   /*
    * ==================================================
    * 4. KEYWORD FALLBACK
-   * For invoices without a clear table.
    * ==================================================
    */
 
@@ -2350,7 +2713,7 @@ if (
       );
 
     /*
-     * Never allow footer roles to become products.
+     * Footer roles.
      */
     if (
       isProductRoleNoise(
@@ -2361,8 +2724,7 @@ if (
     }
 
     /*
-     * Never allow invoice/legal sentences
-     * to become products.
+     * Legal / footer text.
      */
     if (
       /^(?:this\s+is|tax\s+is|applicable\s+to|other\s+charges|computer\s+generated|does\s+not\s+require|terms|conditions|charges\s+for\s+logistics?)\b/i.test(
@@ -2534,7 +2896,6 @@ if (
       candidates.length,
   };
 }
-
 function extractProduct(text) {
   return extractProductDetails(
     text
@@ -2797,9 +3158,12 @@ function extractAmount(text) {
     getLines(text);
 
   /*
+   * ==================================================
    * LEVEL 1
-   * Strong final-value labels.
+   * STRONG EXPLICIT FINAL-VALUE LABELS
+   * ==================================================
    */
+
   const explicitPatterns = [
     /grand\s*total\s*:?\s*(?:₹|rs\.?)?\s*([\d,]+(?:\.\d{1,2})?)/i,
 
@@ -2830,53 +3194,110 @@ function extractAmount(text) {
 
 
   /*
+   * ==================================================
    * LEVEL 2
+   * FINAL TOTAL SECTION
+   * ==================================================
    *
-   * Final Total section.
+   * Important:
    *
-   * Example:
+   * OCR may look like:
+   *
+   * Other Charges
+   * Rs.16.00
    *
    * Total
    * Rs.64.83
    * Rs.425.00
    *
-   * We choose 425.
+   * We MUST NOT select 16.
+   *
+   * For a standalone "Total" near the bottom,
+   * choose the LAST monetary value belonging
+   * to that total section.
    */
-  const totalIndex =
-    findTotalSectionIndex(lines);
 
-  if (
-    totalIndex !== -1
+  for (
+    let i = lines.length - 1;
+    i >= 0;
+    i--
   ) {
+    const line =
+      clean(lines[i]);
+
+    /*
+     * Only consider a standalone final Total.
+     *
+     * Do NOT treat:
+     *
+     * Other Charges
+     * Subtotal
+     * Grand Total + unrelated text
+     *
+     * as the same section.
+     */
+    if (
+      !/^total$/i.test(line)
+    ) {
+      continue;
+    }
+
     const amounts = [];
 
+    /*
+     * Collect values after Total.
+     *
+     * OCR can put several columns / values
+     * between Total and the final amount.
+     */
     for (
-      let i = totalIndex;
-      i < Math.min(
+      let j = i + 1;
+      j < Math.min(
         lines.length,
-        totalIndex + 8
+        i + 15
       );
-      i++
+      j++
     ) {
-      const line =
-        lines[i];
+      const next =
+        clean(lines[j]);
 
+      if (!next) {
+        continue;
+      }
+
+      /*
+       * Stop at another major section.
+       */
       if (
-        i > totalIndex &&
-        /^payment\b|^terms?\b/i.test(
-          line
+        /^(?:payment|terms?\b|notes?\b|remarks?\b|thank\s+you\b)/i.test(
+          next
         )
       ) {
         break;
       }
 
+      /*
+       * Ignore identifiers.
+       */
+      if (
+        /\b(?:gstin|invoice\s*(?:no|number)|order\s*(?:no|number)|hsn|sku)\b/i.test(
+          next
+        )
+      ) {
+        continue;
+      }
+
       amounts.push(
         ...extractAmountsFromLine(
-          line
+          next
         )
       );
     }
 
+    /*
+     * The LAST amount after the final Total
+     * is the strongest candidate.
+     */
     if (amounts.length) {
       return amounts[
         amounts.length - 1
@@ -2886,26 +3307,23 @@ function extractAmount(text) {
 
 
   /*
+   * ==================================================
    * LEVEL 3
-   *
-   * Any later line containing Total.
+   * GRAND TOTAL / TOTAL LABEL ON SAME LINE
+   * ==================================================
    */
+
   for (
     let i = lines.length - 1;
     i >= 0;
     i--
   ) {
-    if (
-      !/\btotal\b/i.test(
-        lines[i]
-      )
-    ) {
-      continue;
-    }
+    const line =
+      clean(lines[i]);
 
     if (
-      /\bsub\s*-?total\b/i.test(
-        lines[i]
+      !/\bgrand\s+total\b/i.test(
+        line
       )
     ) {
       continue;
@@ -2913,7 +3331,7 @@ function extractAmount(text) {
 
     const amounts =
       extractAmountsFromLine(
-        lines[i]
+        line
       );
 
     if (amounts.length) {
@@ -2921,13 +3339,42 @@ function extractAmount(text) {
         amounts.length - 1
       ];
     }
+
+    /*
+     * OCR may separate label and value.
+     */
+    for (
+      let j = i + 1;
+      j < Math.min(
+        lines.length,
+        i + 8
+      );
+      j++
+    ) {
+      const next =
+        clean(lines[j]);
+
+      const values =
+        extractAmountsFromLine(
+          next
+        );
+
+      if (values.length) {
+        return values[
+          values.length - 1
+        ];
+      }
+    }
   }
 
 
   /*
+   * ==================================================
    * LEVEL 4
-   * Other explicit final amount labels.
+   * OTHER EXPLICIT FINAL AMOUNT LABELS
+   * ==================================================
    */
+
   const fallbackPatterns = [
     /final\s*amount\s*:?\s*(?:₹|rs\.?)?\s*([\d,]+(?:\.\d{1,2})?)/i,
 
@@ -2952,12 +3399,16 @@ function extractAmount(text) {
 
 
   /*
+   * ==================================================
    * LEVEL 5
+   * EXISTING GENERIC FALLBACK
+   * ==================================================
    *
-   * Conservative generic fallback.
-   *
-   * We do NOT simply select the largest number.
+   * Keep the old conservative behaviour
+   * for receipts where no final total can
+   * be confidently detected.
    */
+
   const candidates = [];
 
   for (
@@ -2976,6 +3427,19 @@ function extractAmount(text) {
 
     if (
       /\b(?:gstin|order\s*(?:no|number|id)|invoice\s*(?:no|number|id))\b/i.test(
+        line
+      )
+    ) {
+      continue;
+    }
+
+    /*
+     * IMPORTANT:
+     * Do not let "Other Charges" become
+     * the preferred amount.
+     */
+    if (
+      /^other\s+charges\b/i.test(
         line
       )
     ) {
@@ -3017,6 +3481,18 @@ function extractAmount(text) {
         score -= 10;
       }
 
+      /*
+       * Explicitly penalize individual
+       * charge rows.
+       */
+      if (
+        /\b(?:other\s+charges|shipping|delivery|handling|hamali|tax|gst)\b/i.test(
+          value
+        )
+      ) {
+        score -= 8;
+      }
+
       if (
         amount >= 100
       ) {
@@ -3041,7 +3517,6 @@ function extractAmount(text) {
     candidates[0]?.amount || 0
   );
 }
-
 
 /* ==========================================================================
    14. PAYMENT METHOD
