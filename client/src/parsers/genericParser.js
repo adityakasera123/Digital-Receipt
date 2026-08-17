@@ -4232,184 +4232,550 @@ function detectCategory(
   productName = "",
   text = ""
 ) {
-  const product =
-    lower(productName);
+  const product = lower(productName);
+  const fullText = lower(text);
 
-  const electronics = [
-    "iphone",
-    "ipad",
-    "mobile",
-    "phone",
-    "smartphone",
-    "laptop",
-    "computer",
-    "tablet",
-    "airpods",
-    "earbuds",
-    "earphone",
-    "headphone",
-    "speaker",
-    "charger",
-    "power bank",
-    "usb cable",
-    "cable",
-    "keyboard",
-    "mouse",
-    "camera",
-    "television",
-    "tv",
-    "monitor",
-    "printer",
-    "watch",
-    "smartwatch",
-    "blender",
-    "juicer",
-    "mixer",
-    "kettle",
-    "microwave",
-    "refrigerator",
-    "fridge",
-    "washing machine",
-    "appliance",
-    "electronics",
-  ];
+  if (!product) {
+    return "Others";
+  }
 
-  const fashion = [
-    "shirt",
-    "t-shirt",
-    "tshirt",
-    "jeans",
-    "trouser",
-    "pants",
-    "pant",
-    "shorts",
-    "dress",
-    "skirt",
-    "kurta",
-    "kurti",
-    "saree",
-    "lehenga",
-    "dupatta",
-    "hoodie",
-    "jacket",
-    "coat",
-    "blazer",
-    "sweater",
-    "sweatshirt",
-    "shoe",
-    "shoes",
-    "sneaker",
-    "sandals",
-    "slipper",
-    "bangles",
-    "jewellery",
-    "jewelry",
-    "bracelet",
-    "necklace",
-    "ring",
-    "fashion",
-    "apparel",
-  ];
+  /*
+   * ==================================================
+   * CATEGORY KNOWLEDGE
+   * ==================================================
+   *
+   * These are PRODUCT KNOWLEDGE signals.
+   *
+   * They are NOT merchant-specific rules.
+   *
+   * Example:
+   * Vivo FE      → Electronics
+   * Samsung TV  → Electronics
+   * Nike Shoes  → Fashion
+   *
+   * We never check for one exact receipt/product.
+   */
 
-  const home = [
-    "bedsheet",
-    "bed sheet",
-    "pillow",
-    "curtain",
-    "blanket",
-    "towel",
-    "cushion",
-    "carpet",
-    "mattress",
-    "furniture",
-    "chair",
-    "table",
-    "sofa",
-    "home decor",
-    "decor",
-    "utensil",
-    "cookware",
-  ];
+  const knowledge = {
+    Electronics: {
+      types: [
+        "iphone",
+        "smartphone",
+        "mobile phone",
+        "mobile",
+        "phone",
+        "tablet",
+        "ipad",
+        "laptop",
+        "notebook computer",
+        "computer",
+        "desktop",
+        "monitor",
+        "television",
+        "tv",
+        "smartwatch",
+        "smart watch",
+        "watch",
+        "airpods",
+        "earbuds",
+        "earphone",
+        "headphone",
+        "headphones",
+        "speaker",
+        "soundbar",
+        "camera",
+        "dslr",
+        "mirrorless",
+        "printer",
+        "keyboard",
+        "mouse",
+        "router",
+        "modem",
+        "charger",
+        "power bank",
+        "usb cable",
+        "hdmi cable",
+        "cable",
+        "gaming console",
+        "playstation",
+        "xbox",
+        "nintendo",
+        "blender",
+        "juicer",
+        "mixer",
+        "kettle",
+        "microwave",
+        "refrigerator",
+        "fridge",
+        "washing machine",
+        "air conditioner",
+        "ac",
+        "appliance",
+        "electronics",
+      ],
 
-  const food = [
-    "grocery",
-    "chocolate",
-    "snack",
-    "coffee",
-    "tea",
-    "biscuit",
-    "dry fruit",
-    "dry fruits",
-    "food",
-  ];
+      brands: [
+        "vivo",
+        "samsung",
+        "apple",
+        "oneplus",
+        "xiaomi",
+        "redmi",
+        "realme",
+        "oppo",
+        "motorola",
+        "nothing",
+        "google pixel",
+        "pixel",
+        "iqoo",
+        "poco",
+        "asus",
+        "acer",
+        "lenovo",
+        "hp",
+        "dell",
+        "msi",
+        "sony",
+        "lg",
+        "panasonic",
+        "philips",
+        "boat",
+        "jbl",
+        "canon",
+        "nikon",
+        "nikon",
+        "bose",
+      ],
+    },
 
-  const travel = [
-    "flight",
-    "airline",
-    "hotel",
-    "train ticket",
-    "bus ticket",
-    "travel booking",
-    "reservation",
-  ];
+    Fashion: {
+      types: [
+        "shirt",
+        "t-shirt",
+        "tshirt",
+        "jeans",
+        "trouser",
+        "trousers",
+        "pants",
+        "pant",
+        "shorts",
+        "dress",
+        "skirt",
+        "kurta",
+        "kurti",
+        "saree",
+        "sari",
+        "lehenga",
+        "dupatta",
+        "hoodie",
+        "jacket",
+        "coat",
+        "blazer",
+        "sweater",
+        "sweatshirt",
+        "shoe",
+        "shoes",
+        "sneaker",
+        "sneakers",
+        "sandals",
+        "slipper",
+        "boots",
+        "bangles",
+        "jewellery",
+        "jewelry",
+        "bracelet",
+        "necklace",
+        "ring",
+        "wallet",
+        "handbag",
+        "bag",
+        "backpack",
+        "fashion",
+        "apparel",
+        "clothing",
+      ],
+
+      brands: [
+        "nike",
+        "adidas",
+        "puma",
+        "reebok",
+        "skechers",
+        "levi's",
+        "levis",
+        "zara",
+        "h&m",
+        "hm",
+        "uniqlo",
+        "roadster",
+        "max fashion",
+        "allen solly",
+        "peter england",
+        "van heusen",
+        "arrow",
+        "louis philippe",
+      ],
+    },
+
+    Home: {
+      types: [
+        "bedsheet",
+        "bed sheet",
+        "pillow",
+        "curtain",
+        "blanket",
+        "towel",
+        "cushion",
+        "carpet",
+        "mattress",
+        "furniture",
+        "chair",
+        "table",
+        "sofa",
+        "home decor",
+        "decor",
+        "utensil",
+        "cookware",
+        "dinner set",
+        "kitchen",
+        "storage",
+        "lamp",
+        "lighting",
+      ],
+
+      brands: [
+        "ikea",
+        "wakefit",
+        "pepperfry",
+        "urban ladder",
+      ],
+    },
+
+    Food: {
+      types: [
+        "grocery",
+        "chocolate",
+        "snack",
+        "coffee",
+        "tea",
+        "biscuit",
+        "biscuits",
+        "dry fruit",
+        "dry fruits",
+        "food",
+        "rice",
+        "flour",
+        "atta",
+        "sugar",
+        "salt",
+        "spices",
+        "masala",
+        "oil",
+        "juice",
+        "milk",
+        "bread",
+      ],
+
+      brands: [],
+    },
+
+    Travel: {
+      types: [
+        "flight",
+        "airline",
+        "hotel",
+        "train ticket",
+        "bus ticket",
+        "travel booking",
+        "reservation",
+        "boarding pass",
+        "air ticket",
+      ],
+
+      brands: [],
+    },
+
+    Health: {
+      types: [
+        "medicine",
+        "tablet",
+        "capsule",
+        "syrup",
+        "vitamin",
+        "supplement",
+        "medical",
+        "thermometer",
+        "blood pressure",
+        "glucometer",
+      ],
+
+      brands: [],
+    },
+  };
+
+  /*
+   * ==================================================
+   * SCORE CATEGORIES
+   * ==================================================
+   */
+
+  const scores = {
+    Electronics: 0,
+    Fashion: 0,
+    Home: 0,
+    Food: 0,
+    Travel: 0,
+    Health: 0,
+  };
+
+  const hasPhrase = (
+    value,
+    phrase
+  ) => {
+    return value.includes(
+      phrase.toLowerCase()
+    );
+  };
+
+  /*
+   * ==================================================
+   * PRODUCT TYPE EVIDENCE
+   * ==================================================
+   *
+   * Product type is stronger than a brand.
+   */
+
+  Object.entries(
+    knowledge
+  ).forEach(
+    ([category, data]) => {
+      data.types.forEach(
+        (type) => {
+          if (
+            hasPhrase(
+              product,
+              type
+            )
+          ) {
+            scores[category] += 10;
+          }
+        }
+      );
+    }
+  );
+
+  /*
+   * ==================================================
+   * BRAND EVIDENCE
+   * ==================================================
+   *
+   * Brand alone is weaker than explicit
+   * product type.
+   */
+
+  Object.entries(
+    knowledge
+  ).forEach(
+    ([category, data]) => {
+      data.brands.forEach(
+        (brand) => {
+          if (
+            hasPhrase(
+              product,
+              brand
+            )
+          ) {
+            scores[category] += 6;
+          }
+        }
+      );
+    }
+  );
+
+  /*
+   * ==================================================
+   * OCR CONTEXT EVIDENCE
+   * ==================================================
+   *
+   * Useful when product title is short.
+   *
+   * Example:
+   *
+   * Vivo FE
+   * 100X Zoom
+   * MRP
+   *
+   * can provide additional electronics
+   * context.
+   */
+
+  const contextSignals = {
+    Electronics: [
+      "camera",
+      "zoom",
+      "battery",
+      "mah",
+      "gb ram",
+      "rom",
+      "storage",
+      "bluetooth",
+      "wifi",
+      "wireless",
+      "imei",
+      "sim",
+      "android",
+      "ios",
+      "processor",
+      "display",
+      "amoled",
+      "oled",
+      "lcd",
+      "usb",
+      "type-c",
+      "type c",
+      "voltage",
+      "watt",
+      "w",
+    ],
+
+    Fashion: [
+      "size",
+      "colour",
+      "color",
+      "fabric",
+      "cotton",
+      "polyester",
+      "waist",
+      "sleeve",
+      "fit",
+      "medium",
+      "large",
+      "small",
+    ],
+
+    Home: [
+      "home",
+      "kitchen",
+      "wood",
+      "steel",
+      "ceramic",
+      "furniture",
+      "dimension",
+      "cm",
+      "inch",
+    ],
+
+    Food: [
+      "kg",
+      "gram",
+      "grams",
+      "g",
+      "ml",
+      "litre",
+      "liter",
+      "expiry",
+      "mfg",
+      "manufactured",
+      "ingredients",
+      "nutrition",
+    ],
+
+    Travel: [
+      "pnr",
+      "boarding",
+      "departure",
+      "arrival",
+      "check-in",
+      "check in",
+      "seat",
+      "terminal",
+    ],
+
+    Health: [
+      "dosage",
+      "mg",
+      "ml",
+      "prescription",
+      "doctor",
+      "medicine",
+      "expiry",
+      "batch",
+    ],
+  };
+
+  Object.entries(
+    contextSignals
+  ).forEach(
+    ([category, signals]) => {
+      signals.forEach(
+        (signal) => {
+          if (
+            hasPhrase(
+              fullText,
+              signal
+            )
+          ) {
+            scores[category] += 2;
+          }
+        }
+      );
+    }
+  );
+
+  /*
+   * ==================================================
+   * FIND WINNER
+   * ==================================================
+   */
+
+  const ranked =
+    Object.entries(scores)
+      .sort(
+        (a, b) =>
+          b[1] - a[1]
+      );
+
+  const best =
+    ranked[0];
+
+  const second =
+    ranked[1];
+
+  /*
+   * ==================================================
+   * CONFIDENCE / SAFETY
+   * ==================================================
+   *
+   * Do not force a category when evidence
+   * is weak or ambiguous.
+   */
 
   if (
-    electronics.some(
-      (keyword) =>
-        product.includes(keyword)
-    )
+    !best ||
+    best[1] < 4
   ) {
-    return "Electronics";
+    return "Others";
   }
 
   if (
-    fashion.some(
-      (keyword) =>
-        product.includes(keyword)
-    )
+    second &&
+    best[1] === second[1]
   ) {
-    return "Fashion";
+    return "Others";
   }
+
+  /*
+   * Require stronger evidence when the
+   * category comes only from weak context.
+   */
 
   if (
-    home.some(
-      (keyword) =>
-        product.includes(keyword)
-    )
+    best[1] < 6
   ) {
-    return "Home";
+    return "Others";
   }
 
-  if (
-    food.some(
-      (keyword) =>
-        product.includes(keyword)
-    )
-  ) {
-    return "Food";
-  }
-
-  if (
-    travel.some(
-      (keyword) =>
-        product.includes(keyword)
-    )
-  ) {
-    return "Travel";
-  }
-
-  const invoice =
-    lower(text);
-
-  if (
-    /\b(?:flight|airline|train ticket|bus ticket|hotel booking)\b/i.test(
-      invoice
-    )
-  ) {
-    return "Travel";
-  }
-
-  return "Others";
+  return best[0];
 }
 
 
