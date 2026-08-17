@@ -68,7 +68,7 @@ function looksLikeDate(value = "") {
 ========================================================================== */
 
 function isCommonLocation(value = "") {
-  const text = lower(value);
+  const text = lower(value).trim();
 
   const locations = [
     "india",
@@ -100,7 +100,24 @@ function isCommonLocation(value = "") {
     "west bengal",
   ];
 
-  return locations.includes(text);
+  // Exact known location
+  if (locations.includes(text)) {
+    return true;
+  }
+
+  // Common address fragments that should
+  // never be treated as store names.
+  const locationFragments = [
+    "pradesh",
+    "maharashtra",
+    "rajasthan",
+    "gujarat",
+    "karnataka",
+    "telangana",
+    "bengal",
+  ];
+
+  return locationFragments.includes(text);
 }
 
 function isAddress(value = "") {
@@ -350,14 +367,25 @@ function looksLikePersonName(value = "") {
   }
 
   if (
-    isAddress(text) ||
-    isNumberOnly(text) ||
-    isTableNoise(text)
-  ) {
-    return false;
-  }
+  isAddress(text) ||
+  isNumberOnly(text) ||
+  isTableNoise(text)
+) {
+  return false;
+}
 
-  const words = text.split(/\s+/);
+/*
+ * Strong business evidence must never be classified
+ * as a person's name.
+ */
+if (
+  strongBusinessPattern.test(text) ||
+  businessTypePattern.test(text)
+) {
+  return false;
+}
+
+const words = text.split(/\s+/);
 
   if (words.length < 2 || words.length > 5) {
     return false;
@@ -387,6 +415,62 @@ const strongBusinessPattern =
 const businessTypePattern =
   /\b(?:store|shop|mart|bazaar|bazar|boutique|bakery|bakers|studio|collections?|fashions?|foods?|duniya|bangles|jewellery|jewelry|electronics|garments|clothing|footwear|cosmetics|furniture)\b/i;
 
+function isGenericBusinessWord(value = "") {
+  const text = lower(
+    clean(value)
+  )
+    .replace(/[.:]+$/g, "")
+    .trim();
+
+  const genericWords = [
+    "value",
+    "amount",
+    "total",
+    "invoice",
+    "number",
+    "date",
+    "gst",
+    "gstin",
+    "gst no",
+    "gst number",
+    "code",
+    "weight",
+    "actual",
+    "charged",
+    "rate",
+    "price",
+    "paid",
+    "copy",
+    "name",
+    "booking",
+    "officer",
+    "consignor",
+    "consignee",
+    "particulars",
+    "description",
+    "details",
+  ];
+
+  return genericWords.includes(
+    text
+  );
+}
+
+function hasStrongMerchantEvidence(
+  value = ""
+) {
+  const text = clean(value);
+
+  return (
+    strongBusinessPattern.test(
+      text
+    ) ||
+    /\b(?:logistics|roadways|transport|courier|shipping|trading|retail|mart|shop|store)\b/i.test(
+      text
+    )
+  );
+}
+
 function looksLikeBusinessName(value = "") {
   const text = clean(value)
     .split(",")[0]
@@ -403,7 +487,8 @@ function looksLikeBusinessName(value = "") {
   if (
     isAddress(text) ||
     isNumberOnly(text) ||
-    isTableNoise(text)
+    isTableNoise(text) ||
+    isGenericBusinessWord(text)
   ) {
     return false;
   }
@@ -416,7 +501,7 @@ function looksLikeBusinessName(value = "") {
     return false;
   }
 
-  if (strongBusinessPattern.test(text)) {
+  if (hasStrongMerchantEvidence(text)) {
     return true;
   }
 
@@ -431,6 +516,9 @@ function looksLikeBusinessName(value = "") {
    * Amazon
    * Flipkart
    * Myntra
+   *
+   * Generic invoice words such as "Value"
+   * must not pass through this fallback.
    */
   if (
     /^[A-Za-z][A-Za-z0-9&.'-]{2,40}$/.test(text)
@@ -448,70 +536,288 @@ function looksLikeBusinessName(value = "") {
 
 function extractStore(text) {
   const lines = getLines(text);
+  const candidates = [];
 
   /*
-   * Priority 1:
-   * Explicit seller / merchant context.
+   * --------------------------------------------------
+   * Generic words that can appear near GST / invoice
+   * sections but are NOT merchant names.
+   * --------------------------------------------------
    */
-  for (let i = 0; i < lines.length; i++) {
-    const match = lines[i].match(
-      /^(?:sold\s*by|seller|merchant|billed\s*from|bill\s*from)\s*:?\s*(.*)$/i
+  const genericStoreWords = new Set([
+    "value",
+    "amount",
+    "total",
+    "invoice",
+    "number",
+    "date",
+    "gst",
+    "gstin",
+    "gst no",
+    "gst number",
+    "code",
+    "weight",
+    "actual",
+    "charged",
+    "rate",
+    "price",
+    "paid",
+    "copy",
+    "name",
+    "booking",
+    "officer",
+    "consignor",
+    "consignee",
+    "particulars",
+    "description",
+    "details",
+  ]);
+
+  const isGenericStoreCandidate = (
+    value = ""
+  ) => {
+    const normalized = lower(
+      clean(value)
+    )
+      .replace(/[.:]+$/g, "")
+      .trim();
+
+    return (
+      genericStoreWords.has(
+        normalized
+      ) ||
+      /^(?:p\.?m\.?|s\.?n\.?|sr\.?\s*no\.?)$/i.test(
+        normalized
+      )
     );
+  };
 
-    if (!match) {
-      continue;
-    }
-
-    const direct = clean(match[1])
+  const addCandidate = (
+    value,
+    score,
+    source
+  ) => {
+    const candidate = clean(value)
       .split(",")[0]
       .trim();
 
+    if (!candidate) return;
+
     /*
-     * Direct business:
-     *
-     * Sold by: TrendyDuniya
+     * Never allow generic invoice words
+     * to become store names.
      */
     if (
-      direct &&
-      looksLikeBusinessName(direct) &&
-      !looksLikePersonName(direct)
+      isGenericStoreCandidate(
+        candidate
+      )
     ) {
-      return direct;
+      return;
+    }
+
+    if (
+      isAddress(candidate) ||
+      isNumberOnly(candidate) ||
+      isTableNoise(candidate) ||
+      isFooterNoise(candidate) ||
+      isPaymentText(candidate) ||
+      isCommonLocation(candidate)
+    ) {
+      return;
     }
 
     /*
-     * Person first, business nearby:
-     *
-     * Sold by: ADITYA KASERA
-     * TrendyDuniya
-     *
-     * Sold by: Peekesh Kumar
-     * Mahima Bangles
+     * OCR may split a state/location into
+     * separate lines.
      */
+    if (
+      /^(?:pradesh|uttar|uttarakhand|himachal|bihar|jharkhand|punjab|haryana|rajasthan|madhya|kerala|odisha|assam)$/i.test(
+        candidate
+      )
+    ) {
+      return;
+    }
+
+    if (
+      !looksLikeBusinessName(
+        candidate
+      )
+    ) {
+      return;
+    }
+
+    /*
+     * Strong merchant evidence.
+     *
+     * Examples:
+     * Pvt Ltd
+     * Private Limited
+     * Logistics
+     * Roadways
+     * Retail
+     * Store
+     */
+    let finalScore = score;
+
+    if (
+      strongBusinessPattern.test(
+        candidate
+      )
+    ) {
+      finalScore += 100;
+    }
+
+    if (
+      businessTypePattern.test(
+        candidate
+      )
+    ) {
+      finalScore += 50;
+    }
+
+    /*
+     * Multi-word names are stronger than
+     * isolated one-word candidates.
+     */
+    const wordCount =
+      candidate.split(/\s+/).length;
+
+    if (wordCount >= 2) {
+      finalScore += 15;
+    }
+
+    if (wordCount >= 3) {
+      finalScore += 10;
+    }
+
+    candidates.push({
+      value: candidate,
+      score: finalScore,
+      source,
+    });
+  };
+
+  /*
+   * ==================================================
+   * 1. EXPLICIT SELLER / MERCHANT CONTEXT
+   * ==================================================
+   */
+
+  for (
+    let i = 0;
+    i < lines.length;
+    i++
+  ) {
+    const match =
+      lines[i].match(
+        /^(?:sold\s*by|seller|merchant|billed\s*from|bill\s*from)\s*:?\s*(.*)$/i
+      );
+
+    if (!match) continue;
+
+    const direct =
+      clean(match[1]);
+
+    /*
+     * Example:
+     *
+     * Sold By: ABC Retail Pvt Ltd
+     */
+    if (direct) {
+      const directWords =
+        direct.split(/\s+/);
+
+      /*
+       * If OCR combines person + business,
+       * try the strongest business-looking
+       * suffix first.
+       */
+      for (
+        let end =
+          directWords.length;
+        end >= 1;
+        end--
+      ) {
+        const part =
+          directWords
+            .slice(
+              Math.max(
+                0,
+                end - 5
+              ),
+              end
+            )
+            .join(" ");
+
+        if (
+          businessTypePattern.test(
+            part
+          ) ||
+          strongBusinessPattern.test(
+            part
+          )
+        ) {
+          addCandidate(
+            part,
+            120,
+            "seller-context"
+          );
+
+          break;
+        }
+      }
+
+      /*
+       * Normal direct seller/business name.
+       */
+      addCandidate(
+        direct,
+        110,
+        "seller-context"
+      );
+    }
+
+    /*
+     * ==================================================
+     * Seller label may be followed by:
+     *
+     * Sold by:
+     * Peekesh Kumar
+     * Mahima Bangles
+     *
+     * ==================================================
+     */
+
     for (
       let offset = 1;
       offset <= 6;
       offset++
     ) {
-      const candidate = clean(
-        lines[i + offset] || ""
-      )
-        .split(",")[0]
-        .trim();
+      const raw =
+        lines[i + offset] ||
+        "";
+
+      const candidate =
+        clean(raw)
+          .split(",")[0]
+          .trim();
 
       if (!candidate) {
         continue;
       }
 
       if (
-        isAddress(candidate) ||
-        isNumberOnly(candidate) ||
-        isTableNoise(candidate)
+        isGenericStoreCandidate(
+          candidate
+        )
       ) {
         continue;
       }
 
       if (
+        isAddress(candidate) ||
+        isNumberOnly(candidate) ||
+        isTableNoise(candidate) ||
         isFooterNoise(candidate) ||
         isPaymentText(candidate) ||
         isCommonLocation(candidate)
@@ -520,21 +826,76 @@ function extractStore(text) {
       }
 
       if (
-        looksLikeBusinessName(candidate) &&
-        !looksLikePersonName(candidate)
+        /^(?:pradesh|uttar|uttarakhand|himachal|bihar|jharkhand|punjab|haryana|rajasthan|madhya|kerala|odisha|assam)$/i.test(
+          candidate
+        )
       ) {
-        return candidate;
+        continue;
+      }
+
+      /*
+       * Person names are weak evidence.
+       * Business names are stronger.
+       */
+      if (
+        looksLikeBusinessName(
+          candidate
+        )
+      ) {
+        let score =
+          105 - offset * 3;
+
+        if (
+          strongBusinessPattern.test(
+            candidate
+          )
+        ) {
+          score += 100;
+        }
+
+        if (
+          businessTypePattern.test(
+            candidate
+          )
+        ) {
+          score += 50;
+        }
+
+        addCandidate(
+          candidate,
+          score,
+          "near-seller"
+        );
       }
     }
   }
 
   /*
-   * Priority 2:
-   * GSTIN context.
+   * ==================================================
+   * 2. GSTIN CONTEXT
+   * ==================================================
    *
-   * Merchant is commonly above GSTIN.
+   * Important:
+   * Do NOT immediately return the first
+   * business-looking candidate.
+   *
+   * Collect candidates and score them.
+   * This prevents:
+   *
+   * GST No.
+   * Value
+   *
+   * from producing:
+   *
+   * Store = Value
+   * ==================================================
    */
-  for (let i = 0; i < lines.length; i++) {
+
+  for (
+    let i = 0;
+    i < lines.length;
+    i++
+  ) {
     if (
       !/\bgstin\b|\bgst\s*(?:no|number)\b/i.test(
         lines[i]
@@ -543,78 +904,243 @@ function extractStore(text) {
       continue;
     }
 
+    const gstCandidates = [];
+
     for (
       let offset = 1;
-      offset <= 5;
+      offset <= 6;
       offset++
     ) {
-      const candidate = clean(
-        lines[i - offset] || ""
-      )
-        .split(",")[0]
-        .trim();
+      const candidate =
+        clean(
+          lines[i - offset] ||
+            ""
+        )
+          .split(",")[0]
+          .trim();
 
       if (!candidate) {
         continue;
       }
 
       if (
-        isAddress(candidate) ||
-        isNumberOnly(candidate) ||
-        isTableNoise(candidate)
+        isGenericStoreCandidate(
+          candidate
+        )
       ) {
         continue;
       }
 
       if (
-        looksLikeBusinessName(candidate) &&
-        !looksLikePersonName(candidate)
+        isAddress(candidate) ||
+        isNumberOnly(candidate) ||
+        isTableNoise(candidate) ||
+        isFooterNoise(candidate) ||
+        isPaymentText(candidate) ||
+        isCommonLocation(candidate)
       ) {
-        return candidate;
+        continue;
       }
+
+      if (
+        !looksLikeBusinessName(
+          candidate
+        )
+      ) {
+        continue;
+      }
+
+      /*
+       * Person names should not beat
+       * actual business names.
+       */
+      if (
+        looksLikePersonName(
+          candidate
+        )
+      ) {
+        continue;
+      }
+
+      let score = 0;
+
+      /*
+       * Strong company/legal evidence.
+       */
+      if (
+        strongBusinessPattern.test(
+          candidate
+        )
+      ) {
+        score += 200;
+      }
+
+      /*
+       * Business type evidence.
+       */
+      if (
+        businessTypePattern.test(
+          candidate
+        )
+      ) {
+        score += 80;
+      }
+
+      /*
+       * Industry/business words.
+       */
+      if (
+        /\b(?:logistics|roadways|transport|courier|shipping|trading|retail|mart|shop|store)\b/i.test(
+          candidate
+        )
+      ) {
+        score += 60;
+      }
+
+      /*
+       * Multi-word names are safer.
+       */
+      const wordCount =
+        candidate.split(
+          /\s+/
+        ).length;
+
+      if (wordCount >= 2) {
+        score += 20;
+      }
+
+      if (wordCount >= 3) {
+        score += 10;
+      }
+
+      /*
+       * Nearer to GSTIN gets some
+       * contextual weight, but NOT enough
+       * to override strong business evidence.
+       */
+      score += Math.max(
+        0,
+        25 - offset * 3
+      );
+
+      gstCandidates.push({
+        value: candidate,
+        score,
+        source:
+          "gst-context",
+      });
+    }
+
+    /*
+     * Best GST merchant candidate.
+     */
+    gstCandidates.sort(
+      (a, b) =>
+        b.score - a.score ||
+        b.value.length -
+          a.value.length
+    );
+
+    for (
+      const candidate of gstCandidates
+    ) {
+      addCandidate(
+        candidate.value,
+        candidate.score,
+        candidate.source
+      );
     }
   }
 
   /*
-   * Priority 3:
-   * Top-of-invoice fallback.
+   * ==================================================
+   * 3. TOP-OF-INVOICE BUSINESS CANDIDATES
+   * ==================================================
    */
+
   for (
-    const line of lines.slice(0, 60)
+    let i = 0;
+    i < Math.min(
+      lines.length,
+      60
+    );
+    i++
   ) {
-    const candidate = clean(line)
-      .split(",")[0]
-      .trim();
+    const candidate =
+      clean(lines[i])
+        .split(",")[0]
+        .trim();
 
     if (!candidate) {
       continue;
     }
 
+    /*
+     * Generic invoice words such as
+     * "Value", "Date", "GST", etc.
+     * should never enter this pool.
+     */
     if (
-      isAddress(candidate) ||
-      isNumberOnly(candidate) ||
-      isTableNoise(candidate)
+      isGenericStoreCandidate(
+        candidate
+      )
     ) {
       continue;
     }
 
-    if (
-      isFooterNoise(candidate) ||
-      isPaymentText(candidate) ||
-      isCommonLocation(candidate)
-    ) {
-      continue;
-    }
-
-    if (
-      looksLikeBusinessName(candidate) &&
-      !looksLikePersonName(candidate)
-    ) {
-      return candidate;
-    }
+    addCandidate(
+      candidate,
+      45 -
+        Math.min(i, 20),
+      "top-invoice"
+    );
   }
 
-  return "Unknown";
+  /*
+   * ==================================================
+   * BEST MERCHANT
+   * ==================================================
+   */
+
+  candidates.sort(
+    (a, b) =>
+      b.score - a.score ||
+      b.value.length -
+        a.value.length
+  );
+
+  const winner =
+    candidates[0];
+
+  console.log(
+    "========== STORE EXTRACTION =========="
+  );
+
+  console.log(
+    "Store Candidates:",
+    candidates
+  );
+
+  console.log(
+    "Selected Store:",
+    winner?.value ||
+      "Unknown"
+  );
+
+  console.log(
+    "Store Source:",
+    winner?.source ||
+      "none"
+  );
+
+  console.log(
+    "======================================"
+  );
+
+  return (
+    winner?.value ||
+    "Unknown"
+  );
 }
 
 
@@ -899,10 +1425,14 @@ function cleanProductCandidate(value = "") {
   /*
    * Remove product labels.
    */
-  product = product.replace(
-    /^(?:description|product(?:\s+name)?|item(?:\s+name)?|particulars)\s*:?\s*/i,
-    ""
-  );
+  /*
+ * Remove product labels and accidental
+ * invoice column headers.
+ */
+product = product.replace(
+  /^(?:description|product(?:\s+name)?|item(?:\s+name)?|particulars|value)\s*:?\s*/i,
+  ""
+);
 
   /*
    * Remove HSN + Qty + Amount columns
@@ -1142,24 +1672,12 @@ function collectDescriptionProduct(lines, table) {
 
   /*
    * Start from the actual line after the
-   * Description header, NOT after the entire
-   * multi-line header window.
+   * Description / Goods header.
    */
   let start = table.index + 1;
 
   /*
    * Skip invoice column headers.
-   *
-   * OCR may produce:
-   *
-   * Description
-   * HSN
-   * Qty
-   * Gross Amount
-   * Discount
-   * Taxable Value
-   * Taxes
-   * Total
    */
   while (
     start < lines.length &&
@@ -1168,7 +1686,8 @@ function collectDescriptionProduct(lines, table) {
       /^description$/i.test(clean(lines[start])) ||
       /^particulars$/i.test(clean(lines[start])) ||
       /^item(?:\s+name)?$/i.test(clean(lines[start])) ||
-      /^product(?:\s+name)?$/i.test(clean(lines[start]))
+      /^product(?:\s+name)?$/i.test(clean(lines[start])) ||
+      /^name\s+of\s+goods$/i.test(clean(lines[start]))
     )
   ) {
     start++;
@@ -1184,24 +1703,74 @@ function collectDescriptionProduct(lines, table) {
     if (!line) continue;
 
     /*
-     * HARD STOP:
-     * These are invoice footer / summary sections.
+     * ==================================================
+     * HARD STOP — LEGAL / FOOTER / TERMS SECTION
+     * ==================================================
+     *
+     * Important for courier / logistics invoices.
+     *
+     * Example:
+     *
+     * House
+     * Hold.
+     * Juel for Solle
+     *
+     * 1/We hereby agree to the terms...
+     *
+     * The product must STOP before the legal text.
      */
     if (
-      /^(?:total|grand\s+total|subtotal|sub\s+total)$/i.test(line) ||
-      /^other\s+charges\b/i.test(line) ||
-      /^terms?\s*(?:&|and)\s*conditions\b/i.test(line) ||
-      /^tax\s+is\s+not\s+payable\b/i.test(line) ||
-      /^this\s+is\s+a\s+computer\s+generated\b/i.test(line) ||
-      /^computer\s+generated\s+invoice\b/i.test(line) ||
-      /^notes?\b/i.test(line) ||
-      /^remarks?\b/i.test(line)
+      /^(?:1\s*\/\s*we|i\s*\/\s*we|we\s+hereby|i\s+hereby)\b/i.test(
+        line
+      ) ||
+      /^(?:shipper'?s?\s+copy|consignor\s+copy|consignee\s+copy)\b/i.test(
+        line
+      ) ||
+      /^(?:non[-\s]?negotiable|not\s+responsible\s+for)\b/i.test(
+        line
+      ) ||
+      /^(?:gst\s+is\s+to\s+be\s+paid|delivery\s+from)\b/i.test(
+        line
+      ) ||
+      /^(?:terms?\s*(?:&|and)\s*conditions?)\b/i.test(
+        line
+      ) ||
+      /^(?:tax\s+is\s+not\s+payable)\b/i.test(
+        line
+      ) ||
+      /^(?:this\s+is\s+a\s+computer\s+generated)\b/i.test(
+        line
+      ) ||
+      /^(?:computer\s+generated\s+invoice)\b/i.test(
+        line
+      ) ||
+      /^(?:notes?|remarks?)\b/i.test(
+        line
+      )
     ) {
       break;
     }
 
     /*
-     * Stop when we reach tax lines.
+     * ==================================================
+     * HARD STOP — INVOICE SUMMARY
+     * ==================================================
+     */
+    if (
+      /^(?:total|grand\s+total|subtotal|sub\s+total)$/i.test(
+        line
+      ) ||
+      /^other\s+charges\b/i.test(line) ||
+      /^e[-\s]?way\s+cost\b/i.test(line) ||
+      /^green\s+tax\b/i.test(line)
+    ) {
+      break;
+    }
+
+    /*
+     * ==================================================
+     * TAX LINES
+     * ==================================================
      */
     if (isTaxLine(line)) {
       if (parts.length) break;
@@ -1209,7 +1778,9 @@ function collectDescriptionProduct(lines, table) {
     }
 
     /*
-     * Ignore numeric / invoice-column lines.
+     * ==================================================
+     * NUMERIC / TABLE COLUMNS
+     * ==================================================
      */
     if (isLikelyNumericRow(line)) {
       if (parts.length) break;
@@ -1222,7 +1793,9 @@ function collectDescriptionProduct(lines, table) {
     }
 
     /*
-     * Never accept PRODUCT DETAILS metadata.
+     * ==================================================
+     * TABLE / METADATA NOISE
+     * ==================================================
      */
     if (
       isProductMetadataLine(line) ||
@@ -1233,7 +1806,9 @@ function collectDescriptionProduct(lines, table) {
     }
 
     /*
-     * Do not allow payment/footer/address text.
+     * ==================================================
+     * PAYMENT / FOOTER / ADDRESS
+     * ==================================================
      */
     if (
       isPaymentText(line) ||
@@ -1245,22 +1820,73 @@ function collectDescriptionProduct(lines, table) {
     }
 
     /*
-     * IMPORTANT:
-     * Reject obvious legal/footer sentences.
+     * ==================================================
+     * LEGAL SENTENCE DETECTION
+     * ==================================================
+     *
+     * Prevent long legal paragraphs from becoming
+     * product descriptions.
      */
     if (
-      /\b(?:applicable\s+to\s+your\s+order|computer\s+generated|does\s+not\s+require\s+signature|reverse\s+charge\s+basis|logistics?\s+fee|city\s+and\/or\s+online\s+payments?)\b/i.test(
+      /\b(?:applicable\s+to\s+your\s+order|computer\s+generated|does\s+not\s+require\s+signature|reverse\s+charge\s+basis|logistics?\s+fee|city\s+and\/or\s+online\s+payments?|terms\s+and\s+conditions|non[-\s]?negotiable|contraband|hazardous|banned\s+item|indian\s+postal\s+act)\b/i.test(
         line
       )
     ) {
       break;
     }
 
-    const candidate =
+    /*
+     * ==================================================
+     * PRODUCT CANDIDATE
+     * ==================================================
+     */
+    let candidate =
       cleanProductCandidate(line);
+
+    /*
+     * OCR may accidentally attach the
+     * "Value" column header:
+     *
+     * Value Fancy bangles - 2.6
+     *
+     * Remove "Value" only when the remaining
+     * text clearly looks like a product.
+     */
+    if (
+      /^value\s+/i.test(candidate)
+    ) {
+      const withoutValue =
+        candidate
+          .replace(
+            /^value\s+/i,
+            ""
+          )
+          .trim();
+
+      const hasProductKeyword =
+        productKeywords.some(
+          (keyword) =>
+            lower(
+              withoutValue
+            ).includes(keyword)
+        );
+
+      if (
+        hasProductKeyword &&
+        looksLikeProduct(
+          withoutValue
+        )
+      ) {
+        candidate =
+          withoutValue;
+      }
+    }
 
     if (!candidate) continue;
 
+    /*
+     * Accept valid product lines.
+     */
     if (
       looksLikeProduct(candidate)
     ) {
@@ -1269,9 +1895,8 @@ function collectDescriptionProduct(lines, table) {
     }
 
     /*
-     * Once we have started collecting a product,
-     * the first invalid line means the product row
-     * is finished.
+     * Once product collection has started,
+     * first invalid line finishes the product.
      */
     if (parts.length) {
       break;
@@ -1280,17 +1905,11 @@ function collectDescriptionProduct(lines, table) {
 
   return unique(parts).join(" ");
 }
-
-function extractProductDetails(
-  text
-) {
-  const lines =
-    getLines(text);
+function extractProductDetails(text) {
+  const lines = getLines(text);
 
   const metadataRange =
-    findProductDetailsSection(
-      lines
-    );
+    findProductDetailsSection(lines);
 
   const table =
     findDescriptionTable(
@@ -1299,6 +1918,46 @@ function extractProductDetails(
     );
 
   const candidates = [];
+
+  /*
+   * ==================================================
+   * PRODUCT FOOTER / ROLE NOISE
+   * ==================================================
+   *
+   * These are document-role labels, not products.
+   */
+  const isProductRoleNoise = (
+    value = ""
+  ) => {
+    const normalized = lower(
+      cleanProductCandidate(value)
+    ).trim();
+
+    return (
+      /^(?:booking\s+officer|authorized\s+signatory|authorised\s+signatory|signatory|sales\s+officer|accounts?\s+officer|delivery\s+agent|consignor|consignee)$/i.test(
+        normalized
+      )
+    );
+  };
+
+  /*
+   * ==================================================
+   * PRODUCT SECTION STOP SIGNALS
+   * ==================================================
+   */
+  const isProductSectionEnd = (
+    value = ""
+  ) => {
+    const normalized = lower(
+      cleanProductCandidate(value)
+    ).trim();
+
+    return (
+      /^(?:invoice\s+no\.?|invoice\s+number|value|gst\s*(?:no|number)?|actual\s+weight|charged\s+weight|rate\s+per\s*kg|basic\s+freight|hamali|statistical\s+charges|door\s+delivery|other\s+charges|e-?way\s+cost|total|grand\s+total|green\s+tax|consignor\s+copy|booking\s+officer)$/i.test(
+        normalized
+      )
+    );
+  };
 
   /*
    * ==================================================
@@ -1324,7 +1983,8 @@ function extractProductDetails(
             afterDescription: true,
           }
         ),
-        source: "description-table",
+        source:
+          "description-table",
       });
     }
   }
@@ -1344,7 +2004,6 @@ function extractProductDetails(
      * Never extract product from
      * PRODUCT DETAILS section.
      */
-
     if (
       metadataRange &&
       i >= metadataRange.start &&
@@ -1370,6 +2029,8 @@ function extractProductDetails(
       );
 
     if (
+      first &&
+      !isProductRoleNoise(first) &&
       looksLikeProduct(first)
     ) {
       parts.push(first);
@@ -1391,9 +2052,13 @@ function extractProductDetails(
         lines[j];
 
       if (
-        /^(?:total|grand\s+total|other\s+charges|payment)\b/i.test(
-          next
-        )
+        isProductSectionEnd(next)
+      ) {
+        break;
+      }
+
+      if (
+        isProductRoleNoise(next)
       ) {
         break;
       }
@@ -1428,6 +2093,10 @@ function extractProductDetails(
         );
 
       if (
+        candidate &&
+        !isProductRoleNoise(
+          candidate
+        ) &&
         looksLikeProduct(
           candidate
         )
@@ -1451,14 +2120,213 @@ function extractProductDetails(
             afterDescription: true,
           }
         ),
-        source: "explicit-label",
+        source:
+          "explicit-label",
       });
     }
   }
 
   /*
    * ==================================================
-   * 3. KEYWORD FALLBACK
+   * 3. NAME OF GOODS / GOODS SECTION
+   * ==================================================
+   *
+   * Important for logistics / transport documents:
+   *
+   * Name of Goods
+   * P.M.
+   * House
+   * Hold.
+   * Juel for Solle
+   *
+   * This section is stronger than keyword fallback.
+   */
+
+  for (
+    let i = 0;
+    i < lines.length;
+    i++
+  ) {
+    if (
+      !/^(?:name\s+of\s+goods|goods|description\s+of\s+goods)$/i.test(
+        cleanProductCandidate(
+          lines[i]
+        )
+      )
+    ) {
+      continue;
+    }
+
+    const parts = [];
+
+    for (
+      let j = i + 1;
+      j < Math.min(
+        lines.length,
+        i + 10
+      );
+      j++
+    ) {
+      const raw =
+        lines[j];
+
+      const candidate =
+        cleanProductCandidate(
+          raw
+        );
+
+      if (!candidate) {
+        continue;
+      }
+
+      /*
+       * Column header / OCR artifact.
+       */
+      if (
+        /^p\.?\s*m\.?$/i.test(
+          candidate
+        )
+      ) {
+        continue;
+      }
+
+      /*
+       * Stop at the next invoice/charge section.
+       */
+      if (
+        isProductSectionEnd(
+          candidate
+        )
+      ) {
+        break;
+      }
+
+      /*
+       * Footer role.
+       */
+      if (
+        isProductRoleNoise(
+          candidate
+        )
+      ) {
+        break;
+      }
+
+      /*
+       * Legal/footer paragraph begins here.
+       */
+     /*
+ * Legal / footer paragraph begins here.
+ *
+ * OCR may produce:
+ *
+ * 1/We hereby agree...
+ * I/We hereby agree...
+ * 1 / We hereby agree...
+ * I / We hereby agree...
+ *
+ * These lines must NEVER become part
+ * of the product description.
+ */
+if (
+  /^(?:1\s*\/\s*we|i\s*\/\s*we|we\s+hereby|i\s+hereby)\b/i.test(
+    candidate
+  ) ||
+  /^(?:this\s+shipment|gst\s+is\s+to\s+be\s+paid|not\s+responsible|non-?negotiable|delivery\s+from|for\s+g\.?\s*r\.?\s*logistics)/i.test(
+    candidate
+  ) ||
+  /\b(?:terms\s+and\s+conditions|reverse\s+of\s+this|non[-\s]?negotiable\s+way\s+bill|contraband|hazardous|banned\s+item|indian\s+postal\s+act)\b/i.test(
+    candidate
+  )
+) {
+  break;
+}
+
+      /*
+       * Skip obvious table / numeric noise.
+       */
+      if (
+        isTableNoise(candidate) ||
+        isNumberOnly(candidate) ||
+        isTaxLine(candidate)
+      ) {
+        continue;
+      }
+
+      /*
+       * Ignore OCR garbage from another script
+       * when it contains no Latin product text.
+       */
+      if (
+        !/[A-Za-z]/.test(
+          candidate
+        )
+      ) {
+        continue;
+      }
+
+      /*
+       * Short descriptive lines such as:
+       *
+       * House
+       * Hold.
+       *
+       * are valid in a goods section.
+       */
+     /*
+ * Ignore OCR phrases that are not actual goods.
+ *
+ * Example:
+ * "Not for Sale"
+ * can sometimes be read by OCR as:
+ * "Juel for Solle"
+ */
+if (
+  /(?:not\s+for\s+sale|juel\s+for\s+solle|for\s+sale)/i.test(
+    candidate
+  )
+) {
+  continue;
+}
+
+/*
+ * Short descriptive lines such as:
+ *
+ * House
+ * Hold.
+ *
+ * are valid in a goods section.
+ */
+if (
+  candidate.length >= 2
+) {
+  parts.push(candidate);
+}
+    }
+
+    if (parts.length) {
+      const value =
+        unique(parts).join(" ");
+
+      candidates.push({
+        value,
+        score:
+          productScore(
+            value,
+            {
+              descriptionTable: true,
+              afterDescription: true,
+            }
+          ) + 35,
+        source:
+          "goods-section",
+      });
+    }
+  }
+
+  /*
+   * ==================================================
+   * 4. KEYWORD FALLBACK
    * For invoices without a clear table.
    * ==================================================
    */
@@ -1476,28 +2344,42 @@ function extractProductDetails(
       continue;
     }
 
-  const first =
-  cleanProductCandidate(lines[i]);
+    const first =
+      cleanProductCandidate(
+        lines[i]
+      );
 
-if (
-  /^(?:this\s+is|tax\s+is|applicable\s+to|other\s+charges|computer\s+generated|does\s+not\s+require|terms|conditions|charges\s+for\s+logistics?)\b/i.test(
-    first
-  )
-) {
-  continue;
-}
+    /*
+     * Never allow footer roles to become products.
+     */
+    if (
+      isProductRoleNoise(
+        first
+      )
+    ) {
+      continue;
+    }
 
-if (
-  /\b(?:applicable\s+to\s+your\s+order|include\s+charges\s+for\s+logistics|computer\s+generated\s+invoice)\b/i.test(
-    first
-  )
-) {
-  continue;
-}
+    /*
+     * Never allow invoice/legal sentences
+     * to become products.
+     */
+    if (
+      /^(?:this\s+is|tax\s+is|applicable\s+to|other\s+charges|computer\s+generated|does\s+not\s+require|terms|conditions|charges\s+for\s+logistics?)\b/i.test(
+        first
+      )
+    ) {
+      continue;
+    }
 
-if (!looksLikeProduct(first)) {
-  continue;
-}
+    if (
+      /\b(?:applicable\s+to\s+your\s+order|include\s+charges\s+for\s+logistics|computer\s+generated\s+invoice)\b/i.test(
+        first
+      )
+    ) {
+      continue;
+    }
+
     if (
       !looksLikeProduct(first)
     ) {
@@ -1531,8 +2413,19 @@ if (!looksLikeProduct(first)) {
           lines[j]
         );
 
+      if (!next) {
+        break;
+      }
+
       if (
-        !next ||
+        isProductRoleNoise(
+          next
+        )
+      ) {
+        break;
+      }
+
+      if (
         isTableNoise(next) ||
         isNumberOnly(next) ||
         isTaxLine(next)
@@ -1541,7 +2434,7 @@ if (!looksLikeProduct(first)) {
       }
 
       if (
-        /^(?:total|grand\s+total|other\s+charges|payment)\b/i.test(
+        isProductSectionEnd(
           next
         )
       ) {
@@ -1576,7 +2469,8 @@ if (!looksLikeProduct(first)) {
           keyword: true,
         }
       ),
-      source: "keyword-fallback",
+      source:
+        "keyword-fallback",
     });
   }
 
@@ -1589,7 +2483,8 @@ if (!looksLikeProduct(first)) {
   candidates.sort(
     (a, b) =>
       b.score - a.score ||
-      b.value.length - a.value.length
+      b.value.length -
+        a.value.length
   );
 
   const winner =
@@ -1655,99 +2550,175 @@ function extractPurchaseDate(text) {
   const lines =
     getLines(text);
 
-  /*
-   * Invoice Date gets highest priority.
-   */
-  for (
-    const line of lines
-  ) {
-    const match =
-      line.match(
-        /invoice\s*date\s*:?\s*(\d{1,4}[./-]\d{1,2}[./-]\d{2,4})/i
-      );
+  const dateRegex =
+    /(\d{1,4}[./-]\d{1,2}[./-]\d{2,4})/;
 
-    if (match) {
-      return normalizeOCRDate(
-        match[1]
-      );
+  /*
+   * Find a date on the same line
+   * OR on the next 1-2 OCR lines.
+   */
+  const findDateNearLabel = (
+    labelRegex
+  ) => {
+    for (
+      let i = 0;
+      i < lines.length;
+      i++
+    ) {
+      const line =
+        lines[i];
+
+      /*
+       * Same line:
+       *
+       * Invoice Date: 04-08-2026
+       */
+      const sameLine =
+        line.match(
+          new RegExp(
+            labelRegex.source +
+              "\\s*:?[\\s-]*" +
+              dateRegex.source,
+            "i"
+          )
+        );
+
+      if (
+        sameLine?.[1]
+      ) {
+        const normalized =
+          normalizeOCRDate(
+            sameLine[1]
+          );
+
+        if (normalized) {
+          return normalized;
+        }
+      }
+
+      /*
+       * Split OCR:
+       *
+       * Invoice Date
+       * 04-08-2026
+       */
+      if (
+        labelRegex.test(line)
+      ) {
+        for (
+          let offset = 1;
+          offset <= 2;
+          offset++
+        ) {
+          const next =
+            lines[i + offset] ||
+            "";
+
+          const match =
+            next.match(
+              dateRegex
+            );
+
+          if (
+            match?.[1]
+          ) {
+            const normalized =
+              normalizeOCRDate(
+                match[1]
+              );
+
+            if (normalized) {
+              return normalized;
+            }
+          }
+        }
+      }
     }
+
+    return "";
+  };
+
+  /*
+   * ==================================================
+   * 1. INVOICE DATE — strongest
+   * ==================================================
+   */
+
+  let result =
+    findDateNearLabel(
+      /invoice\s*date/i
+    );
+
+  if (result) {
+    return result;
   }
 
   /*
-   * Purchase Date.
+   * ==================================================
+   * 2. PURCHASE DATE
+   * ==================================================
    */
-  for (
-    const line of lines
-  ) {
-    const match =
-      line.match(
-        /purchase\s*date\s*:?\s*(\d{1,4}[./-]\d{1,2}[./-]\d{2,4})/i
-      );
 
-    if (match) {
-      return normalizeOCRDate(
-        match[1]
-      );
-    }
+  result =
+    findDateNearLabel(
+      /purchase\s*date/i
+    );
+
+  if (result) {
+    return result;
   }
 
   /*
-   * Purchased On.
+   * ==================================================
+   * 3. PURCHASED ON
+   * ==================================================
    */
-  for (
-    const line of lines
-  ) {
-    const match =
-      line.match(
-        /purchased\s*on\s*:?\s*(\d{1,4}[./-]\d{1,2}[./-]\d{2,4})/i
-      );
 
-    if (match) {
-      return normalizeOCRDate(
-        match[1]
-      );
-    }
+  result =
+    findDateNearLabel(
+      /purchased\s*on/i
+    );
+
+  if (result) {
+    return result;
   }
 
   /*
-   * Order Date fallback.
+   * ==================================================
+   * 4. ORDER DATE — fallback
+   * ==================================================
    */
-  for (
-    const line of lines
-  ) {
-    const match =
-      line.match(
-        /order\s*date\s*:?\s*(\d{1,4}[./-]\d{1,2}[./-]\d{2,4})/i
-      );
 
-    if (match) {
-      return normalizeOCRDate(
-        match[1]
-      );
-    }
+  result =
+    findDateNearLabel(
+      /order\s*date/i
+    );
+
+  if (result) {
+    return result;
   }
 
   /*
-   * Generic date label.
+   * ==================================================
+   * 5. Generic Date
+   * ==================================================
    */
-  for (
-    const line of lines
-  ) {
-    const match =
-      line.match(
-        /\bdate\s*:?\s*(\d{1,4}[./-]\d{1,2}[./-]\d{2,4})/i
-      );
 
-    if (match) {
-      return normalizeOCRDate(
-        match[1]
-      );
-    }
+  result =
+    findDateNearLabel(
+      /\bdate\b/i
+    );
+
+  if (result) {
+    return result;
   }
 
   /*
-   * Last fallback.
+   * ==================================================
+   * 6. Last-resort date
+   * ==================================================
    */
+
   const dates =
     text.match(
       /\b\d{1,4}[./-]\d{1,2}[./-]\d{2,4}\b/g
@@ -1757,7 +2728,9 @@ function extractPurchaseDate(text) {
     const date of dates
   ) {
     const normalized =
-      normalizeOCRDate(date);
+      normalizeOCRDate(
+        date
+      );
 
     if (normalized) {
       return normalized;

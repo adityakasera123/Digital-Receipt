@@ -130,6 +130,10 @@ try {
   const result = await processReceipt(file);
 
   // ---------------- DEBUG ----------------
+  console.log("================ RAW OCR TEXT ================");
+console.log(result.text);
+console.log("===============================================");
+
   console.log("================ OCR RESULT ================");
   console.log("Full Result:", result);
   console.log("Product:", result.productName);
