@@ -848,11 +848,30 @@ function extractStore(text) {
       /*
        * Normal direct seller/business name.
        */
-      addCandidate(
-        direct,
-        110,
-        "seller-context"
-      );
+      /*
+ * Normal direct seller/business name.
+ *
+ * If the direct seller value looks like a
+ * person's name, treat it as weak evidence.
+ *
+ * Example:
+ *
+ * Sold by: ADITYA KASERA
+ * TrendyDuniya
+ *
+ * We want TrendyDuniya as the merchant/store,
+ * not the seller person's name.
+ */
+const directScore =
+  looksLikePersonName(direct)
+    ? 35
+    : 110;
+
+addCandidate(
+  direct,
+  directScore,
+  "seller-context"
+);
     }
 
     /*
@@ -892,24 +911,42 @@ function extractStore(text) {
         continue;
       }
 
-      if (
-        isAddress(candidate) ||
-        isNumberOnly(candidate) ||
-        isTableNoise(candidate) ||
-        isFooterNoise(candidate) ||
-        isPaymentText(candidate) ||
-        isCommonLocation(candidate)
-      ) {
-        continue;
-      }
+      /*
+ * Invoice metadata must never become
+ * a merchant/store candidate.
+ *
+ * Example:
+ * Purchase Order No.
+ * Invoice No.
+ * Order Date
+ * Return Code
+ * Destination Code
+ */
+if (
+  /^(?:purchase\s+order|order|invoice|bill|return|destination)\s*(?:no|number|date|code)?\.?\s*:?\s*$/i.test(
+    candidate
+  )
+) {
+  continue;
+}
+if (
+  isAddress(candidate) ||
+  isNumberOnly(candidate) ||
+  isTableNoise(candidate) ||
+  isFooterNoise(candidate) ||
+  isPaymentText(candidate) ||
+  isCommonLocation(candidate)
+) {
+  continue;
+}
 
-      if (
-        /^(?:pradesh|uttar|uttarakhand|himachal|bihar|jharkhand|punjab|haryana|rajasthan|madhya|kerala|odisha|assam)$/i.test(
-          candidate
-        )
-      ) {
-        continue;
-      }
+if (
+  /^(?:pradesh|uttar|uttarakhand|himachal|bihar|jharkhand|punjab|haryana|rajasthan|madhya|kerala|odisha|assam)$/i.test(
+    candidate
+  )
+) {
+  continue;
+}
 
       /*
        * Person names are weak evidence.
@@ -1198,7 +1235,7 @@ for (
    * Skip obvious invoice metadata labels.
    */
   if (
-    /^(?:date|time|bill\s*(?:no|number)|invoice\s*(?:no|number)|order\s*(?:no|number)|payment\s*(?:method|status)|order\s*status|customer\s*type|created\s*by|terms?\s*(?:&|and)\s*conditions?)\s*:?\s*$/i.test(
+    /^(?:date|time|bill\s*(?:no|number)|invoice\s*(?:no|number)|purchase\s+order\s*(?:no|number)|order\s*(?:no|number)|payment\s*(?:method|status)|order\s*status|customer\s*type|created\s*by|terms?\s*(?:&|and)\s*conditions?)\s*:?\s*$/i.test(
       candidate
     )
   ) {
@@ -1227,20 +1264,86 @@ for (
   );
 }
   /*
-   * ==================================================
-   * BEST MERCHANT
-   * ==================================================
-   */
+ * ==================================================
+ * BEST MERCHANT
+ * ==================================================
+ *
+ * Prefer merchant evidence by SOURCE.
+ *
+ * Seller-context is stronger than generic
+ * top-of-invoice text because OCR often places
+ * addresses, product descriptions and random
+ * invoice text near the top.
+ */
 
-  candidates.sort(
-    (a, b) =>
-      b.score - a.score ||
+const SOURCE_PRIORITY = {
+  "seller-context": 3,
+  "near-seller": 3,
+  "gst-context": 2,
+  "top-invoice": 1,
+};
+
+candidates.sort(
+  (a, b) => {
+    const sourceA =
+      SOURCE_PRIORITY[a.source] || 0;
+
+    const sourceB =
+      SOURCE_PRIORITY[b.source] || 0;
+
+    /*
+     * 1. Prefer stronger merchant context.
+     */
+    if (
+      sourceA !== sourceB
+    ) {
+      return sourceB - sourceA;
+    }
+
+    /*
+     * 2. Within the same source,
+     * prefer higher score.
+     */
+    if (
+      b.score !== a.score
+    ) {
+      return b.score - a.score;
+    }
+
+    /*
+     * 3. Final tie-breaker:
+     * prefer the more descriptive value.
+     */
+    return (
       b.value.length -
-        a.value.length
-  );
+      a.value.length
+    );
+  }
+);
 
-  const winner =
-    candidates[0];
+const winner =
+  candidates[0];
+
+console.log(
+  "========== STORE EXTRACTION =========="
+);
+
+console.log(
+  "Store Candidates:",
+  candidates
+);
+
+console.log(
+  "Selected Store:",
+  winner?.value ||
+    "Unknown"
+);
+
+console.log(
+  "Store Source:",
+  winner?.source ||
+    "none"
+);
 
   console.log(
     "========== STORE EXTRACTION =========="
