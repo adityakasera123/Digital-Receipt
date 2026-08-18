@@ -595,6 +595,14 @@ function extractStore(text) {
     "number",
     "date",
     "gst",
+    "other charges",
+"charges",
+"discount",
+"taxable value",
+"taxes",
+"hsn",
+"qty",
+"gross amount",
     "gstin",
     "gst no",
     "gst number",
@@ -703,6 +711,7 @@ function extractStore(text) {
     ) {
       return;
     }
+
 
     /*
      * OCR may split a state/location into
@@ -1190,6 +1199,25 @@ for (
   }
 
   /*
+ * ==================================================
+ * STOP AT PRODUCT / DESCRIPTION TABLE
+ * ==================================================
+ *
+ * Once OCR reaches the product table,
+ * lines below it must never be treated
+ * as possible store names.
+ */
+
+if (
+  /^(?:description|particulars|item(?:\s+name)?|product(?:\s+name)?|goods)$/i.test(
+    candidate
+  )
+) {
+  break;
+}
+
+
+  /*
    * Generic invoice words should never
    * become store candidates.
    */
@@ -1235,13 +1263,12 @@ for (
    * Skip obvious invoice metadata labels.
    */
   if (
-    /^(?:date|time|bill\s*(?:no|number)|invoice\s*(?:no|number)|purchase\s+order\s*(?:no|number)|order\s*(?:no|number)|payment\s*(?:method|status)|order\s*status|customer\s*type|created\s*by|terms?\s*(?:&|and)\s*conditions?)\s*:?\s*$/i.test(
-      candidate
-    )
-  ) {
-    continue;
-  }
-
+  /^(?:date|time|invoice\s+date|order\s+date|bill\s*(?:no|number|date)|invoice\s*(?:no|number|date)|purchase\s+order\s*(?:no|number|date)|order\s*(?:no|number|date)|payment\s*(?:method|status)|order\s*status|customer\s*type|created\s*by|terms?\s*(?:&|and)\s*conditions?)\s*:?\s*$/i.test(
+    candidate
+  )
+) {
+  continue;
+}
   /*
    * Avoid pure numeric / identifier candidates.
    */
@@ -2056,15 +2083,45 @@ function productScore(
     score -= 150;
   }
 
-  const keywordHit =
-    productKeywords.some(
-      (keyword) =>
-        lower(text).includes(keyword)
-    );
+  /*
+ * ==================================================
+ * PRODUCT KEYWORD STRENGTH
+ * ==================================================
+ *
+ * One keyword = basic evidence
+ * Multiple keywords = stronger product evidence
+ *
+ * Example:
+ *
+ * Blender Electric Juicer
+ * → blender + juicer
+ *
+ * Blender Shaker
+ * → blender
+ *
+ * This helps choose the more complete
+ * product candidate without hardcoding
+ * any specific receipt.
+ */
 
-  if (keywordHit) {
-    score += 35;
-  }
+const matchedKeywords =
+  productKeywords.filter(
+    (keyword) =>
+      lower(text).includes(
+        keyword
+      )
+  );
+
+if (
+  matchedKeywords.length > 0
+) {
+  score += 20;
+
+  score += Math.min(
+    matchedKeywords.length * 15,
+    45
+  );
+}
 
   if (
     looksLikePersonName(text)
@@ -2144,36 +2201,47 @@ function collectDescriptionProduct(lines, table) {
      * ==================================================
      */
     if (
-      /^(?:1\s*\/\s*we|i\s*\/\s*we|we\s+hereby|i\s+hereby)\b/i.test(
-        line
-      ) ||
-      /^(?:shipper'?s?\s+copy|consignor\s+copy|consignee\s+copy)\b/i.test(
-        line
-      ) ||
-      /^(?:non[-\s]?negotiable|not\s+responsible\s+for)\b/i.test(
-        line
-      ) ||
-      /^(?:gst\s+is\s+to\s+be\s+paid|delivery\s+from)\b/i.test(
-        line
-      ) ||
-      /^(?:terms?\s*(?:&|and)\s*conditions?)\b/i.test(
-        line
-      ) ||
-      /^(?:tax\s+is\s+not\s+payable)\b/i.test(
-        line
-      ) ||
-      /^(?:this\s+is\s+a\s+computer\s+generated)\b/i.test(
-        line
-      ) ||
-      /^(?:computer\s+generated\s+invoice)\b/i.test(
-        line
-      ) ||
-      /^(?:notes?|remarks?)\b/i.test(
-        line
-      )
-    ) {
-      break;
-    }
+  /^(?:1\s*\/\s*we|i\s*\/\s*we|we\s+hereby|i\s+hereby)\b/i.test(
+    line
+  ) ||
+  /^(?:shipper'?s?\s+copy|consignor\s+copy|consignee\s+copy)\b/i.test(
+    line
+  ) ||
+  /^(?:non[-\s]?negotiable|not\s+responsible\s+for)\b/i.test(
+    line
+  ) ||
+  /^(?:gst\s+is\s+to\s+be\s+paid|delivery\s+from)\b/i.test(
+    line
+  ) ||
+  /^(?:terms?\s*(?:&|and)\s*conditions?)\b/i.test(
+    line
+  ) ||
+  /^(?:tax\s+is\s+not\s+payable)\b/i.test(
+    line
+  ) ||
+  /^(?:this\s+is\s+a\s+computer\s+generated)\b/i.test(
+    line
+  ) ||
+  /^(?:computer\s+generated\s+invoice)\b/i.test(
+    line
+  ) ||
+  /^(?:notes?|remarks?)\b/i.test(
+    line
+  ) ||
+
+  /*
+   * E-commerce / invoice footer disclaimer.
+   *
+   * Example:
+   * Includes discounts for your city,
+   * limited returns and/or for online payments
+   */
+  /\b(?:includes?\s+discounts?|limited\s+returns?|for\s+your\s+city|online\s+payments?|returns?\s+and\/or)\b/i.test(
+    line
+  )
+) {
+  break;
+}
 
     /*
      * ==================================================
@@ -2932,17 +3000,72 @@ for (
      * Juicer (380ml) (MULTI) -
      * Free Size
      */
-    const isSafeContinuation =
-      /^[A-Za-z0-9][A-Za-z0-9\s.,()&/'-]{1,149}$/.test(
-        candidate
-      );
+  /*
+ * ==================================================
+ * MULTI-LINE PRODUCT CONTINUATION
+ * ==================================================
+ *
+ * Only accept continuation text that actually
+ * looks like product/description content.
+ *
+ * Generic English/legal/footer sentences must
+ * never become part of the product name.
+ */
 
-    if (
-      isSafeContinuation
-    ) {
-      parts.push(candidate);
-      continue;
-    }
+const isFooterOrLegalText =
+  /\b(?:includes?\s+discounts?|limited\s+returns?|for\s+your\s+city|online\s+payments?|returns?\s+and\/or|applicable\s+to\s+your\s+order|terms?\s+and\s+conditions?|tax\s+is\s+not\s+payable|computer\s+generated\s+invoice|this\s+is\s+a\s+computer\s+generated)\b/i.test(
+    candidate
+  );
+
+if (
+  isFooterOrLegalText
+) {
+  break;
+}
+
+const isSafeContinuation =
+  /^[A-Za-z0-9][A-Za-z0-9\s.,()&/'-]{1,149}$/.test(
+    candidate
+  );
+
+/*
+ * A continuation should not look like a complete
+ * sentence / legal statement.
+ *
+ * Product continuations normally contain:
+ * - product nouns
+ * - model names
+ * - specifications
+ * - short descriptive fragments
+ *
+ * Long sentence-like text is treated as noise.
+ */
+const wordCount =
+  candidate
+    .split(/\s+/)
+    .filter(Boolean)
+    .length;
+
+const looksLikeSentence =
+  wordCount >= 8 &&
+  /(?:\b(?:for|and|or|with|your|this|that|the|are|is|to)\b)/i.test(
+    candidate
+  );
+
+if (
+  isSafeContinuation &&
+  !looksLikeSentence
+) {
+  parts.push(candidate);
+  continue;
+}
+
+/*
+ * Unknown unrelated text.
+ */
+if (parts.length) {
+  break;
+}
 
     /*
      * Unknown unrelated text.
@@ -3142,6 +3265,407 @@ for (
     }
   }
 
+  /*
+ * ==================================================
+ * 4. HANDWRITTEN / LOCAL SHOP BILL
+ * ==================================================
+ *
+ * Supports receipts like:
+ *
+ * Qty. | Particulars | Rate | Amount
+ *
+ * 2. MTR Coen wike.
+ * 1. Heter Rad
+ * 1. 3 Pin Top GAD
+ * 4. Room Heten
+ * Repair
+ * Labour Charges
+ *
+ * This is generic and does not depend on
+ * any store/product name.
+ */
+
+{
+  for (
+    let i = 0;
+    i < lines.length;
+    i++
+  ) {
+   const rawHeader =
+  String(
+    lines[i] || ""
+  ).trim();
+
+const header =
+  cleanProductCandidate(
+    rawHeader
+  );
+
+console.log(
+  "LOCAL BILL HEADER CHECK:",
+  JSON.stringify(header),
+  "RAW:",
+  JSON.stringify(rawHeader)
+);
+
+if (
+  !/^\s*particulars\s*$/i.test(
+    rawHeader
+  )
+) {
+  continue;
+}
+    /*
+     * ==================================================
+     * CHECK TABLE HEADER CONTEXT
+     * ==================================================
+     *
+     * OCR can reorder:
+     *
+     * Qty.
+     * Particulars
+     * Rate
+     * Amount
+     *
+     * So check BOTH sides of Particulars.
+     */
+
+    const before =
+      lines
+        .slice(
+          Math.max(0, i - 3),
+          i
+        )
+        .map(
+          (line) =>
+            lower(
+              cleanProductCandidate(
+                line
+              )
+            )
+        )
+        .join(" ");
+
+    const after =
+  lines
+    .slice(
+      i,
+      Math.min(
+        lines.length,
+        i + 25
+      )
+    )
+        .map(
+          (line) =>
+            lower(
+              cleanProductCandidate(
+                line
+              )
+            )
+        )
+        .join(" ");
+
+    const headerContext =
+      `${before} ${after}`;
+
+    const hasQty =
+      /\b(?:qty|quantity)\b/i.test(
+        headerContext
+      );
+
+    const hasRate =
+      /\brate\b/i.test(
+        headerContext
+      );
+
+    const hasAmount =
+      /\bamount\b/i.test(
+        headerContext
+      );
+
+        console.log(
+  "LOCAL BILL HEADER SIGNALS:",
+  {
+    header,
+    headerContext,
+    hasQty,
+    hasRate,
+    hasAmount,
+  }
+);
+
+    if (
+      !hasQty ||
+      !hasRate ||
+      !hasAmount
+    ) {
+      continue;
+    }
+
+    console.log(
+      "🧾 LOCAL BILL TABLE DETECTED"
+    );
+
+    console.log(
+      "HEADER CONTEXT:",
+      headerContext
+    );
+
+    const parts = [];
+
+    /*
+     * ==================================================
+     * COLLECT ITEMS
+     * ==================================================
+     */
+
+    for (
+      let j = i + 1;
+      j < Math.min(
+        lines.length,
+        i + 18
+      );
+      j++
+    ) {
+      let candidate =
+        cleanProductCandidate(
+          lines[j]
+        );
+
+      if (!candidate) {
+        continue;
+      }
+
+      /*
+       * HARD STOP
+       */
+
+      if (
+        /^(?:thanks?\s*(?:you)?|thank\s*you|e\.?\s*&\.?\s*o\.?\s*e\.?|signature|g\.?\s*total|grand\s*total)$/i.test(
+          candidate
+        )
+      ) {
+        break;
+      }
+
+      /*
+       * Footer / legal text.
+       */
+
+      if (
+        /\b(?:terms\s+and\s+conditions|includes?\s+discounts?|limited\s+returns?|online\s+payments?|computer\s+generated\s+invoice|reverse\s+charge|logistics)\b/i.test(
+          candidate
+        )
+      ) {
+        break;
+      }
+
+      /*
+       * Column headers.
+       */
+
+      if (
+        /^(?:qty|quantity|particulars|rate|amount|price|item|description|total)$/i.test(
+          candidate
+        )
+      ) {
+        continue;
+      }
+
+      /*
+       * ==================================================
+       * REMOVE QUANTITY PREFIX
+       * ==================================================
+       *
+       * 2. MTR Coen wike.
+       * 1. Heter Rad
+       * 4. Room Heten
+       */
+
+      candidate =
+        candidate
+          .replace(
+            /^\s*\d{1,3}\s*[.)-]\s*/,
+            ""
+          )
+          .trim();
+
+      if (!candidate) {
+        continue;
+      }
+
+      /*
+       * ==================================================
+       * IMPORTANT:
+       * DO NOT use isLikelyNumericRow()
+       * here.
+       *
+       * Local bills commonly have quantity
+       * before the handwritten description.
+       * ==================================================
+       */
+
+      if (
+        isNumberOnly(candidate) ||
+        isTaxLine(candidate)
+      ) {
+        continue;
+      }
+
+      if (
+        isProductRoleNoise(candidate)
+      ) {
+        continue;
+      }
+
+      if (
+        isAddress(candidate)
+      ) {
+        continue;
+      }
+
+      if (
+        !/[A-Za-z]/.test(
+          candidate
+        )
+      ) {
+        continue;
+      }
+
+      /*
+       * Ignore obvious unrelated OCR garbage.
+       */
+
+      if (
+        /^(?:bill|cash|dated?|no\.?|shri|thanks?|signature)$/i.test(
+          candidate
+        )
+      ) {
+        continue;
+      }
+
+      /*
+       * Keep the handwritten item.
+       */
+
+      /*
+ * ==================================================
+ * KEEP LOCAL BILL PRODUCT
+ * ==================================================
+ *
+ * OCR local bills mein columns mix kar sakta hai.
+ *
+ * Example:
+ *
+ * 2. MTR Coen wike.
+ * 45P
+ * 1
+ * 1. Heter Rad
+ * -
+ * 1. 3 Pin Top GAD
+ * 4. Room Heten
+ * Repair
+ * Labour Charges
+ *
+ * We don't want rate/amount noise
+ * to become part of product name.
+ */
+
+/*
+ * Ignore OCR values coming from
+ * Rate / Amount columns.
+ */
+if (
+  /^\d+(?:\.\d+)?[A-Za-z]?$/.test(
+    candidate
+  )
+) {
+  continue;
+}
+
+/*
+ * Ignore standalone dash.
+ */
+if (
+  /^[-–—]+$/.test(
+    candidate
+  )
+) {
+  continue;
+}
+
+/*
+ * Remove quantity prefix.
+ */
+const cleanedItem =
+  candidate
+    .replace(
+      /^\s*\d{1,3}\s*[.)-]\s*/,
+      ""
+    )
+    .trim();
+    /*
+ * ==================================================
+ * LOCAL BILL NON-PRODUCT / SERVICE NOISE
+ * ==================================================
+ */
+
+if (
+  /^(?:repair|labou?r\s+charges?|service\s+charges?|labou?r|charges?)$/i.test(
+    cleanedItem
+  )
+) {
+  continue;
+}
+
+if (
+  cleanedItem.length >= 2 &&
+  cleanedItem.length <= 100
+) {
+  parts.push(cleanedItem);
+}
+    }
+
+    /*
+     * ==================================================
+     * CREATE PRODUCT CANDIDATE
+     * ==================================================
+     */
+
+    if (parts.length) {
+      const value =
+        unique(parts).join(" ");
+
+      candidates.push({
+        value,
+        score:
+          productScore(
+            value,
+            {
+              descriptionTable: true,
+              afterDescription: true,
+            }
+          ) + 50,
+        source:
+          "handwritten-local-bill",
+      });
+
+      console.log(
+        "📝 LOCAL BILL PRODUCT:",
+        value
+      );
+    }
+
+    /*
+     * We found the relevant Particulars
+     * section, so stop searching.
+     */
+
+    break;
+  }
+}
+
+
 /*
  * ==================================================
  * 4. KEYWORD FALLBACK
@@ -3182,13 +3706,12 @@ if (!table) {
     }
 
     if (
-      /\b(?:applicable\s+to\s+your\s+order|include\s+charges\s+for\s+logistics|computer\s+generated\s+invoice)\b/i.test(
-        first
-      )
-    ) {
-      continue;
-    }
-
+  /\b(?:applicable\s+to\s+your\s+order|include(?:s)?\s+discounts?|limited\s+returns?|for\s+your\s+city|online\s+payments?|returns?\s+and\/or|include\s+charges\s+for\s+logistics|computer\s+generated\s+invoice)\b/i.test(
+    first
+  )
+) {
+  continue;
+}
     if (
       !looksLikeProduct(first)
     ) {
@@ -3283,6 +3806,15 @@ if (!table) {
    * BEST CANDIDATE
    * ==================================================
    */
+
+  console.log(
+  "PRODUCT CANDIDATES JSON:",
+  JSON.stringify(
+    candidates,
+    null,
+    2
+  )
+);
 
   candidates.sort(
     (a, b) =>
@@ -4439,6 +4971,21 @@ function detectCategory(
         "dell",
         "msi",
         "sony",
+        "wire",
+"electrical wire",
+"heater",
+"heater rod",
+"room heater",
+"heating rod",
+"heater rad",
+"plug",
+"electrical plug",
+"socket",
+"switch",
+"3 pin",
+"wikw",
+"three pin",
+"extension board",
         "lg",
         "panasonic",
         "philips",
@@ -4806,24 +5353,50 @@ function detectCategory(
     ],
   };
 
-  Object.entries(
-    contextSignals
-  ).forEach(
-    ([category, signals]) => {
-      signals.forEach(
-        (signal) => {
-          if (
-            hasPhrase(
-              fullText,
-              signal
-            )
-          ) {
-            scores[category] += 2;
-          }
+  /*
+ * ==================================================
+ * OCR CONTEXT EVIDENCE
+ * ==================================================
+ *
+ * Full OCR text is weak evidence because it can
+ * contain unrelated invoice sections, tax text,
+ * footer text, addresses, payment information, etc.
+ *
+ * Product evidence remains the primary signal.
+ *
+ * Context is only a supporting signal and is capped
+ * so unrelated OCR text cannot overpower the product.
+ */
+
+Object.entries(
+  contextSignals
+).forEach(
+  ([category, signals]) => {
+    let contextScore = 0;
+
+    signals.forEach(
+      (signal) => {
+        if (
+          hasPhrase(
+            fullText,
+            signal
+          )
+        ) {
+          contextScore += 1;
         }
-      );
-    }
-  );
+      }
+    );
+
+    /*
+     * Never allow noisy full-receipt OCR context
+     * to dominate product evidence.
+     */
+    scores[category] += Math.min(
+      contextScore,
+      4
+    );
+  }
+);
 
   /*
    * ==================================================
@@ -4838,11 +5411,57 @@ function detectCategory(
           b[1] - a[1]
       );
 
+      console.log(
+  "================ CATEGORY DEBUG ================"
+);
+
+console.log("PRODUCT:", product);
+
+console.log(
+  "ELECTRONICS:",
+  scores.Electronics
+);
+
+console.log(
+  "FASHION:",
+  scores.Fashion
+);
+
+console.log(
+  "HOME:",
+  scores.Home
+);
+
+console.log(
+  "FOOD:",
+  scores.Food
+);
+
+console.log(
+  "TRAVEL:",
+  scores.Travel
+);
+
+console.log(
+  "HEALTH:",
+  scores.Health
+);
+
+console.log(
+  "RANKED:",
+  ranked
+);
+
+console.log(
+  "================================================="
+);
+
   const best =
     ranked[0];
 
   const second =
     ranked[1];
+    
 
   /*
    * ==================================================
