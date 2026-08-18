@@ -1533,19 +1533,209 @@ function findDescriptionTable(
   let best = null;
 
   const isHeaderLine = (value = "") => {
-    const text = lower(value);
+  const text = lower(value)
+    .replace(/\s+/g, " ")
+    .trim();
 
-    return (
-      /^(?:s\.?\s*no\.?|serial\s*(?:no|number)?)$/i.test(text) ||
-      /^(?:description|particulars|item|item\s+name|product|product\s+name)$/i.test(text) ||
-      /^(?:hsn|hsn\/\s*sac|sku)$/i.test(text) ||
-      /^(?:qty|quantity)$/i.test(text) ||
-      /^(?:unit|uom)$/i.test(text) ||
-      /^(?:price|unit\s+price|rate)$/i.test(text) ||
-      /^(?:gst|tax|taxes)$/i.test(text) ||
-      /^(?:amount|gross\s+amount|total\s+amount)$/i.test(text)
-    );
-  };
+  /*
+   * ==================================================
+   * SERIAL / INDEX HEADERS
+   * ==================================================
+   *
+   * OCR may split:
+   * Sr
+   * No
+   *
+   * or return:
+   * S.No.
+   * Serial No
+   */
+  if (
+    /^(?:s\.?\s*no\.?|sr\.?|serial\s*(?:no|number)?|no\.?)$/i.test(
+      text
+    )
+  ) {
+    return true;
+  }
+
+  /*
+   * ==================================================
+   * DESCRIPTION HEADERS
+   * ==================================================
+   */
+  if (
+    /^(?:description|particulars|item|item\s+name|product|product\s+name)$/i.test(
+      text
+    )
+  ) {
+    return true;
+  }
+
+  /*
+   * OCR commonly produces:
+   *
+   * Description of Goods
+   * Description of Item
+   * Description of Product
+   */
+  if (
+    /^description\s+of\s+(?:goods|item|product)$/i.test(
+      text
+    )
+  ) {
+    return true;
+  }
+
+  /*
+   * ==================================================
+   * HSN / SAC HEADERS
+   * ==================================================
+   *
+   * OCR may return:
+   *
+   * HSN
+   * /SAC
+   * Code
+   *
+   * or:
+   * HSN/SAC
+   * HSN Code
+   */
+  if (
+    /^(?:hsn|hsn\/\s*sac|hsn\s+code|sku)$/i.test(
+      text
+    )
+  ) {
+    return true;
+  }
+
+  if (
+    /^(?:\/?\s*sac|code)$/i.test(text)
+  ) {
+    return true;
+  }
+
+  /*
+   * ==================================================
+   * QUANTITY HEADERS
+   * ==================================================
+   *
+   * OCR:
+   * Quantity UQC
+   * Qty UQC
+   */
+  if (
+    /^(?:qty|quantity)(?:\s+(?:uqc|uom|unit))?$/i.test(
+      text
+    )
+  ) {
+    return true;
+  }
+
+  /*
+   * ==================================================
+   * UNIT HEADERS
+   * ==================================================
+   */
+  if (
+    /^(?:unit|uom|uqc)$/i.test(text)
+  ) {
+    return true;
+  }
+
+  /*
+   * ==================================================
+   * PRICE / RATE
+   * ==================================================
+   */
+  if (
+    /^(?:price|unit\s+price|rate)$/i.test(text)
+  ) {
+    return true;
+  }
+
+  /*
+   * ==================================================
+   * TAX HEADERS
+   * ==================================================
+   */
+  if (
+    /^(?:gst|tax|taxes|cgst|sgst|igst|cess)$/i.test(
+      text
+    )
+  ) {
+    return true;
+  }
+
+  /*
+   * ==================================================
+   * AMOUNT / VALUE HEADERS
+   * ==================================================
+   */
+  if (
+    /^(?:amount|gross\s+amount|total\s+amount|taxable\s+value|taxable)$/i.test(
+      text
+    )
+  ) {
+    return true;
+  }
+
+  /*
+   * ==================================================
+   * DISCOUNT / NET VALUE
+   * ==================================================
+   */
+  if (
+    /^(?:discount|net\s+taxable\s+value|additional\s+cess)$/i.test(
+      text
+    )
+  ) {
+    return true;
+  }
+
+  /*
+   * ==================================================
+   * COMBINED OCR HEADERS
+   * ==================================================
+   *
+   * Examples:
+   * Quantity UQC
+   * Description of Goods
+   * HSN / SAC Code
+   * Total Amount
+   */
+  if (
+    /\b(?:description|particulars|item|product)\b/i.test(
+      text
+    ) &&
+    /\b(?:goods|item|product)\b/i.test(text)
+  ) {
+    return true;
+  }
+
+  if (
+    /\b(?:quantity|qty)\b/i.test(text) &&
+    /\b(?:uqc|uom|unit)\b/i.test(text)
+  ) {
+    return true;
+  }
+
+  if (
+    /\bhsn\b/i.test(text) &&
+    /\b(?:sac|code)\b/i.test(text)
+  ) {
+    return true;
+  }
+
+  if (
+    /\b(?:gross|taxable|net|total)\b/i.test(text) &&
+    /\b(?:value|amount)\b/i.test(text)
+  ) {
+    return true;
+  }
+
+  return false;
+};
 
   const isSummaryLine = (value = "") => {
     const text = lower(value);
@@ -1577,7 +1767,41 @@ function findDescriptionTable(
     ) {
       return false;
     }
+/*
+ * OCR may split table headers into fragments
+ * and incorrectly present them as product rows.
+ *
+ * Examples:
+ *   (Excluding
+ *   Taxes)
+ *   Value
+ *   Amount
+ *   Code
+ *   Cess
+ */
+const normalizedHeaderFragment = text
+  .toLowerCase()
+  .replace(/[^a-z]/g, "");
 
+const headerFragments = new Set([
+  "excluding",
+  "taxes",
+  "taxable",
+  "value",
+  "amount",
+  "total",
+  "discount",
+  "additional",
+  "cess",
+  "code",
+  "no",
+  "sr",
+  "rs",
+]);
+
+if (headerFragments.has(normalizedHeaderFragment)) {
+  return false;
+}
     return (
       /[A-Za-z]/.test(text) &&
       text.length >= 2 &&
@@ -1658,6 +1882,13 @@ function findDescriptionTable(
     const headerScore =
       scoreTableHeader(headerText);
 
+      console.log("🔬 TABLE HEADER CANDIDATE:", {
+  index: i,
+  headerLines,
+  headerText,
+  headerScore,
+});
+
     /*
      * Must contain an actual product/item
      * description concept.
@@ -1685,9 +1916,9 @@ function findDescriptionTable(
       columnEvidence++;
     }
 
-    if (/\b(?:unit|uom)\b/i.test(headerText)) {
-      columnEvidence++;
-    }
+    if (/\b(?:unit|uom|uqc)\b/i.test(headerText)) {
+  columnEvidence++;
+}
 
     if (/\b(?:price|rate)\b/i.test(headerText)) {
       columnEvidence++;
@@ -1715,7 +1946,7 @@ function findDescriptionTable(
       let k = j;
       k < Math.min(
         lines.length,
-        j + 8
+        j + 20
       );
       k++
     ) {
@@ -1723,6 +1954,15 @@ function findDescriptionTable(
         cleanProductCandidate(
           lines[k]
         );
+
+          console.log("🔬 PRODUCT ROW CHECK:", {
+  index: k,
+  raw: lines[k],
+  candidate,
+  isLikelyProductRow: candidate
+    ? isLikelyProductRow(candidate)
+    : false,
+});
 
       if (!candidate) {
         continue;
@@ -1761,11 +2001,12 @@ function findDescriptionTable(
       columnEvidence * 2 +
       20;
 
-    const candidate = {
-      index: i,
-      endIndex: j - 1,
-      score,
-    };
+   const candidate = {
+  index: i,
+  endIndex: j - 1,
+  productRowIndex,
+  score,
+};
 
     /*
      * Prefer the stronger table.
@@ -1982,8 +2223,8 @@ if (!table) {
      * Look at the first part of the table body
      * for repeated row-start patterns.
      */
-    const bodyStart =
-      table.endIndex + 1;
+ const bodyStart =
+  table.productRowIndex ?? (table.endIndex + 1);
 
     const bodyLines = lines.slice(
       bodyStart,
@@ -2461,7 +2702,9 @@ function collectDescriptionProduct(lines, table) {
    * Start from the actual line after the
    * Description / Goods header.
    */
-  let start = table.index + 1;
+let start =
+  table.productRowIndex ??
+  (table.index + 1);
 
   /*
    * Skip invoice column headers.
@@ -4497,7 +4740,7 @@ if (gTotalMatch) {
 
     /net\s*amount\s*:?\s*(?:₹|rs\.?)?\s*([\d,]+(?:\.\d{1,2})?)/i,
 
-    /invoice\s*value\s*:?\s*(?:₹|rs\.?)?\s*([\d,]+(?:\.\d{1,2})?)/i,
+
   ];
 
   for (
@@ -5406,33 +5649,77 @@ function detectCategory(
       ],
     },
 
-    Food: {
-      types: [
-        "grocery",
-        "chocolate",
-        "snack",
-        "coffee",
-        "tea",
-        "biscuit",
-        "biscuits",
-        "dry fruit",
-        "dry fruits",
-        "food",
-        "rice",
-        "flour",
-        "atta",
-        "sugar",
-        "salt",
-        "spices",
-        "masala",
-        "oil",
-        "juice",
-        "milk",
-        "bread",
-      ],
 
-      brands: [],
-    },
+   Food: {
+  types: [
+    "grocery",
+    "food",
+    "snack",
+    "snacks",
+
+    // Packaged foods
+    "chips",
+    "potato chips",
+    "crisps",
+    "namkeen",
+    "mixture",
+    "popcorn",
+    "kurkure",
+    "wafers",
+    "wafer",
+
+    // Biscuits / bakery
+    "biscuit",
+    "biscuits",
+    "cookie",
+    "cookies",
+    "cake",
+    "bread",
+    "bun",
+    "rusk",
+
+    // Sweets / confectionery
+    "chocolate",
+    "candy",
+    "toffee",
+    "sweet",
+    "sweets",
+
+    // Staples
+    "rice",
+    "flour",
+    "atta",
+    "maida",
+    "sugar",
+    "salt",
+    "spices",
+    "masala",
+    "oil",
+
+    // Beverages
+    "coffee",
+    "tea",
+    "juice",
+    "milk",
+    "drink",
+    "beverage",
+
+    // Other food
+    "dry fruit",
+    "dry fruits",
+    "nuts",
+    "almond",
+    "almonds",
+    "cashew",
+    "cashews",
+    "peanut",
+    "peanuts",
+  ],
+
+  brands: [],
+},
+
+
 
     Travel: {
       types: [
@@ -5483,14 +5770,52 @@ function detectCategory(
     Health: 0,
   };
 
-  const hasPhrase = (
-    value,
-    phrase
-  ) => {
-    return value.includes(
-      phrase.toLowerCase()
+ const hasPhrase = (
+  value = "",
+  phrase = ""
+) => {
+  const text = String(value).toLowerCase().trim();
+  const target = String(phrase).toLowerCase().trim();
+
+  if (!text || !target) {
+    return false;
+  }
+
+  /*
+   * Short tokens such as:
+   * g, ml, kg
+   * must NOT match inside unrelated words.
+   */
+  if (
+    target.length <= 3 &&
+    /^[a-z]+$/i.test(target)
+  ) {
+    const escaped =
+      target.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
+      );
+
+    return new RegExp(
+      `\\b${escaped}\\b`,
+      "i"
+    ).test(text);
+  }
+
+  /*
+   * Normal product words / phrases.
+   */
+  const escaped =
+    target.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&"
     );
-  };
+
+  return new RegExp(
+    `(?:^|\\s|[^a-z0-9])${escaped}(?=$|\\s|[^a-z0-9])`,
+    "i"
+  ).test(text);
+};
 
   /*
    * ==================================================
@@ -5635,6 +5960,9 @@ function detectCategory(
       "nutrition",
     ],
 
+    
+
+
     Travel: [
       "pnr",
       "boarding",
@@ -5679,6 +6007,16 @@ Object.entries(
   ([category, signals]) => {
     let contextScore = 0;
 
+    if (!Array.isArray(signals)) {
+      console.warn(
+        "⚠️ INVALID CATEGORY SIGNALS:",
+        category,
+        signals
+      );
+
+      return;
+    }
+
     signals.forEach(
       (signal) => {
         if (
@@ -5692,17 +6030,12 @@ Object.entries(
       }
     );
 
-    /*
-     * Never allow noisy full-receipt OCR context
-     * to dominate product evidence.
-     */
     scores[category] += Math.min(
       contextScore,
       4
     );
   }
 );
-
   /*
    * ==================================================
    * FIND WINNER

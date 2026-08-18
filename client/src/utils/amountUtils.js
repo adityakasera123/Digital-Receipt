@@ -30,7 +30,7 @@ export function normalizeAmount(value) {
 
   if (Number.isNaN(number)) return 0;
 
-  return Math.round(number);
+  return Number(number.toFixed(2));
 }
 
 // Check if a number looks like a realistic invoice amount

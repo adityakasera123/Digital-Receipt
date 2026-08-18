@@ -47,20 +47,29 @@ const PAYMENT_PATTERNS = [
 export function detectFlipkart(rawText = "") {
   const text = rawText.toLowerCase();
 
-  let score = 0;
-  const matchedKeywords = [];
+  /*
+   * Flipkart detection must be based on
+   * merchant-specific evidence.
+   *
+   * Generic invoice words such as:
+   * - order id
+   * - tax invoice
+   * - invoice no
+   * - gstin
+   *
+   * are NOT enough to identify Flipkart because
+   * they can appear on invoices from any merchant.
+   */
 
-  for (const item of FLIPKART_KEYWORDS) {
-    if (text.includes(item.keyword)) {
-      score += item.score;
-      matchedKeywords.push(item.keyword);
-    }
-  }
+  const hasFlipkart =
+    /\bflipkart\b/i.test(text);
 
   return {
-    matched: score >= 40,
-    score: Math.min(score, 100),
-    matchedKeywords,
+    matched: hasFlipkart,
+    score: hasFlipkart ? 100 : 0,
+    matchedKeywords: hasFlipkart
+      ? ["flipkart"]
+      : [],
   };
 }
 
