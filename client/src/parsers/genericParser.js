@@ -1790,6 +1790,300 @@ function findDescriptionTable(
   return best;
 }
 
+/* ==========================================================================
+   7.5. GENERIC RECEIPT STRUCTURE DETECTION
+========================================================================== */
+
+function detectReceiptStructure(lines = [], table = null) {
+/*
+ * --------------------------------------------------
+ * LOCAL / HANDWRITTEN BILL
+ * --------------------------------------------------
+ *
+ * Local bills may not be detected by
+ * findDescriptionTable(), so detect them
+ * independently from the OCR lines.
+ */
+for (let i = 0; i < lines.length; i++) {
+  const current = lower(lines[i]);
+
+  if (!/^particulars$/i.test(current)) {
+    continue;
+  }
+
+  const context = lines
+    .slice(
+      Math.max(0, i - 3),
+      Math.min(lines.length, i + 25)
+    )
+    .map(lower)
+    .join(" ");
+
+  const hasQty =
+    /\b(?:qty|quantity)\b/i.test(context);
+
+  const hasRate =
+    /\brate\b/i.test(context);
+
+  const hasAmount =
+    /\bamount\b/i.test(context);
+
+  if (
+    hasQty &&
+    hasRate &&
+    hasAmount
+  ) {
+    return {
+      type: "MULTI_ITEM_LOCAL",
+      confidence: 0.96,
+      signals: [
+        "particulars",
+        "quantity",
+        "rate",
+        "amount",
+      ],
+    };
+  }
+}
+
+/*
+ * No known table structure detected.
+ */
+if (!table) {
+  return {
+    type: "NO_TABLE",
+    confidence: 0,
+    signals: [],
+  };
+}
+
+  const headerLines = lines.slice(
+    table.index,
+    table.endIndex + 1
+  );
+
+  const headerText = lower(
+    headerLines.join(" ")
+  );
+
+  const signals = [];
+
+  const hasDescription =
+    /\b(?:description|particulars|item|product|goods)\b/i.test(
+      headerText
+    );
+
+  const hasQty =
+    /\b(?:qty|quantity)\b/i.test(
+      headerText
+    );
+
+  const hasRate =
+    /\brate\b/i.test(
+      headerText
+    );
+
+  const hasAmount =
+    /\bamount\b/i.test(
+      headerText
+    );
+
+  const hasPrice =
+    /\bprice\b/i.test(
+      headerText
+    );
+
+  const hasHSN =
+    /\b(?:hsn|hsn\/\s*sac|sku)\b/i.test(
+      headerText
+    );
+
+  const hasTax =
+    /\b(?:gst|cgst|sgst|tax|taxes)\b/i.test(
+      headerText
+    );
+
+  const hasSerial =
+    /\b(?:s\.?\s*no\.?|sr\.?\s*no\.?|serial)\b/i.test(
+      headerText
+    );
+
+  /*
+   * --------------------------------------------------
+   * LOCAL / HANDWRITTEN BILL
+   * --------------------------------------------------
+   *
+   * Strong generic signal:
+   *
+   * Particulars + Qty + Rate + Amount
+   */
+  if (
+    /\bparticulars\b/i.test(headerText) &&
+    hasQty &&
+    hasRate &&
+    hasAmount
+  ) {
+    signals.push(
+      "particulars",
+      "quantity",
+      "rate",
+      "amount"
+    );
+
+    return {
+      type: "MULTI_ITEM_LOCAL",
+      confidence: 0.96,
+      signals,
+    };
+  }
+
+  /*
+   * --------------------------------------------------
+   * STRUCTURED TABLE
+   * --------------------------------------------------
+   */
+  if (
+    hasDescription &&
+    (
+      hasQty ||
+      hasAmount ||
+      hasPrice ||
+      hasHSN ||
+      hasTax
+    )
+  ) {
+    signals.push("description");
+
+    if (hasQty) {
+      signals.push("quantity");
+    }
+
+    if (hasAmount) {
+      signals.push("amount");
+    }
+
+    if (hasPrice) {
+      signals.push("price");
+    }
+
+    if (hasHSN) {
+      signals.push("hsn");
+    }
+
+    if (hasTax) {
+      signals.push("tax");
+    }
+
+    if (hasSerial) {
+      signals.push("serial-number");
+    }
+
+    /*
+     * Look at the first part of the table body
+     * for repeated row-start patterns.
+     */
+    const bodyStart =
+      table.endIndex + 1;
+
+    const bodyLines = lines.slice(
+      bodyStart,
+      Math.min(
+        lines.length,
+        bodyStart + 30
+      )
+    );
+
+    let rowSignals = 0;
+
+    for (
+      let i = 0;
+      i < bodyLines.length;
+      i++
+    ) {
+      const line =
+        clean(
+          bodyLines[i]
+        );
+
+      if (!line) {
+        continue;
+      }
+
+      /*
+       * 1.
+       * 2.
+       * 3.
+       */
+      if (
+        /^\d{1,3}\s*[.)]?$/.test(
+          line
+        )
+      ) {
+        rowSignals++;
+        continue;
+      }
+
+      /*
+       * 1 x Product
+       * 2 x Product
+       */
+      if (
+        /^\d{1,3}\s*[xX]\s+[A-Za-z]/.test(
+          line
+        )
+      ) {
+        rowSignals++;
+        continue;
+      }
+
+      /*
+       * 1 Product
+       * 2 Product
+       *
+       * Useful when OCR keeps serial number
+       * and description on the same line.
+       */
+      if (
+        /^\d{1,3}\s+(?=[A-Za-z])/.test(
+          line
+        )
+      ) {
+        rowSignals++;
+      }
+    }
+
+    if (rowSignals >= 2) {
+      signals.push(
+        "multiple-row-pattern"
+      );
+
+      return {
+        type: "MULTI_ITEM_TABLE",
+        confidence: 0.95,
+        signals,
+      };
+    }
+
+    /*
+     * We know this is a product table,
+     * but we don't yet know whether it contains
+     * one product or multiple rows.
+     */
+    return {
+      type: "PRODUCT_TABLE",
+      confidence: 0.78,
+      signals,
+    };
+  }
+
+  return {
+    type: "UNKNOWN_TABLE",
+    confidence: 0.35,
+    signals,
+  };
+}
+
+
 function isLikelyTableColumnLine(
   value = ""
 ) {
@@ -2514,6 +2808,17 @@ function extractProductDetails(text) {
       metadataRange
     );
     console.log("🔎 PRODUCT TABLE DETECTION:", table);
+
+    const structure =
+  detectReceiptStructure(
+    lines,
+    table
+  );
+
+console.log(
+  "🧠 RECEIPT STRUCTURE:",
+  structure
+);
 
   const candidates = [];
 
