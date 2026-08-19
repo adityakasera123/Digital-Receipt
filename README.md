@@ -1814,3 +1814,298 @@ BILLVORA
 ├── 💎 Premium Features           🔮
 │
 └── 🎨 Production Polish          ⏳
+
+# Billvora — Pending Features
+
+## 1. PDF Receipt & Invoice Support
+
+Currently Billvora primarily processes image receipts. The next step is to support PDF receipts and invoices as well.
+
+Features:
+- PDF receipt upload
+- PDF invoice preview
+- PDF file validation
+- PDF text extraction
+- Extract Product Name
+- Extract Store Name
+- Extract Purchase Date
+- Extract Amount
+- Extract GST Number
+- Extract Invoice Number
+- Automatic Category Detection
+- Manual correction before saving
+- Store original PDF securely
+- Unified Image + PDF receipt processing flow
+
+Flow:
+
+PDF Upload
+    ↓
+PDF Processing
+    ↓
+Text Extraction
+    ↓
+Field Detection
+    ↓
+Receipt Review
+    ↓
+Manual Correction
+    ↓
+Save Receipt
+
+
+## 2. Receipt & Warranty Cleanup Hardening
+
+Receipt Delete:
+- Delete Firestore receipt document
+- Delete Firebase Storage image
+- Delete Firebase Storage PDF
+- Delete linked warranty/document data
+- Verify user-isolated cleanup
+
+Warranty Delete:
+- Delete warranty document
+- Verify linked receipt data
+- Verify linked storage documents
+- Final production verification
+
+
+## 3. Purchase Timeline
+
+Create a chronological view of the user's complete purchase history.
+
+Features:
+- Monthly purchase timeline
+- Purchase date
+- Product name
+- Store name
+- Amount
+- Category
+- Receipt navigation
+- Warranty status
+- Return status
+
+Example:
+
+January 2026
+    └── Laptop Purchased
+
+February 2026
+    └── Earbuds Purchased
+
+March 2026
+    └── Phone Repair
+
+
+## 4. Purchase Action Center
+
+Create a centralized section that tells users what requires their attention.
+
+Features:
+- Return ending soon
+- Return expired
+- Warranty expiring soon
+- Warranty expired
+- Receipt requiring review
+- Missing purchase information
+- Missing warranty information
+- Urgent purchase alerts
+- Direct navigation to related receipt/warranty
+
+Example:
+
+🔴 Needs Attention
+
+Return ending tomorrow
+→ Headphones
+
+Warranty expires in 7 days
+→ Monitor
+
+Receipt needs review
+→ Laptop Purchase
+
+
+## 5. Billvora Insights
+
+Convert existing analytics and purchase data into actionable insights.
+
+Features:
+- Total spending insights
+- Monthly spending comparison
+- Category spending insights
+- Highest spending category
+- Largest purchase
+- Average purchase value
+- Spending trends
+- Purchase frequency
+- Return insights
+- Warranty insights
+
+Example:
+
+"You spent ₹18,000 on Electronics this month."
+
+"Electronics is your highest spending category."
+
+"Your monthly spending increased by 18%."
+
+"2 return windows are ending soon."
+
+
+## 6. Smart / Natural Language Search
+
+Upgrade the existing search system to understand natural language queries.
+
+Examples:
+
+"Show my laptop receipt"
+
+"Show purchases from Amazon"
+
+"Electronics above ₹20,000"
+
+"Medicine receipts"
+
+"Purchases from last month"
+
+Features:
+- Product-based search
+- Store-based search
+- Category-based search
+- Date-based search
+- Price-based search
+- Combined filters
+- Natural language queries
+- Relevant receipt results
+
+
+## 7. Ask Billvora — AI Purchase Assistant
+
+Allow users to ask questions about their purchase history using natural language.
+
+Examples:
+
+"How much did I spend on electronics?"
+
+"Which warranties expire this month?"
+
+"Show my most expensive purchases."
+
+"How much did I spend on Amazon this year?"
+
+"Which purchases are still returnable?"
+
+Features:
+- Natural language questions
+- Purchase data analysis
+- Receipt references
+- Warranty information
+- Return information
+- Spending information
+- Context-aware answers
+
+
+## 8. Digital Locker
+
+Expand Billvora beyond receipts and allow users to securely store important purchase-related documents.
+
+Documents:
+- Warranty Cards
+- Insurance Documents
+- Bills
+- Invoices
+- Service Receipts
+- Product Manuals
+
+Features:
+- Upload documents
+- Preview documents
+- Download documents
+- Delete documents
+- Search documents
+- Link documents with purchases
+
+
+## 9. Family Vault
+
+Allow users to share purchase-related information with family members.
+
+Features:
+- Invite family members
+- Shared receipts
+- Shared warranties
+- Shared documents
+- Member access management
+- Permission control
+
+
+## 10. Export Data
+
+Features:
+- Export receipts as PDF
+- Export purchase data as CSV
+- Export analytics data
+- Generate downloadable reports
+
+
+## 11. Future Premium Features
+
+- Cloud Backup
+- Multi-device Sync
+- AI Financial Reports
+- Product Resale Value Estimation
+- Price Drop Alerts
+- Purchase Reminder System
+- Service Reminder
+- Subscription Tracking
+- Multiple Currency Support
+- Business Asset Management Mode
+
+
+## 12. Production Polish & Launch
+
+Landing Page:
+- Hero animations
+- Premium gradients
+- Blur effects
+- Scroll animations
+- Better illustrations
+- Button interactions
+
+Dashboard:
+- Chart animations
+- Card hover effects
+- Skeleton loaders
+- Empty states
+- Better graphs
+- Smooth transitions
+
+Overall:
+- Framer Motion
+- GSAP
+- Responsive refinement
+- Performance optimization
+- Accessibility refinement
+- Error handling
+- Loading states
+- SEO
+- Vercel deployment
+- Privacy Policy
+- Terms & Conditions
+
+
+# Final Pending Roadmap
+
+1. PDF Receipt & Invoice Support
+2. Receipt & Warranty Cleanup Hardening
+3. Purchase Timeline
+4. Purchase Action Center
+5. Billvora Insights
+6. Smart / Natural Language Search
+7. Ask Billvora AI Assistant
+8. Digital Locker
+9. Family Vault
+10. Export Data
+11. Premium Features
+12. Production Polish & Launch
