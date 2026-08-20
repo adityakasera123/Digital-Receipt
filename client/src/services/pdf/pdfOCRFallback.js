@@ -21,10 +21,244 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
   PDF_WORKER_URL;
 
 // ==========================================
+// Normalize OCR text
+// ==========================================
+
+function normalizePageText(text) {
+  if (!text || typeof text !== "string") {
+    return "";
+  }
+
+  return text
+    .replace(/\r/g, "")
+    .replace(/[ \t]+/g, " ")
+    .trim();
+}
+
+// ==========================================
+// Score a PDF page
+//
+// Goal:
+// Find the actual PRODUCT invoice page.
+//
+// We do NOT hardcode Myntra/Amazon/Flipkart.
+// This is generic.
+//
+// Product invoice pages usually contain:
+// - Tax Invoice
+// - product/item description
+// - Qty
+// - Total
+// - GST/HSN
+//
+// Service / transport / platform-fee pages
+// should receive lower priority.
+// ==========================================
+
+function scoreInvoicePage(text) {
+  if (!text) {
+    return {
+      score: 0,
+      reasons: [],
+    };
+  }
+
+  const normalized = text.toLowerCase();
+
+  let score = 0;
+  const reasons = [];
+
+  // ------------------------------------------
+  // Strong invoice indicators
+  // ------------------------------------------
+
+  if (/\btax invoice\b/i.test(text)) {
+    score += 20;
+    reasons.push("tax invoice");
+  }
+
+  if (/\btotal\b/i.test(text)) {
+    score += 12;
+    reasons.push("total");
+  }
+
+  if (/\bqty\b/i.test(text)) {
+    score += 8;
+    reasons.push("qty");
+  }
+
+  if (/\bhsn\b/i.test(text)) {
+    score += 8;
+    reasons.push("hsn");
+  }
+
+  if (/\bsac\b/i.test(text)) {
+    score += 3;
+    reasons.push("sac");
+  }
+
+  if (
+    /\bdescription\b/i.test(text) ||
+    /\bdescription of goods\b/i.test(text) ||
+    /\bparticulars\b/i.test(text)
+  ) {
+    score += 7;
+    reasons.push("description");
+  }
+
+  // ------------------------------------------
+  // Product / goods indicators
+  // ------------------------------------------
+
+  if (/\bnature of supply:\s*goods\b/i.test(text)) {
+    score += 15;
+    reasons.push("goods supply");
+  }
+
+  if (/\bgoods\b/i.test(text)) {
+    score += 4;
+    reasons.push("goods");
+  }
+
+  if (/\bproduct\b/i.test(text)) {
+    score += 4;
+    reasons.push("product");
+  }
+
+  // ------------------------------------------
+  // Monetary line indicators
+  // ------------------------------------------
+
+  const rupeeMatches =
+    text.match(/(?:₹|Rs\.?)\s*[\d,]+(?:\.\d{1,2})?/gi) ||
+    [];
+
+  if (rupeeMatches.length >= 2) {
+    score += 8;
+    reasons.push("multiple amounts");
+  }
+
+  // ------------------------------------------
+  // GST indicators
+  // ------------------------------------------
+
+  if (/\bigst\b/i.test(text)) {
+    score += 4;
+    reasons.push("igst");
+  }
+
+  if (/\bcgst\b/i.test(text)) {
+    score += 4;
+    reasons.push("cgst");
+  }
+
+  if (/\bsgst\b/i.test(text)) {
+    score += 4;
+    reasons.push("sgst");
+  }
+
+  // ------------------------------------------
+  // Penalize obvious non-product documents
+  // ------------------------------------------
+
+  if (/\bplatform fee\b/i.test(text)) {
+    score -= 25;
+    reasons.push("platform fee");
+  }
+
+  if (/\bpayment handling charges\b/i.test(text)) {
+    score -= 20;
+    reasons.push("payment handling");
+  }
+
+  if (/\bgt charges\b/i.test(text)) {
+    score -= 30;
+    reasons.push("gt charges");
+  }
+
+  if (/\bservice\b/i.test(text)) {
+    score -= 12;
+    reasons.push("service");
+  }
+
+  if (/\bbill of supply\b/i.test(text)) {
+    score -= 25;
+    reasons.push("bill of supply");
+  }
+
+  if (/\bdetails of goods transported\b/i.test(text)) {
+    score -= 20;
+    reasons.push("transport document");
+  }
+
+  // ------------------------------------------
+  // Penalize pages that are mostly legal/footer
+  // ------------------------------------------
+
+  if (
+    normalized.includes("e.& o.e") &&
+    !normalized.includes("tax invoice")
+  ) {
+    score -= 15;
+    reasons.push("footer-only page");
+  }
+
+  return {
+    score,
+    reasons,
+  };
+}
+
+// ==========================================
+// Select best invoice page
+//
+// Generic page selection.
+// No Myntra/Amazon/Flipkart hardcoding.
+// ==========================================
+
+function selectBestInvoicePage(pageResults) {
+  if (!pageResults.length) {
+    return null;
+  }
+
+  const scoredPages = pageResults.map((page) => {
+    const result = scoreInvoicePage(page.text);
+
+    return {
+      ...page,
+      score: result.score,
+      reasons: result.reasons,
+    };
+  });
+
+  scoredPages.sort((a, b) => {
+    return b.score - a.score;
+  });
+
+  console.log(
+    "================ PDF PAGE SCORING ================"
+  );
+
+  scoredPages.forEach((page) => {
+    console.log(
+      `Page ${page.pageNumber}: score=${page.score}`,
+      page.reasons
+    );
+  });
+
+  console.log(
+    "=================================================="
+  );
+
+  return scoredPages[0];
+}
+
+// ==========================================
 // PDF OCR Fallback
 // ==========================================
 // PDF → Page Image → Existing Google Vision
 // → Existing OCR text extraction
+// → Select actual invoice page
 // → PDF-specific parser router
 //
 // Existing image OCR pipeline remains untouched.
@@ -47,6 +281,7 @@ export const runPDFOCRFallback = async (file) => {
 
   let combinedText = "";
   const rawResults = [];
+  const pageResults = [];
 
   console.log(
     `PDF OCR Fallback: Processing ${pdf.numPages} page(s)`
@@ -143,8 +378,9 @@ export const runPDFOCRFallback = async (file) => {
         imageFile
       );
 
-    const pageText =
-      extractText(visionResult);
+    const pageText = normalizePageText(
+      extractText(visionResult)
+    );
 
     console.log(
       `PDF OCR Fallback: Page ${pageNumber} text:`
@@ -152,7 +388,23 @@ export const runPDFOCRFallback = async (file) => {
 
     console.log(pageText);
 
+    // ==========================================
+    // Keep page separately
+    // ==========================================
+
+    pageResults.push({
+      pageNumber,
+      text: pageText,
+    });
+
+    // ==========================================
+    // Keep combined text for debugging / raw
+    // ==========================================
+
     if (pageText) {
+      combinedText +=
+        `\n\n===== PDF PAGE ${pageNumber} =====\n\n`;
+
       combinedText += `${pageText}\n`;
     }
 
@@ -162,7 +414,10 @@ export const runPDFOCRFallback = async (file) => {
       text: pageText,
     });
 
+    // ==========================================
     // Release canvas memory
+    // ==========================================
+
     canvas.width = 1;
     canvas.height = 1;
   }
@@ -185,19 +440,65 @@ export const runPDFOCRFallback = async (file) => {
   );
 
   // ==========================================
-  // IMPORTANT:
-  // Use PDF-specific parser router here.
+  // Select actual invoice page
+  // ==========================================
+
+  const bestPage =
+    selectBestInvoicePage(pageResults);
+
+  if (!bestPage) {
+    throw new Error(
+      "Unable to find a readable invoice page in the PDF."
+    );
+  }
+
+  console.log(
+    "================ PDF SELECTED PAGE ================"
+  );
+
+  console.log(
+    "Selected Page:",
+    bestPage.pageNumber
+  );
+
+  console.log(
+    "Score:",
+    bestPage.score
+  );
+
+  console.log(
+    "Reasons:",
+    bestPage.reasons
+  );
+
+  console.log(
+    "===================================================="
+  );
+
+  // ==========================================
+  // IMPORTANT
   //
-  // This prevents a Myntra PDF containing
-  // Flipkart transport/service text from being
-  // incorrectly routed to Flipkart parser.
+  // Parse ONLY the selected invoice page.
+  //
+  // This prevents:
+  // - Myntra platform fee
+  // - Flipkart transport
+  // - Bill of supply
+  // - other service pages
+  //
+  // from contaminating product extraction.
   // ==========================================
 
   const parsed =
-    parsePDFReceipt(finalText);
+    parsePDFReceipt(bestPage.text);
 
   console.log(
     "================ PDF OCR FALLBACK RESULT ================"
+  );
+
+  console.log(
+    "Selected Page:",
+    bestPage.pageNumber
   );
 
   console.log(
@@ -234,10 +535,25 @@ export const runPDFOCRFallback = async (file) => {
     "=========================================================="
   );
 
+  // ==========================================
+  // Return
+  // ==========================================
+
   return {
+    // Full OCR text is still available for debugging.
     text: finalText,
+
+    // Keep every page's raw OCR result.
     raw: rawResults,
+
+    // PDF metadata.
     pageCount: pdf.numPages,
+
+    // Useful debugging information.
+    selectedPage: bestPage.pageNumber,
+    selectedPageScore: bestPage.score,
+
+    // Parsed receipt data.
     ...parsed,
   };
 };

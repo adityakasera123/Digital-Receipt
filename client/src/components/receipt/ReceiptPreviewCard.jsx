@@ -13,7 +13,9 @@ const ReceiptPreviewCard = ({ receiptData }) => {
       {/* Header */}
       <div className='mb-6 flex items-start justify-between'>
         <div>
-          <h2 className='text-xl font-semibold text-primary'>Receipt Preview</h2>
+          <h2 className='text-xl font-semibold text-primary'>
+            Receipt Preview
+          </h2>
 
           <p className='mt-1 text-sm text-secondary'>
             Preview your uploaded receipt before saving.
@@ -28,11 +30,19 @@ const ReceiptPreviewCard = ({ receiptData }) => {
       {/* Preview Area */}
       <div className='flex min-h-[420px] items-center justify-center rounded-2xl border border-default bg-surface p-8 transition-theme'>
         {previewUrl ? (
-          <img
-            src={previewUrl}
-            alt='Receipt preview'
-            className='max-h-[380px] w-auto rounded-xl object-contain'
-          />
+          receiptData.receiptImage?.type === 'application/pdf' ? (
+            <iframe
+              src={previewUrl}
+              title='Receipt preview'
+              className='h-[380px] w-full rounded-xl border-0'
+            />
+          ) : (
+            <img
+              src={previewUrl}
+              alt='Receipt preview'
+              className='max-h-[380px] w-auto rounded-xl object-contain'
+            />
+          )
         ) : (
           <div className='flex flex-col items-center text-center'>
             <div className='flex h-20 w-20 items-center justify-center rounded-2xl bg-surface-hover'>
@@ -55,7 +65,9 @@ const ReceiptPreviewCard = ({ receiptData }) => {
               PNG • JPG • JPEG • PDF
             </div>
 
-            <p className='mt-3 text-xs text-secondary'>Waiting for upload...</p>
+            <p className='mt-3 text-xs text-secondary'>
+              Waiting for upload...
+            </p>
           </div>
         )}
       </div>

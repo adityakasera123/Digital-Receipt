@@ -685,6 +685,7 @@ const Upload = () => {
           <div className="w-full max-w-xs sm:max-w-sm lg:max-w-md">
             <OCRProcessingScreen
               image={previewImage}
+               file={receiptData.receiptImage}
             />
           </div>
         </div>

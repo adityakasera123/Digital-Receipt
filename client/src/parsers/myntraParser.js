@@ -437,58 +437,259 @@ function extractPurchaseDate(text) {
 // AMOUNT
 // ==================================================
 
+/**
+ * Extract final payable amount from Myntra invoice.
+ *
+ * IMPORTANT:
+ * - Never use random numbers from OCR.
+ * - Ignore GST, tax, charges, value of goods, etc.
+ * - Prefer explicit payable/total values.
+ */
+/**
+ * Extract final payable amount from Myntra invoice.
+ *
+ * Strategy:
+ * 1. Prefer explicit payable/total labels.
+ * 2. Otherwise use the TOTAL section.
+ * 3. Avoid GST/tax/discount values where possible.
+ * 4. Never return random numbers from addresses, GSTIN,
+ *    order IDs, etc.
+ */
 function extractAmount(text) {
   if (!text || typeof text !== "string") {
     return "";
   }
 
-  const normalizedText = text.replace(/\r/g, " ");
+  const normalizedText = text
+    .replace(/\r/g, "\n")
+    .replace(/[ \t]+/g, " ");
 
-  // --------------------------------------------------
-  // Prefer TOTAL section
-  // --------------------------------------------------
+  // ==========================================
+  // Helpers
+  // ==========================================
 
-  const totalMatch = normalizedText.match(
-    /\bTOTAL\b[\s\S]{0,250}/i
-  );
+  const cleanAmount = (value) => {
+    if (!value) {
+      return "";
+    }
 
-  if (totalMatch) {
-    const totalSection = totalMatch[0];
+    return value
+      .replace(/,/g, "")
+      .replace(/[^\d.]/g, "")
+      .trim();
+  };
 
-    const amounts = [
-      ...totalSection.matchAll(
+  const isValidAmount = (value) => {
+    if (!value) {
+      return false;
+    }
+
+    const number = Number(value);
+
+    return (
+      Number.isFinite(number) &&
+      number >= 0 &&
+      number < 10000000
+    );
+  };
+
+  const extractRsAmounts = (section) => {
+    return [
+      ...section.matchAll(
         /(?:Rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/gi
       ),
-    ].map((match) => match[1]);
+    ]
+      .map((match) => cleanAmount(match[1]))
+      .filter(isValidAmount);
+  };
 
-    if (amounts.length > 0) {
-      return amounts[amounts.length - 1].replace(/,/g, "");
+  // ==========================================
+  // 1. Explicit payable / grand total
+  // ==========================================
+
+  const explicitPatterns = [
+    /amount\s+payable[\s\S]{0,80}?(?:Rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/i,
+
+    /total\s+amount\s+payable[\s\S]{0,80}?(?:Rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/i,
+
+    /grand\s+total[\s\S]{0,80}?(?:Rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/i,
+
+    /net\s+amount[\s\S]{0,80}?(?:Rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/i,
+  ];
+
+  for (const pattern of explicitPatterns) {
+    const match = normalizedText.match(pattern);
+
+    if (!match) {
+      continue;
+    }
+
+    const amount = cleanAmount(match[1]);
+
+    if (isValidAmount(amount)) {
+      console.log(
+        "Myntra Amount: Explicit payable:",
+        amount
+      );
+
+      return amount;
     }
   }
 
-  // --------------------------------------------------
-  // Grand Total
-  // --------------------------------------------------
+  // ==========================================
+  // 2. Myntra invoice TOTAL section
+  //
+  // OCR usually produces:
+  //
+  // TOTAL
+  // Rs 259.00
+  // Rs 175.00
+  // Rs 0.00
+  // Rs 71.19
+  // Rs 12.81
+  // Rs 84.00
+  //
+  // Last amount = Total Amount
+  // ==========================================
 
-  const grandTotalMatch = normalizedText.match(
-    /Grand\s+Total[\s:₹Rs.]*(\d[\d,]*(?:\.\d{1,2})?)/i
+  const totalMatches = [
+    ...normalizedText.matchAll(/\bTOTAL\b/gi),
+  ];
+
+  console.log(
+    "Myntra Amount: TOTAL occurrences:",
+    totalMatches.length
   );
 
-  if (grandTotalMatch) {
-    return grandTotalMatch[1].replace(/,/g, "");
+  for (let i = 0; i < totalMatches.length; i++) {
+    const totalIndex = totalMatches[i].index;
+
+    if (typeof totalIndex !== "number") {
+      continue;
+    }
+
+    // Take a reasonable window after TOTAL.
+    const totalSection = normalizedText.slice(
+      totalIndex,
+      totalIndex + 500
+    );
+
+    console.log(
+      `Myntra Amount: TOTAL section [${i}]:`
+    );
+
+    console.log(totalSection);
+
+    const amounts =
+      extractRsAmounts(totalSection);
+
+    console.log(
+      `Myntra Amount: TOTAL candidates [${i}]:`,
+      amounts
+    );
+
+    if (amounts.length === 0) {
+      continue;
+    }
+
+    // ========================================
+    // IMPORTANT:
+    // In Myntra invoice table the final Rs
+    // value is Total Amount.
+    // ========================================
+
+    const finalAmount =
+      amounts[amounts.length - 1];
+
+    console.log(
+      "Myntra Amount: FINAL TOTAL:",
+      finalAmount
+    );
+
+    return finalAmount;
   }
 
-  // --------------------------------------------------
-  // Amount Paid / Final Amount
-  // --------------------------------------------------
+  // ==========================================
+  // 3. Look for "Total Amount" followed by Rs
+  // ==========================================
 
-  const paidMatch = normalizedText.match(
-    /(?:Amount Paid|Total Amount|Net Amount)[\s:₹Rs.]*(\d[\d,]*(?:\.\d{1,2})?)/i
+  const totalAmountMatch =
+    normalizedText.match(
+      /total\s+amount[\s\S]{0,200}?(?:Rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/i
+    );
+
+  if (totalAmountMatch) {
+    const amount = cleanAmount(
+      totalAmountMatch[1]
+    );
+
+    if (isValidAmount(amount)) {
+      console.log(
+        "Myntra Amount: Total Amount:",
+        amount
+      );
+
+      return amount;
+    }
+  }
+
+  // ==========================================
+  // 4. Product row fallback
+  //
+  // Example:
+  //
+  // Nivea...
+  // Rs 259.00
+  // Rs 175.00
+  // Rs 0.00
+  // Rs 71.19
+  // Rs 12.81
+  // Rs 84.00
+  //
+  // We intentionally take the final amount
+  // from the product row.
+  // ==========================================
+
+  const productIndex =
+    normalizedText.search(
+      /NIVEA|PRODUCT|HSN\s*:/i
+    );
+
+  if (productIndex !== -1) {
+    const productSection =
+      normalizedText.slice(
+        productIndex,
+        productIndex + 1000
+      );
+
+    const amounts =
+      extractRsAmounts(productSection);
+
+    console.log(
+      "Myntra Amount: Product candidates:",
+      amounts
+    );
+
+    if (amounts.length > 0) {
+      const finalAmount =
+        amounts[amounts.length - 1];
+
+      console.log(
+        "Myntra Amount: Product final:",
+        finalAmount
+      );
+
+      return finalAmount;
+    }
+  }
+
+  // ==========================================
+  // 5. No reliable amount found
+  // ==========================================
+
+  console.log(
+    "Myntra Amount: No reliable amount found."
   );
-
-  if (paidMatch) {
-    return paidMatch[1].replace(/,/g, "");
-  }
 
   return "";
 }
