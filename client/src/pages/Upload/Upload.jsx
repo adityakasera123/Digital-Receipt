@@ -18,9 +18,19 @@ import { uploadReceiptImage } from "../../services/storageService";
 import { saveReceipt } from "../../services/receiptService";
 import { saveWarranty } from "../../services/warrantyService";
 
-// Billvora 7.1 OCR Engine
+// Existing image OCR
 import { runOCR } from "../../services/ocr";
 
+// PDF text extraction
+import { extractTextFromPDF } from "../../services/pdf/pdfService";
+
+// PDF visual OCR fallback
+import { runPDFOCRFallback } from "../../services/pdf/pdfOCRFallback";
+
+// PDF-specific parser router
+import { parsePDFReceipt } from "../../services/pdf/pdfParserRouter";
+
+// Existing image OCR hook
 import useReceiptForm from "../../hooks/useReceiptForm";
 import { useOCR } from "../../hooks/useOCR";
 
@@ -30,319 +40,706 @@ import { OCR_STATES } from "../../constants/ocrConstants";
 import { AuthContext } from "../../context/AuthContext";
 
 const Upload = () => {
-const navigate = useNavigate();
-const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
 
-const {
-receiptData,
-setReceiptData,
-errors,
-setErrors,
-handleInputChange,
-handleFileChange: originalHandleFileChange,
-validateReceipt,
-} = useReceiptForm();
+  const {
+    receiptData,
+    setReceiptData,
+    errors,
+    setErrors,
+    handleInputChange,
+    handleFileChange: originalHandleFileChange,
+    validateReceipt,
+  } = useReceiptForm();
 
-const {
-ocrState,
-setOCRState,
-ocrData,
-setOCRData,
-ocrError,
-setOCRError,
-processReceipt,
-} = useOCR();
+  const {
+    ocrState,
+    setOCRState,
+    ocrData,
+    setOCRData,
+    ocrError,
+    setOCRError,
+    processReceipt,
+  } = useOCR();
 
-// Preview URL for OCR modal
-const previewImage = useMemo(() => {
-if (!receiptData.receiptImage) return null;
+  // ==========================================
+  // Preview URL
+  // ==========================================
 
+  const previewImage = useMemo(() => {
+    if (!receiptData.receiptImage) return null;
 
-return receiptData.receiptImage instanceof File
-  ? URL.createObjectURL(receiptData.receiptImage)
-  : receiptData.receiptImage;
+    return receiptData.receiptImage instanceof File
+      ? URL.createObjectURL(receiptData.receiptImage)
+      : receiptData.receiptImage;
+  }, [receiptData.receiptImage]);
 
+  useEffect(() => {
+    return () => {
+      if (
+        previewImage &&
+        receiptData.receiptImage instanceof File
+      ) {
+        URL.revokeObjectURL(previewImage);
+      }
+    };
+  }, [previewImage, receiptData.receiptImage]);
 
-}, [receiptData.receiptImage]);
+  // ==========================================
+  // Auto calculate Return End Date
+  // ==========================================
 
-useEffect(() => {
-return () => {
-if (previewImage && receiptData.receiptImage instanceof File) {
-URL.revokeObjectURL(previewImage);
-}
-};
-}, [previewImage, receiptData.receiptImage]);
+  useEffect(() => {
+    if (
+      receiptData.returnTracking &&
+      receiptData.returnStartDate &&
+      receiptData.returnDurationDays
+    ) {
+      if (receiptData.returnEndDateManual) return;
 
-// Auto calculate Return End Date
-useEffect(() => {
-if (
-receiptData.returnTracking &&
-receiptData.returnStartDate &&
-receiptData.returnDurationDays
-) {
-if (receiptData.returnEndDateManual) return;
+      const endDate = calculateReturnEndDate(
+        receiptData.returnStartDate,
+        receiptData.returnDurationDays,
+        receiptData.deliveryDate
+      );
 
-
-  const endDate = calculateReturnEndDate(
+      setReceiptData((prev) => ({
+        ...prev,
+        returnEndDate: endDate,
+      }));
+    } else {
+      setReceiptData((prev) => ({
+        ...prev,
+        returnEndDate: "",
+        returnEndDateManual: false,
+      }));
+    }
+  }, [
+    receiptData.returnTracking,
     receiptData.returnStartDate,
     receiptData.returnDurationDays,
-    receiptData.deliveryDate
-  );
+    receiptData.deliveryDate,
+    receiptData.returnEndDateManual,
+    setReceiptData,
+  ]);
 
-  setReceiptData((prev) => ({
-    ...prev,
-    returnEndDate: endDate,
-  }));
-} else {
-  setReceiptData((prev) => ({
-    ...prev,
-    returnEndDate: "",
-    returnEndDateManual: false,
-  }));
-}
+  // ==========================================
+  // Validate PDF parser result
+  // ==========================================
 
+  const isPDFResultIncomplete = (result) => {
+    if (!result) return true;
 
-}, [
-receiptData.returnTracking,
-receiptData.returnStartDate,
-receiptData.returnDurationDays,
-receiptData.deliveryDate,
-receiptData.returnEndDateManual,
-setReceiptData,
-]);
+    const product =
+      typeof result.productName === "string"
+        ? result.productName.trim()
+        : "";
 
-// =========================
-// Google Vision OCR Upload
-// =========================
-const handleFileChange = async (e) => {
-const file = e.target.files?.[0];
-if (!file) return;
+    const store =
+      typeof result.storeName === "string"
+        ? result.storeName.trim()
+        : "";
 
+    const purchaseDate =
+      typeof result.purchaseDate === "string"
+        ? result.purchaseDate.trim()
+        : "";
 
-// Keep existing preview behavior
-originalHandleFileChange(file);
+    const amount = Number(result.amount);
 
-try {
-  setOCRError(null);
-  setOCRState(OCR_STATES.PROCESSING);
+    // ------------------------------------------
+    // Product sanity checks
+    // ------------------------------------------
 
-  // Google Vision + Parser
-  const result = await processReceipt(file);
+    const invalidProductPatterns = [
+      /^page\s+\d+/i,
+      /^\d+\s+of\s+\d+/i,
+      /^e\.?\s*&?\s*o\.?\s*e\.?/i,
+      /^signature/i,
+      /^authorized signatory/i,
+      /^tax invoice$/i,
+      /^invoice$/i,
+    ];
 
-  // ---------------- DEBUG ----------------
-  console.log("================ RAW OCR TEXT ================");
-console.log(result.text);
-console.log("===============================================");
+    const invalidProduct = invalidProductPatterns.some(
+      (pattern) => pattern.test(product)
+    );
 
-  console.log("================ OCR RESULT ================");
-  console.log("Full Result:", result);
-  console.log("Product:", result.productName);
-  console.log("Store:", result.storeName);
-  console.log("Date:", result.purchaseDate);
-  console.log("Amount:", result.amount);
-  console.log("Category:", result.category);
-  console.log("============================================");
-  // ---------------------------------------
+    // ------------------------------------------
+    // Date sanity checks
+    // ------------------------------------------
 
-  setOCRData(result);
+    const dateParts = purchaseDate.split("-");
 
-  // Autofill receipt form
-  setReceiptData((prev) => ({
-    ...prev,
-    productName: result.productName || "",
-    storeName: result.storeName || "",
-    purchaseDate: result.purchaseDate || "",
-    amount: result.amount || "",
-    paymentMethod: result.paymentMethod || "",
-    category: result.category || "",
-  }));
+    const invalidDate =
+      !purchaseDate ||
+      dateParts.length !== 3 ||
+      Number(dateParts[0]) < 2000 ||
+      Number(dateParts[0]) > 2100 ||
+      Number(dateParts[1]) < 1 ||
+      Number(dateParts[1]) > 12 ||
+      Number(dateParts[2]) < 1 ||
+      Number(dateParts[2]) > 31;
 
-  console.log("Setting Receipt State:", {
-    productName: result.productName,
-    storeName: result.storeName,
-    purchaseDate: result.purchaseDate,
-    amount: result.amount,
-    category: result.category,
-  });
+    // ------------------------------------------
+    // Amount sanity check
+    // ------------------------------------------
 
-  setOCRState(OCR_STATES.REVIEW);
-} catch (error) {
-  console.error(error);
-  setOCRError(error.message || "OCR failed");
-  setOCRState(OCR_STATES.FAILED);
-}
+    const invalidAmount =
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      amount > 100000000;
 
+    return (
+      !product ||
+      invalidProduct ||
+      !store ||
+      invalidDate ||
+      invalidAmount
+    );
+  };
 
-};
+  // ==========================================
+  // Apply OCR/PDF result to Receipt Form
+  // ==========================================
 
-// Retry OCR
-const handleRetryOCR = async () => {
-if (!receiptData.receiptImage) return;
+  const applyOCRResultToReceipt = (result) => {
+    setOCRData(result);
 
+    setReceiptData((prev) => ({
+      ...prev,
+      productName: result.productName || "",
+      storeName: result.storeName || "",
+      purchaseDate: result.purchaseDate || "",
+      amount: result.amount || "",
+      paymentMethod: result.paymentMethod || "",
+      category: result.category || "",
+    }));
+  };
 
-try {
-  setOCRError(null);
-  setOCRState(OCR_STATES.PROCESSING);
+  // ==========================================
+  // File Upload + OCR / PDF Processing
+  // ==========================================
 
-  const result = await processReceipt(receiptData.receiptImage);
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
 
-  console.log("================ OCR RETRY ================");
-  console.log(result);
-  console.log("===========================================");
+    if (!file) return;
 
-  setOCRData(result);
+    // Keep existing preview behavior
+    originalHandleFileChange(file);
 
-  setReceiptData((prev) => ({
-    ...prev,
-    productName: result.productName || "",
-    storeName: result.storeName || "",
-    purchaseDate: result.purchaseDate || "",
-    amount: result.amount || "",
-    paymentMethod: result.paymentMethod || "",
-    category: result.category || "",
-  }));
+    // ==========================================
+    // PDF FLOW
+    // ==========================================
 
-  setOCRState(OCR_STATES.REVIEW);
-} catch (error) {
-  console.error(error);
-  setOCRError(error.message || "OCR failed");
-  setOCRState(OCR_STATES.FAILED);
-}
+    if (file.type === "application/pdf") {
+      try {
+        setOCRError(null);
+        setOCRState(OCR_STATES.PROCESSING);
 
+        console.log(
+          "================ PDF PROCESSING ================"
+        );
 
-};
+        console.log("PDF File:", file.name);
+        console.log("PDF Size:", file.size);
+        console.log("PDF Type:", file.type);
 
-const handleManualEntry = () => {
-setOCRState(OCR_STATES.REVIEW);
-};
+        console.log(
+          "================================================"
+        );
 
-// Save receipt
-const handleSaveReceipt = async () => {
-const result = validateReceipt();
+        // ------------------------------------------
+        // STEP 1
+        // Extract embedded PDF text
+        // ------------------------------------------
 
+        const pdfResult = await extractTextFromPDF(file);
 
-setErrors(result.errors);
+        console.log(
+          "================ PDF TEXT ================"
+        );
 
-if (!result.isValid) {
-  toast.error(Object.values(result.errors)[0]);
-  return;
-}
+        console.log(pdfResult.text);
+        console.log("PDF Pages:", pdfResult.pageCount);
 
-if (!user) {
-  toast.error("Please login first.");
-  return;
-}
+        console.log(
+          "=========================================="
+        );
 
-try {
-  const uid = user.uid;
+        // ------------------------------------------
+        // STEP 2
+        // PDF-specific existing parser routing
+        // ------------------------------------------
 
-  const imageUrl = await uploadReceiptImage(
-    receiptData.receiptImage,
-    uid
-  );
+        let result = parsePDFReceipt(
+          pdfResult.text
+        );
 
-  const receiptId = await saveReceipt({
-    ...receiptData,
-    receiptImage: imageUrl,
-    userId: uid,
+        console.log(
+          "================ PDF PARSER RESULT ================"
+        );
 
-    // Return Tracking
-    returnTracking: receiptData.returnTracking,
-    platform: receiptData.platform,
-    returnType: receiptData.returnType,
-    returnDurationDays: Number(receiptData.returnDurationDays),
-    returnStartDate: receiptData.returnStartDate,
-    returnEndDate: receiptData.returnEndDate,
-  });
+        console.log("Full Result:", result);
+        console.log("Product:", result.productName);
+        console.log("Store:", result.storeName);
+        console.log("Date:", result.purchaseDate);
+        console.log("Amount:", result.amount);
+        console.log("Category:", result.category);
 
-  if (receiptData.hasWarranty) {
-    await saveWarranty({
-      receiptId,
-      productName: receiptData.productName,
-      storeName: receiptData.storeName,
-      category: receiptData.category,
-      purchaseDate: receiptData.purchaseDate,
-      warrantyDuration: receiptData.warrantyDuration,
-      expiryDate: receiptData.warrantyExpiry,
-      userId: uid,
-    });
-  }
+        console.log(
+          "==================================================="
+        );
 
-  toast.success("Receipt saved successfully!");
-  navigate("/receipts");
-} catch (error) {
-  console.error(error);
-  toast.error("Receipt save failed!");
-}
+        // ------------------------------------------
+        // STEP 3
+        // Fallback to visual OCR if result
+        // is incomplete or obviously invalid
+        // ------------------------------------------
 
+        if (isPDFResultIncomplete(result)) {
+          console.log(
+            "PDF parser result is incomplete or invalid."
+          );
 
-};
+          console.log(
+            "Starting PDF visual OCR fallback..."
+          );
 
-return ( <div className="space-y-6"> <UploadHeader />
+          result = await runPDFOCRFallback(file);
 
+          console.log(
+            "================ PDF OCR FALLBACK RESULT ================"
+          );
 
-  <UploadWorkspace
-    receiptData={receiptData}
-    onFileChange={handleFileChange}
-    errors={errors}
-  />
+          console.log("Full Result:", result);
+          console.log("Product:", result.productName);
+          console.log("Store:", result.storeName);
+          console.log("Date:", result.purchaseDate);
+          console.log("Amount:", result.amount);
+          console.log("Category:", result.category);
 
-  {ocrState === OCR_STATES.PROCESSING && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-sm p-4">
-      <div className="w-full max-w-xs sm:max-w-sm lg:max-w-md">
-        <OCRProcessingScreen image={previewImage} />
-      </div>
+          console.log(
+            "=========================================================="
+          );
+        }
+
+        // ------------------------------------------
+        // STEP 4
+        // Apply final result
+        // ------------------------------------------
+
+        applyOCRResultToReceipt(result);
+
+        console.log(
+          "Setting PDF Receipt State:",
+          {
+            productName: result.productName,
+            storeName: result.storeName,
+            purchaseDate: result.purchaseDate,
+            amount: result.amount,
+            category: result.category,
+          }
+        );
+
+        setOCRState(OCR_STATES.REVIEW);
+
+        return;
+      } catch (error) {
+        console.error(
+          "PDF Processing Error:",
+          error
+        );
+
+        setOCRError(
+          error.message ||
+            "PDF processing failed"
+        );
+
+        setOCRState(OCR_STATES.FAILED);
+
+        return;
+      }
+    }
+
+    // ==========================================
+    // EXISTING IMAGE OCR FLOW
+    // ==========================================
+
+    try {
+      setOCRError(null);
+      setOCRState(OCR_STATES.PROCESSING);
+
+      const result = await processReceipt(file);
+
+      console.log(
+        "================ RAW OCR TEXT ================"
+      );
+
+      console.log(result.text);
+
+      console.log(
+        "==============================================="
+      );
+
+      console.log(
+        "================ OCR RESULT ================"
+      );
+
+      console.log("Full Result:", result);
+      console.log("Product:", result.productName);
+      console.log("Store:", result.storeName);
+      console.log("Date:", result.purchaseDate);
+      console.log("Amount:", result.amount);
+      console.log("Category:", result.category);
+
+      console.log(
+        "============================================"
+      );
+
+      applyOCRResultToReceipt(result);
+
+      console.log(
+        "Setting Receipt State:",
+        {
+          productName: result.productName,
+          storeName: result.storeName,
+          purchaseDate: result.purchaseDate,
+          amount: result.amount,
+          category: result.category,
+        }
+      );
+
+      setOCRState(OCR_STATES.REVIEW);
+    } catch (error) {
+      console.error(error);
+
+      setOCRError(
+        error.message || "OCR failed"
+      );
+
+      setOCRState(OCR_STATES.FAILED);
+    }
+  };
+
+  // ==========================================
+  // Retry OCR
+  // ==========================================
+
+  const handleRetryOCR = async () => {
+    if (!receiptData.receiptImage) return;
+
+    // ==========================================
+    // PDF RETRY
+    // ==========================================
+
+    if (
+      receiptData.receiptImage instanceof File &&
+      receiptData.receiptImage.type ===
+        "application/pdf"
+    ) {
+      try {
+        setOCRError(null);
+        setOCRState(OCR_STATES.PROCESSING);
+
+        console.log(
+          "================ PDF RETRY ================"
+        );
+
+        // ------------------------------------------
+        // Normal PDF text extraction
+        // ------------------------------------------
+
+        const pdfResult =
+          await extractTextFromPDF(
+            receiptData.receiptImage
+          );
+
+        console.log(
+          "PDF Retry Text:",
+          pdfResult.text
+        );
+
+        console.log(
+          "PDF Retry Pages:",
+          pdfResult.pageCount
+        );
+
+        // ------------------------------------------
+        // PDF-specific parser router
+        // ------------------------------------------
+
+        let result = parsePDFReceipt(
+          pdfResult.text
+        );
+
+        // ------------------------------------------
+        // Fallback if result is invalid/incomplete
+        // ------------------------------------------
+
+        if (isPDFResultIncomplete(result)) {
+          console.log(
+            "PDF retry result incomplete or invalid."
+          );
+
+          console.log(
+            "Starting PDF OCR fallback..."
+          );
+
+          result = await runPDFOCRFallback(
+            receiptData.receiptImage
+          );
+        }
+
+        console.log(
+          "================ PDF RETRY RESULT ================"
+        );
+
+        console.log(result);
+
+        console.log(
+          "==================================================="
+        );
+
+        applyOCRResultToReceipt(result);
+
+        setOCRState(OCR_STATES.REVIEW);
+      } catch (error) {
+        console.error(
+          "PDF Retry Error:",
+          error
+        );
+
+        setOCRError(
+          error.message ||
+            "PDF processing failed"
+        );
+
+        setOCRState(OCR_STATES.FAILED);
+      }
+
+      return;
+    }
+
+    // ==========================================
+    // EXISTING IMAGE OCR RETRY
+    // ==========================================
+
+    try {
+      setOCRError(null);
+      setOCRState(OCR_STATES.PROCESSING);
+
+      const result = await processReceipt(
+        receiptData.receiptImage
+      );
+
+      console.log(
+        "================ OCR RETRY ================"
+      );
+
+      console.log(result);
+
+      console.log(
+        "==========================================="
+      );
+
+      applyOCRResultToReceipt(result);
+
+      setOCRState(OCR_STATES.REVIEW);
+    } catch (error) {
+      console.error(error);
+
+      setOCRError(
+        error.message || "OCR failed"
+      );
+
+      setOCRState(OCR_STATES.FAILED);
+    }
+  };
+
+  // ==========================================
+  // Manual Entry
+  // ==========================================
+
+  const handleManualEntry = () => {
+    setOCRState(OCR_STATES.REVIEW);
+  };
+
+  // ==========================================
+  // Save Receipt
+  // ==========================================
+
+  const handleSaveReceipt = async () => {
+    const result = validateReceipt();
+
+    setErrors(result.errors);
+
+    if (!result.isValid) {
+      toast.error(
+        Object.values(result.errors)[0]
+      );
+
+      return;
+    }
+
+    if (!user) {
+      toast.error("Please login first.");
+
+      return;
+    }
+
+    try {
+      const uid = user.uid;
+
+      const imageUrl =
+        await uploadReceiptImage(
+          receiptData.receiptImage,
+          uid
+        );
+
+      const receiptId =
+        await saveReceipt({
+          ...receiptData,
+          receiptImage: imageUrl,
+          userId: uid,
+
+          // Return Tracking
+          returnTracking:
+            receiptData.returnTracking,
+
+          platform:
+            receiptData.platform,
+
+          returnType:
+            receiptData.returnType,
+
+          returnDurationDays: Number(
+            receiptData.returnDurationDays
+          ),
+
+          returnStartDate:
+            receiptData.returnStartDate,
+
+          returnEndDate:
+            receiptData.returnEndDate,
+        });
+
+      if (receiptData.hasWarranty) {
+        await saveWarranty({
+          receiptId,
+
+          productName:
+            receiptData.productName,
+
+          storeName:
+            receiptData.storeName,
+
+          category:
+            receiptData.category,
+
+          purchaseDate:
+            receiptData.purchaseDate,
+
+          warrantyDuration:
+            receiptData.warrantyDuration,
+
+          expiryDate:
+            receiptData.warrantyExpiry,
+
+          userId: uid,
+        });
+      }
+
+      toast.success(
+        "Receipt saved successfully!"
+      );
+
+      navigate("/receipts");
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        "Receipt save failed!"
+      );
+    }
+  };
+
+  // ==========================================
+  // UI
+  // ==========================================
+
+  return (
+    <div className="space-y-6">
+      <UploadHeader />
+
+      <UploadWorkspace
+        receiptData={receiptData}
+        onFileChange={handleFileChange}
+        errors={errors}
+      />
+
+      {ocrState === OCR_STATES.PROCESSING && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xs sm:max-w-sm lg:max-w-md">
+            <OCRProcessingScreen
+              image={previewImage}
+            />
+          </div>
+        </div>
+      )}
+
+      {ocrState === OCR_STATES.FAILED && (
+        <OCRFailureState
+          image={previewImage}
+          onRetry={handleRetryOCR}
+          onManualEntry={handleManualEntry}
+        />
+      )}
+
+      {ocrState === OCR_STATES.REVIEW && (
+        <OCRReviewBanner
+          confidence={
+            ocrData?.confidence || 0.98
+          }
+        />
+      )}
+
+      {ocrState !== OCR_STATES.PROCESSING && (
+        <>
+          <ReceiptForm
+            receiptData={receiptData}
+            onInputChange={handleInputChange}
+            errors={errors}
+            ocrData={ocrData}
+          />
+
+          <WarrantyForm
+            receiptData={receiptData}
+            onInputChange={handleInputChange}
+            errors={errors}
+          />
+
+          <ReturnWindowCard
+            receiptData={receiptData}
+            onInputChange={handleInputChange}
+            errors={errors}
+          />
+
+          <NotesField
+            receiptData={receiptData}
+            onInputChange={handleInputChange}
+          />
+
+          <UploadActions
+            mode="add"
+            onSave={handleSaveReceipt}
+          />
+        </>
+      )}
     </div>
-  )}
-
-  {ocrState === OCR_STATES.FAILED && (
-    <OCRFailureState
-      image={previewImage}
-      onRetry={handleRetryOCR}
-      onManualEntry={handleManualEntry}
-    />
-  )}
-
-  {ocrState === OCR_STATES.REVIEW && (
-    <OCRReviewBanner confidence={ocrData?.confidence || 0.98} />
-  )}
-
-  {ocrState !== OCR_STATES.PROCESSING && (
-    <>
-      <ReceiptForm
-        receiptData={receiptData}
-        onInputChange={handleInputChange}
-        errors={errors}
-        ocrData={ocrData}
-      />
-
-      <WarrantyForm
-        receiptData={receiptData}
-        onInputChange={handleInputChange}
-        errors={errors}
-      />
-
-      <ReturnWindowCard
-        receiptData={receiptData}
-        onInputChange={handleInputChange}
-        errors={errors}
-      />
-
-      <NotesField
-        receiptData={receiptData}
-        onInputChange={handleInputChange}
-      />
-
-      <UploadActions
-        mode="add"
-        onSave={handleSaveReceipt}
-      />
-    </>
-  )}
-</div>
-
-
-);
+  );
 };
 
 export default Upload;

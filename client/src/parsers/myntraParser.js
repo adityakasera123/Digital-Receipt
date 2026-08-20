@@ -3,15 +3,16 @@ import { normalizeOCRDate } from "../utils/dateUtils";
 /**
  * Myntra OCR Parser
  *
- * Extracts structured purchase data from Myntra invoices.
- *
  * IMPORTANT:
- * This parser is isolated from Amazon and Flipkart parsers.
+ * - Isolated from Amazon / Flipkart parsers
+ * - Never guesses random invoice lines as product
+ * - Designed for OCR + PDF extracted text
  */
 
-/**
- * Normalize OCR text without destroying line breaks.
- */
+// ==================================================
+// TEXT NORMALIZATION
+// ==================================================
+
 function normalizeText(text) {
   return text
     .replace(/\r/g, "")
@@ -19,9 +20,10 @@ function normalizeText(text) {
     .trim();
 }
 
-/**
- * Detect whether OCR text belongs to a Myntra invoice.
- */
+// ==================================================
+// MYNTRA DETECTION
+// ==================================================
+
 export function isMyntraInvoice(text) {
   if (!text || typeof text !== "string") {
     return false;
@@ -41,58 +43,370 @@ export function isMyntraInvoice(text) {
   );
 }
 
-/**
- * Extract product name from Myntra invoice.
- */
-function extractProductName(lines) {
-  const productIndex = lines.findIndex((line) => {
-    return (
-      line.includes(" - ") &&
-      !line.toLowerCase().includes("total") &&
-      !line.toLowerCase().includes("invoice")
-    );
-  });
+// ==================================================
+// INVALID PRODUCT LINES
+//
+// These are commonly picked by OCR accidentally.
+// NEVER use these as product names.
+// ==================================================
 
-  if (productIndex === -1) {
+function isInvalidProductLine(line) {
+  if (!line) {
+    return true;
+  }
+
+  const value = line.trim();
+  const lower = value.toLowerCase();
+
+  if (value.length < 4) {
+    return true;
+  }
+
+  const invalidKeywords = [
+    "goods",
+    "gross weight",
+    "net weight",
+    "weight of",
+    "tax invoice",
+    "invoice",
+    "invoice no",
+    "invoice number",
+    "gstin",
+    "gst",
+    "hsn",
+    "sac",
+    "pan:",
+    "quantity",
+    "qty",
+    "amount",
+    "total",
+    "subtotal",
+    "grand total",
+    "discount",
+    "shipping",
+    "delivery",
+    "billing address",
+    "shipping address",
+    "ship to",
+    "bill to",
+    "sold by",
+    "sold to",
+    "order id",
+    "order date",
+    "invoice date",
+    "payment",
+    "signature",
+    "authorized signatory",
+    "terms",
+    "conditions",
+    "page ",
+    "e. & o.e",
+    "e.&o.e",
+    "thank you",
+    "customer care",
+    "contact",
+    "phone",
+    "email",
+    "www.",
+    "http",
+    "myntra designs",
+    "myntra jabong",
+    "myntra.com",
+  ];
+
+  if (
+    invalidKeywords.some((keyword) =>
+      lower.includes(keyword)
+    )
+  ) {
+    return true;
+  }
+
+  // GSTIN
+  if (/\b\d{2}[A-Z0-9]{10,15}\b/i.test(value)) {
+    return true;
+  }
+
+  // Mostly numbers / punctuation
+  const letters = value.replace(/[^A-Za-z]/g, "").length;
+
+  if (letters < 3) {
+    return true;
+  }
+
+  return false;
+}
+
+// ==================================================
+// PRODUCT NAME CLEANING
+// ==================================================
+
+function cleanProductName(value) {
+  if (!value) {
     return "";
   }
 
-  const firstLine = lines[productIndex];
-
-  // Remove product/SKU code before the hyphen.
-  const parts = firstLine.split(" - ");
-
-  let productName =
-    parts.length > 1 ? parts.slice(1).join(" - ") : firstLine;
-
-  // Myntra OCR may split product names across multiple lines.
-  const nextLine = lines[productIndex + 1];
-
-  if (
-    nextLine &&
-    !nextLine.toLowerCase().startsWith("hsn:") &&
-    !nextLine.toLowerCase().startsWith("qty") &&
-    !nextLine.toLowerCase().startsWith("total")
-  ) {
-    productName += ` ${nextLine}`;
-  }
-
-  // Remove size information from the final product name.
-  productName = productName
-    .replace(/,\s*size:\s*[^,]+$/i, "")
+  let product = value
+    .replace(/\s+/g, " ")
+    .replace(/^[-:|]+/, "")
+    .replace(/[-:|]+$/, "")
     .trim();
 
-  return productName;
+  // Remove common OCR noise
+  product = product.replace(
+    /^(product|description|item|goods)\s*[:\-]?\s*/i,
+    ""
+  );
+
+  // Remove SKU / style prefix
+  product = product.replace(
+    /^(sku|style|article|product code)\s*[:#\-]?\s*[A-Z0-9_-]+\s*[-:]\s*/i,
+    ""
+  );
+
+  // Remove Myntra-style SKU/article code
+  // Example:
+  // GIIZTSHT105052711 glitchez Regular Fit
+  // -> glitchez Regular Fit
+  product = product.replace(
+    /^[A-Z]{2,}[A-Z0-9]{8,}\s+(?=[A-Za-z])/,
+    ""
+  );
+
+  // Remove trailing size information
+  product = product.replace(
+    /,\s*size\s*[:\-]?\s*[^,]+$/i,
+    ""
+  );
+
+  product = product.trim();
+
+  if (isInvalidProductLine(product)) {
+    return "";
+  }
+
+  return product;
+}
+// ==================================================
+// PRODUCT EXTRACTION
+// ==================================================
+
+function extractProductName(lines, text) {
+  // --------------------------------------------------
+  // 1. Look for explicit product/description labels
+  // --------------------------------------------------
+
+  const labelIndexes = [];
+
+  lines.forEach((line, index) => {
+    const lower = line.toLowerCase();
+
+    if (
+      lower === "product" ||
+      lower === "products" ||
+      lower === "product name" ||
+      lower === "description" ||
+      lower === "item description" ||
+      lower.includes("product details")
+    ) {
+      labelIndexes.push(index);
+    }
+  });
+
+  // Search near explicit product labels
+  for (const index of labelIndexes) {
+    for (let offset = 1; offset <= 5; offset++) {
+      const candidate = lines[index + offset];
+
+      if (!candidate) {
+        continue;
+      }
+
+      const cleaned = cleanProductName(candidate);
+
+      if (cleaned) {
+        return cleaned;
+      }
+    }
+  }
+
+  // --------------------------------------------------
+  // 2. Look for common Myntra product patterns
+  //
+  // Example:
+  // ABC123 - Nike Running Shoes
+  // --------------------------------------------------
+
+  for (const line of lines) {
+    if (!line.includes(" - ")) {
+      continue;
+    }
+
+    if (isInvalidProductLine(line)) {
+      continue;
+    }
+
+    const parts = line.split(" - ");
+
+    if (parts.length < 2) {
+      continue;
+    }
+
+    const possibleProduct = parts
+      .slice(1)
+      .join(" - ")
+      .trim();
+
+    const cleaned = cleanProductName(possibleProduct);
+
+    if (cleaned) {
+      return cleaned;
+    }
+  }
+
+  // --------------------------------------------------
+  // 3. Look for product-like lines using useful words
+  // --------------------------------------------------
+
+  const productKeywords = [
+    "shirt",
+    "t-shirt",
+    "tshirt",
+    "top",
+    "kurta",
+    "kurti",
+    "jeans",
+    "trouser",
+    "pants",
+    "pant",
+    "shorts",
+    "jacket",
+    "coat",
+    "blazer",
+    "sweater",
+    "hoodie",
+    "sweatshirt",
+    "dress",
+    "skirt",
+    "saree",
+    "lehenga",
+    "dupatta",
+    "shoe",
+    "shoes",
+    "sandal",
+    "sandals",
+    "slipper",
+    "sneaker",
+    "watch",
+    "headphone",
+    "headphones",
+    "earphone",
+    "earphones",
+    "earbuds",
+    "smartwatch",
+    "speaker",
+    "charger",
+    "mobile",
+    "phone",
+    "laptop",
+    "tablet",
+    "camera",
+    "cream",
+    "creme",
+    "moisturizer",
+    "moisturiser",
+    "face wash",
+    "facewash",
+    "serum",
+    "sunscreen",
+    "lotion",
+    "cleanser",
+    "shampoo",
+    "conditioner",
+    "soap",
+    "body wash",
+    "deodorant",
+    "perfume",
+    "fragrance",
+    "lipstick",
+    "makeup",
+    "foundation",
+    "concealer",
+    "mascara",
+    "kajal",
+  ];
+
+  for (const line of lines) {
+    if (isInvalidProductLine(line)) {
+      continue;
+    }
+
+    const lower = line.toLowerCase();
+
+    const hasProductKeyword = productKeywords.some((keyword) =>
+      lower.includes(keyword)
+    );
+
+    if (hasProductKeyword) {
+      const cleaned = cleanProductName(line);
+
+      if (cleaned) {
+        return cleaned;
+      }
+    }
+  }
+
+  // --------------------------------------------------
+  // 4. Search the full OCR text for a product-looking
+  //    line after "Goods" / "Description"
+  // --------------------------------------------------
+
+  const textLines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  for (let i = 0; i < textLines.length; i++) {
+    const lower = textLines[i].toLowerCase();
+
+    if (
+      lower.includes("description") ||
+      lower.includes("product details") ||
+      lower === "product"
+    ) {
+      for (let j = i + 1; j < Math.min(i + 8, textLines.length); j++) {
+        const candidate = cleanProductName(textLines[j]);
+
+        if (candidate) {
+          return candidate;
+        }
+      }
+    }
+  }
+
+  // ==================================================
+  // 5. No reliable product found
+  //
+  // IMPORTANT:
+  // Never guess a random invoice line as product name.
+  // Returning an empty value is safer than showing
+  // GST/address/weight/tax information as a product.
+  // ==================================================
+
+  return "";
 }
 
-/**
- * Extract purchase date.
- *
- * Prefer Order Date over Invoice Date when both are available.
- */
+// ==================================================
+// PURCHASE DATE
+// ==================================================
+
 function extractPurchaseDate(text) {
+  if (!text || typeof text !== "string") {
+    return "";
+  }
+
   const orderDateMatch = text.match(
-    /Order Date:\s*(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4})/i
+    /Order Date\s*[:\-]?\s*(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4})/i
   );
 
   if (orderDateMatch) {
@@ -100,22 +414,29 @@ function extractPurchaseDate(text) {
   }
 
   const invoiceDateMatch = text.match(
-    /Invoice Date:\s*(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4})/i
+    /Invoice Date\s*[:\-]?\s*(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4})/i
   );
 
-  return invoiceDateMatch ? invoiceDateMatch[1] : "";
+  if (invoiceDateMatch) {
+    return invoiceDateMatch[1];
+  }
+
+  // dd/mm/yyyy
+  const slashDateMatch = text.match(
+    /\b(\d{1,2}[\/-]\d{1,2}[\/-]\d{4})\b/
+  );
+
+  if (slashDateMatch) {
+    return slashDateMatch[1];
+  }
+
+  return "";
 }
 
-/**
- * Extract final total amount from Myntra invoice.
- *
- * Example:
- *
- * TOTAL Rs 1299.00 Rs 1090.00 Rs 0.00
- * Rs 199.05 Rs 9.95 Rs 209.00
- *
- * Final amount = 209.00
- */
+// ==================================================
+// AMOUNT
+// ==================================================
+
 function extractAmount(text) {
   if (!text || typeof text !== "string") {
     return "";
@@ -123,47 +444,59 @@ function extractAmount(text) {
 
   const normalizedText = text.replace(/\r/g, " ");
 
-  // Find the TOTAL section.
-  const totalIndex = normalizedText.search(/\bTOTAL\b/i);
+  // --------------------------------------------------
+  // Prefer TOTAL section
+  // --------------------------------------------------
 
-  if (totalIndex === -1) {
-    return "";
+  const totalMatch = normalizedText.match(
+    /\bTOTAL\b[\s\S]{0,250}/i
+  );
+
+  if (totalMatch) {
+    const totalSection = totalMatch[0];
+
+    const amounts = [
+      ...totalSection.matchAll(
+        /(?:Rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/gi
+      ),
+    ].map((match) => match[1]);
+
+    if (amounts.length > 0) {
+      return amounts[amounts.length - 1].replace(/,/g, "");
+    }
   }
 
-  const totalSection = normalizedText.slice(totalIndex);
+  // --------------------------------------------------
+  // Grand Total
+  // --------------------------------------------------
 
-  // Extract all Rs amounts after TOTAL.
-  const amounts = [
-    ...totalSection.matchAll(
-      /Rs\.?\s*([\d,]+(?:\.\d{1,2})?)/gi
-    ),
-  ].map((match) => match[1]);
+  const grandTotalMatch = normalizedText.match(
+    /Grand\s+Total[\s:₹Rs.]*(\d[\d,]*(?:\.\d{1,2})?)/i
+  );
 
-  if (amounts.length === 0) {
-    return "";
+  if (grandTotalMatch) {
+    return grandTotalMatch[1].replace(/,/g, "");
   }
 
-  // The final amount in the TOTAL row is the actual Total Amount.
-  const finalAmount = amounts[amounts.length - 1];
+  // --------------------------------------------------
+  // Amount Paid / Final Amount
+  // --------------------------------------------------
 
-  return finalAmount.replace(/,/g, "");
+  const paidMatch = normalizedText.match(
+    /(?:Amount Paid|Total Amount|Net Amount)[\s:₹Rs.]*(\d[\d,]*(?:\.\d{1,2})?)/i
+  );
+
+  if (paidMatch) {
+    return paidMatch[1].replace(/,/g, "");
+  }
+
+  return "";
 }
 
-/**
- * Detect category from Myntra product name.
- *
- * IMPORTANT:
- * This logic is Myntra-specific.
- * Amazon and Flipkart parsers are not affected.
- *
- * Current ReceiptForm categories:
- * Electronics
- * Fashion
- * Food
- * Travel
- * Home
- * Others
- */
+// ==================================================
+// CATEGORY
+// ==================================================
+
 function detectMyntraCategory(productName) {
   if (!productName) {
     return "Others";
@@ -171,9 +504,52 @@ function detectMyntraCategory(productName) {
 
   const product = productName.toLowerCase();
 
-  // -----------------------------------------
+  // --------------------------------------------------
+  // Skin Care / Beauty
+  // --------------------------------------------------
+
+  const beautyKeywords = [
+    "cream",
+    "creme",
+    "moisturizer",
+    "moisturiser",
+    "face wash",
+    "facewash",
+    "serum",
+    "sunscreen",
+    "lotion",
+    "cleanser",
+    "shampoo",
+    "conditioner",
+    "soap",
+    "body wash",
+    "deodorant",
+    "perfume",
+    "fragrance",
+    "lipstick",
+    "makeup",
+    "foundation",
+    "concealer",
+    "mascara",
+    "kajal",
+    "face",
+    "skin",
+    "acne",
+    "pimple",
+  ];
+
+  if (
+    beautyKeywords.some((keyword) =>
+      product.includes(keyword)
+    )
+  ) {
+    return "Skin Care";
+  }
+
+  // --------------------------------------------------
   // Fashion
-  // -----------------------------------------
+  // --------------------------------------------------
+
   const fashionKeywords = [
     "shirt",
     "t-shirt",
@@ -202,6 +578,13 @@ function detectMyntraCategory(productName) {
     "trackpants",
     "clothing",
     "apparel",
+    "shoe",
+    "shoes",
+    "sandal",
+    "sandals",
+    "slipper",
+    "sneaker",
+    "footwear",
   ];
 
   if (
@@ -212,9 +595,10 @@ function detectMyntraCategory(productName) {
     return "Fashion";
   }
 
-  // -----------------------------------------
+  // --------------------------------------------------
   // Electronics
-  // -----------------------------------------
+  // --------------------------------------------------
+
   const electronicsKeywords = [
     "headphone",
     "headphones",
@@ -241,9 +625,10 @@ function detectMyntraCategory(productName) {
     return "Electronics";
   }
 
-  // -----------------------------------------
+  // --------------------------------------------------
   // Home
-  // -----------------------------------------
+  // --------------------------------------------------
+
   const homeKeywords = [
     "bedsheet",
     "bed sheet",
@@ -266,9 +651,10 @@ function detectMyntraCategory(productName) {
     return "Home";
   }
 
-  // -----------------------------------------
+  // --------------------------------------------------
   // Food
-  // -----------------------------------------
+  // --------------------------------------------------
+
   const foodKeywords = [
     "chocolate",
     "snack",
@@ -287,60 +673,13 @@ function detectMyntraCategory(productName) {
     return "Food";
   }
 
-  // -----------------------------------------
-  // Beauty / Skincare / Personal Care
-  // -----------------------------------------
-  //
-  // ReceiptForm currently does not have a
-  // Beauty category.
-  //
-  // Therefore these products go to Others.
-  //
-  const beautyKeywords = [
-    "cream",
-    "creme",
-    "moisturizer",
-    "moisturiser",
-    "face wash",
-    "facewash",
-    "serum",
-    "sunscreen",
-    "lotion",
-    "cleanser",
-    "shampoo",
-    "conditioner",
-    "soap",
-    "body wash",
-    "deodorant",
-    "perfume",
-    "fragrance",
-    "lipstick",
-    "makeup",
-    "foundation",
-    "concealer",
-    "mascara",
-    "kajal",
-  ];
-
- if (
-  beautyKeywords.some((keyword) =>
-    product.includes(keyword)
-  )
-) {
-  return "Skin Care";
-}
-  // -----------------------------------------
-  // Unknown product
-  // -----------------------------------------
   return "Others";
 }
 
-/**
- * Extract payment method.
- *
- * Some Myntra invoices may not contain payment information.
- * In that case, return an empty value instead of guessing.
- */
+// ==================================================
+// PAYMENT METHOD
+// ==================================================
+
 function extractPaymentMethod(text) {
   if (!text || typeof text !== "string") {
     return "";
@@ -348,8 +687,8 @@ function extractPaymentMethod(text) {
 
   const normalizedText = text.toLowerCase();
 
-  if (normalizedText.includes("upi")) {
-    return "UPI";
+  if (normalizedText.includes("cash on delivery")) {
+    return "Cash on Delivery";
   }
 
   if (normalizedText.includes("credit card")) {
@@ -360,12 +699,12 @@ function extractPaymentMethod(text) {
     return "Debit Card";
   }
 
-  if (normalizedText.includes("cash on delivery")) {
-    return "Cash on Delivery";
-  }
-
   if (normalizedText.includes("net banking")) {
     return "Net Banking";
+  }
+
+  if (normalizedText.includes("upi")) {
+    return "UPI";
   }
 
   if (normalizedText.includes("wallet")) {
@@ -375,9 +714,10 @@ function extractPaymentMethod(text) {
   return "";
 }
 
-/**
- * Parse Myntra invoice OCR text.
- */
+// ==================================================
+// MAIN PARSER
+// ==================================================
+
 export function parseMyntraInvoice(text) {
   if (!text || typeof text !== "string") {
     return {
@@ -398,38 +738,33 @@ export function parseMyntraInvoice(text) {
     .map((line) => line.trim())
     .filter(Boolean);
 
-  // -----------------------------------------
-  // Extract fields
-  // -----------------------------------------
+  // --------------------------------------------------
+  // Extract
+  // --------------------------------------------------
 
-  const productName = extractProductName(lines);
+  const productName = extractProductName(
+    lines,
+    normalizedText
+  );
 
-  const rawPurchaseDate = extractPurchaseDate(normalizedText);
+  const rawPurchaseDate =
+    extractPurchaseDate(normalizedText);
 
-  const purchaseDate = normalizeOCRDate(rawPurchaseDate);
+  const purchaseDate =
+    normalizeOCRDate(rawPurchaseDate);
 
-  const amount = extractAmount(normalizedText);
+  const amount =
+    extractAmount(normalizedText);
 
-  const paymentMethod = extractPaymentMethod(normalizedText);
+  const paymentMethod =
+    extractPaymentMethod(normalizedText);
 
-  const category = detectMyntraCategory(productName);
+  const category =
+    detectMyntraCategory(productName);
 
-  // -----------------------------------------
-  // Debug logs
-  // -----------------------------------------
-
-  console.log("========== MYNTRA PARSER ==========");
-  console.log("Product:", productName);
-  console.log("Raw Date:", rawPurchaseDate);
-  console.log("Date:", purchaseDate);
-  console.log("Amount:", amount);
-  console.log("Category:", category);
-  console.log("Payment:", paymentMethod);
-  console.log("===================================");
-
-  // -----------------------------------------
-  // Calculate confidence
-  // -----------------------------------------
+  // --------------------------------------------------
+  // Confidence
+  // --------------------------------------------------
 
   let confidence = 0;
 
@@ -453,6 +788,57 @@ export function parseMyntraInvoice(text) {
     confidence += 0.1;
   }
 
+  confidence = Number(
+    confidence.toFixed(2)
+  );
+
+  // --------------------------------------------------
+  // Debug
+  // --------------------------------------------------
+
+  console.log(
+    "========== MYNTRA PARSER =========="
+  );
+
+  console.log(
+    "Product:",
+    productName
+  );
+
+  console.log(
+    "Raw Date:",
+    rawPurchaseDate
+  );
+
+  console.log(
+    "Date:",
+    purchaseDate
+  );
+
+  console.log(
+    "Amount:",
+    amount
+  );
+
+  console.log(
+    "Category:",
+    category
+  );
+
+  console.log(
+    "Payment:",
+    paymentMethod
+  );
+
+  console.log(
+    "Confidence:",
+    confidence
+  );
+
+  console.log(
+    "==================================="
+  );
+
   return {
     storeName: "Myntra",
     productName,
@@ -460,6 +846,6 @@ export function parseMyntraInvoice(text) {
     amount,
     paymentMethod,
     category,
-    confidence: Number(confidence.toFixed(2)),
+    confidence,
   };
 }
