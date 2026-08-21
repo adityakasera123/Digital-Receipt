@@ -13,6 +13,11 @@ import {
   parseMyntraInvoice,
 } from "../../parsers/myntraParser";
 
+import {
+  isBlinkitInvoice,
+  parseBlinkitInvoice,
+} from "../../parsers/blinkitParser";
+
 // ==========================================
 // PDF Parser Router
 // ==========================================
@@ -108,8 +113,22 @@ export function parsePDFReceipt(text) {
     return parseFlipkartReceipt(text);
   }
 
+
   // ==========================================
-  // 4. GENERIC FALLBACK
+// 4. BLINKIT
+// ==========================================
+
+const blinkitMatch = isBlinkitInvoice(text);
+
+if (blinkitMatch) {
+  console.log("PDF Router: Using Blinkit parser");
+
+  return parseBlinkitInvoice(text);
+}
+
+
+  // ==========================================
+  // 5. GENERIC FALLBACK
   // ==========================================
 
   console.log("PDF Router: Using Generic parser");
