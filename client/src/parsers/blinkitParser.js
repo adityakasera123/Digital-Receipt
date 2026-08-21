@@ -13,6 +13,7 @@
 // 7. Multi-page total amount
 //
 // IMPORTANT:
+//
 // Existing parseBlinkitInvoice() is preserved
 // for backward compatibility.
 //
@@ -88,7 +89,9 @@ function extractProductName(text) {
     }
   }
 
+  // ------------------------------------------
   // Fallback for known product words
+  // ------------------------------------------
 
   const lines = text
     .split(/\r?\n/)
@@ -97,7 +100,7 @@ function extractProductName(text) {
 
   for (const line of lines) {
     if (
-      /sprite|coke|pepsi|biscuit|chips|milk|bread|rice|atta|dal|juice|water|soap|shampoo|cream|toothpaste|detergent|tomato|onion|chilli|maggi|daliya/i.test(
+      /sprite|coke|pepsi|biscuit|chips|milk|bread|rice|atta|dal|juice|water|soap|shampoo|cream|toothpaste|detergent|tomato|onion|chilli|maggi|daliya|cucumber/i.test(
         line
       )
     ) {
@@ -113,76 +116,215 @@ function extractProductName(text) {
 // PURCHASE DATE
 // ==========================================
 
+// ==========================================
+// PURCHASE DATE
+// ==========================================
+//
+// Blinkit OCR can appear like:
+//
+// Invoice
+// Date
+// : 508393748
+// : 23-Apr-2024
+//
+// OR:
+//
+// Invoice Date: 23-Apr-2024
+//
+// We therefore do NOT assume that
+// "Invoice Date" and the actual date are
+// on the same line.
+//
+// ==========================================
+
 function extractPurchaseDate(text) {
-  if (!text) {
-    return "";
+  if (!text || typeof text !== 'string') {
+    return '';
   }
 
-  // Example:
-  // Invoice Date : 23-Apr-2024
+  // ------------------------------------------
+  // Keep original OCR line structure
+  // ------------------------------------------
 
-  const match = text.match(
-    /invoice\s+date\s*[:\-]?\s*(\d{1,2})\s*-\s*([A-Za-z]{3,9})\s*-\s*(\d{4})/i
+  const rawText = text
+    .replace(/\r/g, '\n');
+
+  // ------------------------------------------
+  // 1. Strong Blinkit date pattern
+  //
+  // Examples:
+  //
+  // 23-Apr-2024
+  // 23-April-2024
+  // 23/Apr/2024
+  // 23 Apr 2024
+  //
+  // ------------------------------------------
+
+  const monthDateMatch = rawText.match(
+    /\b(\d{1,2})\s*[-\/\s]\s*(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s*[-\/\s]\s*(\d{4})\b/i
   );
 
-  if (match) {
-    const day = match[1].padStart(2, "0");
-    const monthName = match[2].toLowerCase();
-    const year = match[3];
+  if (monthDateMatch) {
+    const day = monthDateMatch[1].padStart(2, '0');
+
+    const monthName =
+      monthDateMatch[2].toLowerCase();
+
+    const year =
+      monthDateMatch[3];
 
     const months = {
-      jan: "01",
-      january: "01",
-      feb: "02",
-      february: "02",
-      mar: "03",
-      march: "03",
-      apr: "04",
-      april: "04",
-      may: "05",
-      jun: "06",
-      june: "06",
-      jul: "07",
-      july: "07",
-      aug: "08",
-      august: "08",
-      sep: "09",
-      sept: "09",
-      september: "09",
-      oct: "10",
-      october: "10",
-      nov: "11",
-      november: "11",
-      dec: "12",
-      december: "12",
+      jan: '01',
+      january: '01',
+
+      feb: '02',
+      february: '02',
+
+      mar: '03',
+      march: '03',
+
+      apr: '04',
+      april: '04',
+
+      may: '05',
+
+      jun: '06',
+      june: '06',
+
+      jul: '07',
+      july: '07',
+
+      aug: '08',
+      august: '08',
+
+      sep: '09',
+      sept: '09',
+      september: '09',
+
+      oct: '10',
+      october: '10',
+
+      nov: '11',
+      november: '11',
+
+      dec: '12',
+      december: '12',
     };
 
-    const month = months[monthName];
+    const month =
+      months[monthName];
 
     if (month) {
-      return `${year}-${month}-${day}`;
+      const result =
+        `${year}-${month}-${day}`;
+
+      console.log(
+        'Blinkit Purchase Date detected:',
+        result
+      );
+
+      return result;
     }
   }
 
-  // Fallback:
+  // ------------------------------------------
+  // 2. Numeric date fallback
+  //
   // DD/MM/YYYY
   // DD-MM-YYYY
+  //
+  // ------------------------------------------
 
-  const numericMatch = text.match(
+  const numericMatch = rawText.match(
     /\b(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})\b/
   );
 
   if (numericMatch) {
-    const day = numericMatch[1].padStart(2, "0");
-    const month = numericMatch[2].padStart(2, "0");
-    const year = numericMatch[3];
+    const day =
+      numericMatch[1].padStart(2, '0');
 
-    return `${year}-${month}-${day}`;
+    const month =
+      numericMatch[2].padStart(2, '0');
+
+    const year =
+      numericMatch[3];
+
+    const monthNumber =
+      Number(month);
+
+    const dayNumber =
+      Number(day);
+
+    if (
+      monthNumber >= 1 &&
+      monthNumber <= 12 &&
+      dayNumber >= 1 &&
+      dayNumber <= 31
+    ) {
+      const result =
+        `${year}-${month}-${day}`;
+
+      console.log(
+        'Blinkit Purchase Date detected:',
+        result
+      );
+
+      return result;
+    }
   }
 
-  return "";
-}
+  // ------------------------------------------
+  // 3. Date with dots
+  //
+  // DD.MM.YYYY
+  //
+  // ------------------------------------------
 
+  const dotDateMatch = rawText.match(
+    /\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b/
+  );
+
+  if (dotDateMatch) {
+    const day =
+      dotDateMatch[1].padStart(2, '0');
+
+    const month =
+      dotDateMatch[2].padStart(2, '0');
+
+    const year =
+      dotDateMatch[3];
+
+    const monthNumber =
+      Number(month);
+
+    const dayNumber =
+      Number(day);
+
+    if (
+      monthNumber >= 1 &&
+      monthNumber <= 12 &&
+      dayNumber >= 1 &&
+      dayNumber <= 31
+    ) {
+      const result =
+        `${year}-${month}-${day}`;
+
+      console.log(
+        'Blinkit Purchase Date detected:',
+        result
+      );
+
+      return result;
+    }
+  }
+
+  console.log(
+    'Blinkit Purchase Date: NOT FOUND'
+  );
+
+  return '';
+}
 
 // ==========================================
 // SINGLE PRODUCT AMOUNT
@@ -193,10 +335,16 @@ function extractAmount(text) {
     return "";
   }
 
-  const totalIndex = text.search(/\bTotal\b/i);
+  const normalizedText = normalizeText(text);
+
+  // ------------------------------------------
+  // 1. Last Total section
+  // ------------------------------------------
+
+  const totalIndex = normalizedText.lastIndexOf("Total");
 
   if (totalIndex !== -1) {
-    const totalSection = text.slice(
+    const totalSection = normalizedText.slice(
       totalIndex,
       totalIndex + 300
     );
@@ -208,7 +356,8 @@ function extractAmount(text) {
     ]
       .map((match) => match[1].replace(/,/g, ""))
       .filter(
-        (value) => Number.isFinite(Number(value))
+        (value) =>
+          Number.isFinite(Number(value))
       );
 
     if (amounts.length > 0) {
@@ -230,6 +379,10 @@ function detectBlinkitCategory(productName) {
   }
 
   const product = productName.toLowerCase();
+
+  // ------------------------------------------
+  // GROCERIES
+  // ------------------------------------------
 
   if (
     [
@@ -255,6 +408,10 @@ function detectBlinkitCategory(productName) {
     return "Groceries";
   }
 
+  // ------------------------------------------
+  // FOOD
+  // ------------------------------------------
+
   if (
     [
       "chips",
@@ -277,6 +434,10 @@ function detectBlinkitCategory(productName) {
     return "Food";
   }
 
+  // ------------------------------------------
+  // PERSONAL CARE
+  // ------------------------------------------
+
   if (
     [
       "soap",
@@ -292,6 +453,10 @@ function detectBlinkitCategory(productName) {
   ) {
     return "Personal Care";
   }
+
+  // ------------------------------------------
+  // HOUSEHOLD
+  // ------------------------------------------
 
   if (
     [
@@ -437,10 +602,11 @@ function extractBlinkitProducts(text) {
     return [];
   }
 
-  const normalizedText = normalizeText(text);
+  const normalizedText =
+    normalizeText(text);
 
   // ==========================================
-  // 1. FIND PRODUCT TABLE
+  // FIND PRODUCT TABLE
   // ==========================================
 
   const itemStart = normalizedText.search(
@@ -451,11 +617,13 @@ function extractBlinkitProducts(text) {
     return [];
   }
 
-  const itemSection = normalizedText.slice(itemStart);
+  const itemSection =
+    normalizedText.slice(itemStart);
 
-  const footerIndex = itemSection.search(
-    /\bAmount\s+in\s+Words\b/i
-  );
+  const footerIndex =
+    itemSection.search(
+      /\bAmount\s+in\s+Words\b/i
+    );
 
   const tableText =
     footerIndex !== -1
@@ -463,21 +631,7 @@ function extractBlinkitProducts(text) {
       : itemSection;
 
   // ==========================================
-  // 2. FIND HSN MARKERS
-  // ==========================================
-  //
-  // Blinkit OCR examples:
-  //
-  // Green Cucumber
-  // (500 g) (HSN-
-  // 400
-  // 07070000)
-  //
-  // Green Chilli (HSN-07091000)
-  //
-  // Onion 1 kg (HSN-07081000)
-  //
-  // So HSN becomes our PRODUCT boundary.
+  // FIND HSN MARKERS
   // ==========================================
 
   const hsnMatches = [
@@ -494,7 +648,7 @@ function extractBlinkitProducts(text) {
   const seen = new Set();
 
   // ==========================================
-  // 3. EXTRACT PRODUCT BEFORE EACH HSN
+  // EXTRACT PRODUCT BEFORE EACH HSN
   // ==========================================
 
   for (
@@ -510,80 +664,63 @@ function extractBlinkitProducts(text) {
         : hsnMatches[index - 1].index +
           hsnMatches[index - 1][0].length;
 
-    const segment = tableText.slice(
-      previousEnd,
-      match.index
-    );
+    const segment =
+      tableText.slice(
+        previousEnd,
+        match.index
+      );
 
     const lines = segment
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter(Boolean);
 
-    // ========================================
+    // ------------------------------------------
     // Expected invoice row number
-    // ========================================
-    //
-    // First HSN -> row 1
-    // Second HSN -> row 2
-    // Third HSN -> row 3
-    // etc.
-    //
-    // This prevents quantity "1" from being
-    // confused with the actual row number.
-    // ========================================
+    // ------------------------------------------
 
-    const expectedRowNumber = String(index + 1);
+    const expectedRowNumber =
+      String(index + 1);
 
     let rowStartIndex = -1;
 
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i] === expectedRowNumber) {
+    for (
+      let i = 0;
+      i < lines.length;
+      i++
+    ) {
+      if (
+        lines[i] === expectedRowNumber
+      ) {
         rowStartIndex = i;
         break;
       }
     }
 
-    // ========================================
-    // If row number is not found, use whole
-    // segment as fallback.
-    // ========================================
+    // ------------------------------------------
+    // Fallback
+    // ------------------------------------------
 
     const candidateLines =
       rowStartIndex !== -1
         ? lines.slice(rowStartIndex + 1)
         : lines;
 
-    // ========================================
-    // 4. KEEP ONLY DESCRIPTION-LIKE LINES
-    // ========================================
+    // ==========================================
+    // KEEP DESCRIPTION-LIKE LINES
+    // ==========================================
 
     const descriptionLines = [];
 
     for (const line of candidateLines) {
-      // Ignore pure numbers.
-      //
-      // Examples:
-      // 551
-      // 242
-      // 14.00
-      // 0.00
-      // 1
-      // 07070000
-      //
+      // Ignore pure numbers
+
       if (/^[\d\s.,|]+$/.test(line)) {
         continue;
       }
 
-      // Remove leading UPC / numeric OCR garbage.
-      //
-      // Example:
-      // "105 Instant Noodles"
-      // -> "Instant Noodles"
-      //
-      // Example:
-      // "1 3 551 245 Onion 1 kg"
-      // -> "Onion 1 kg"
+      // Remove leading UPC / OCR garbage
+
       let cleaned = line
         .replace(
           /^(?:\d+\s+){1,6}/,
@@ -591,7 +728,8 @@ function extractBlinkitProducts(text) {
         )
         .trim();
 
-      // Remove trailing HSN opening fragment.
+      // Remove HSN opening fragment
+
       cleaned = cleaned
         .replace(
           /\s*\(?\s*HSN\s*[-:]?\s*$/i,
@@ -599,7 +737,8 @@ function extractBlinkitProducts(text) {
         )
         .trim();
 
-      // Remove pipe OCR artifact.
+      // Remove pipe OCR artifact
+
       cleaned = cleaned
         .replace(/\|/g, "")
         .trim();
@@ -608,7 +747,8 @@ function extractBlinkitProducts(text) {
         continue;
       }
 
-      // Ignore table headers.
+      // Ignore table headers
+
       if (
         /^(item description|mrp|discount|qty|taxable value|cgst|sgst|cess|total)$/i.test(
           cleaned
@@ -617,7 +757,8 @@ function extractBlinkitProducts(text) {
         continue;
       }
 
-      // Ignore charge products.
+      // Ignore charge products
+
       if (
         /^(handling charge|delivery charge|platform fee|convenience fee|shipping charge|other charges?|small cart fee|surge fee)$/i.test(
           cleaned
@@ -626,7 +767,8 @@ function extractBlinkitProducts(text) {
         continue;
       }
 
-      // Must contain at least one alphabetic character.
+      // Must contain alphabetic character
+
       if (!/[A-Za-z]/.test(cleaned)) {
         continue;
       }
@@ -634,16 +776,18 @@ function extractBlinkitProducts(text) {
       descriptionLines.push(cleaned);
     }
 
-    // ========================================
-    // 5. BUILD PRODUCT NAME
-    // ========================================
+    // ==========================================
+    // BUILD PRODUCT NAME
+    // ==========================================
 
-    let productName = descriptionLines
-      .join(" ")
-      .replace(/\s+/g, " ")
-      .trim();
+    let productName =
+      descriptionLines
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
 
-    // Remove accidental trailing table words.
+    // Remove accidental trailing table words
+
     productName = productName
       .replace(
         /\s+(MRP|Discount|Qty\.?|Taxable Value|CGST|SGST|Cess|Total)\b.*$/i,
@@ -651,8 +795,8 @@ function extractBlinkitProducts(text) {
       )
       .trim();
 
-    // Remove trailing "(" caused by:
-    // Green Chilli (HSN-
+    // Remove trailing "("
+
     productName = productName
       .replace(/\s*\($/, "")
       .trim();
@@ -661,9 +805,9 @@ function extractBlinkitProducts(text) {
       continue;
     }
 
-    // ========================================
-    // 6. REMOVE DUPLICATES
-    // ========================================
+    // ==========================================
+    // REMOVE DUPLICATES
+    // ==========================================
 
     const key = productName
       .toLowerCase()
@@ -678,7 +822,8 @@ function extractBlinkitProducts(text) {
 
     products.push({
       productName,
-      category: detectBlinkitCategory(productName),
+      category:
+        detectBlinkitCategory(productName),
     });
   }
 
@@ -698,8 +843,232 @@ function extractBlinkitProducts(text) {
 
   return products;
 }
+
+
+// ==========================================
+// NUMBER WORDS → NUMBER
+// ==========================================
+//
+// Used mainly for Blinkit:
+//
+// Amount in Words:
+// Thirty Rupees And Zero Paisa Only
+//
+// This gives:
+//
+// 30
+//
+// ==========================================
+
+function blinkitWordsToNumber(text) {
+  if (!text) {
+    return NaN;
+  }
+
+  const normalized =
+    text
+      .toLowerCase()
+      .replace(/-/g, " ")
+      .replace(/,/g, " ")
+      .replace(/\b(and)\b/g, " ")
+      .replace(/\brupees?\b/g, " ")
+      .replace(/\bpaise?\b/g, " ")
+      .replace(/\bonly\b/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const smallNumbers = {
+    zero: 0,
+    one: 1,
+    two: 2,
+    three: 3,
+    four: 4,
+    five: 5,
+    six: 6,
+    seven: 7,
+    eight: 8,
+    nine: 9,
+    ten: 10,
+    eleven: 11,
+    twelve: 12,
+    thirteen: 13,
+    fourteen: 14,
+    fifteen: 15,
+    sixteen: 16,
+    seventeen: 17,
+    eighteen: 18,
+    nineteen: 19,
+  };
+
+  const tens = {
+    twenty: 20,
+    thirty: 30,
+    forty: 40,
+    fifty: 50,
+    sixty: 60,
+    seventy: 70,
+    eighty: 80,
+    ninety: 90,
+  };
+
+  const tokens =
+    normalized.split(" ");
+
+  let total = 0;
+  let current = 0;
+
+  for (const token of tokens) {
+    if (
+      Object.prototype.hasOwnProperty.call(
+        smallNumbers,
+        token
+      )
+    ) {
+      current += smallNumbers[token];
+      continue;
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(
+        tens,
+        token
+      )
+    ) {
+      current += tens[token];
+      continue;
+    }
+
+    if (token === "hundred") {
+      if (current === 0) {
+        current = 1;
+      }
+
+      current *= 100;
+      continue;
+    }
+
+    if (
+      token === "thousand" ||
+      token === "thousands"
+    ) {
+      if (current === 0) {
+        current = 1;
+      }
+
+      total += current * 1000;
+      current = 0;
+      continue;
+    }
+
+    if (
+      token === "lakh" ||
+      token === "lakhs"
+    ) {
+      if (current === 0) {
+        current = 1;
+      }
+
+      total += current * 100000;
+      current = 0;
+      continue;
+    }
+
+    if (
+      token === "crore" ||
+      token === "crores"
+    ) {
+      if (current === 0) {
+        current = 1;
+      }
+
+      total += current * 10000000;
+      current = 0;
+      continue;
+    }
+
+    // Ignore unknown OCR words.
+  }
+
+  total += current;
+
+  return total;
+}
+
+
+// ==========================================
+// EXTRACT AMOUNT FROM AMOUNT IN WORDS
+// ==========================================
+
+function extractBlinkitAmountInWords(text) {
+  if (!text || typeof text !== "string") {
+    return 0;
+  }
+
+  const match = text.match(
+    /Amount\s+in\s+Words\s*:?\s*([\s\S]{0,180})/i
+  );
+
+  if (!match) {
+    return 0;
+  }
+
+  let words = match[1];
+
+  // Stop at common footer markers
+
+  words = words.split(
+    /\b(?:authorized|authorised|for\s+blink|terms\s+(?:and|&)\s+conditions|digitally\s+signed)\b/i
+  )[0];
+
+  words = words
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!words) {
+    return 0;
+  }
+
+  const number =
+    blinkitWordsToNumber(words);
+
+  if (
+    Number.isFinite(number) &&
+    number >= 0
+  ) {
+    return number;
+  }
+
+  return 0;
+}
+
+
 // ==========================================
 // PAGE TOTAL
+// ==========================================
+//
+// IMPORTANT:
+//
+// Product page:
+//
+// Total 4 83.00
+//
+// Product page:
+//
+// Total 1 28.00
+//
+// Product page:
+//
+// Amount in Words:
+// Thirty Rupees And Zero Paisa Only
+//
+// Charge page:
+//
+// Handling charge
+// Total ...
+//
+// Charge-only pages MUST NOT be added
+// to receipt amount.
+//
 // ==========================================
 
 function extractBlinkitPageTotal(text) {
@@ -707,14 +1076,19 @@ function extractBlinkitPageTotal(text) {
     return 0;
   }
 
+  // Keep original line structure for amount
+  // extraction. Do NOT use normalizeText here
+  // because newlines are useful for OCR layouts.
+
+  const rawText = text
+    .replace(/\r/g, "\n");
+
   const normalizedText =
     normalizeText(text);
 
-  // Charge-only invoice:
-
-  // 1 998549 Handling charge ...
-
-  // Must NOT count it.
+  // ------------------------------------------
+  // Charge-only invoice
+  // ------------------------------------------
 
   if (
     /\bhandling\s+charge\b/i.test(
@@ -724,8 +1098,16 @@ function extractBlinkitPageTotal(text) {
       normalizedText
     )
   ) {
+    console.log(
+      "Blinkit: Charge-only page ignored."
+    );
+
     return 0;
   }
+
+  // ------------------------------------------
+  // Must have product table
+  // ------------------------------------------
 
   const itemStart =
     normalizedText.search(
@@ -736,88 +1118,208 @@ function extractBlinkitPageTotal(text) {
     return 0;
   }
 
-  const tableText =
-    normalizedText.slice(itemStart);
+  // ==========================================
+  // STRATEGY 1
+  //
+  // Amount in Words
+  //
+  // This is the most reliable fallback for
+  // OCR layouts where the Total row gets split.
+  //
+  // Example:
+  //
+  // Amount in Words:
+  // Thirty Rupees And Zero Paisa Only
+  //
+  // => 30
+  //
+  // ==========================================
 
-  const footerIndex =
-    tableText.search(
-      /\bAmount\s+in\s+Words\b/i
+  const amountInWords =
+    extractBlinkitAmountInWords(
+      rawText
     );
 
-  const invoiceSection =
-    footerIndex !== -1
-      ? tableText.slice(
-          0,
-          footerIndex
-        )
-      : tableText;
+  if (
+    amountInWords > 0
+  ) {
+    console.log(
+      "Blinkit total from Amount in Words:",
+      amountInWords
+    );
 
+    return amountInWords;
+  }
 
-  // Example:
+  // ==========================================
+  // STRATEGY 2
+  //
+  // Direct Total row extraction
+  //
+  // Handles:
   //
   // Total 4 83.00
   // Total 1 28.00
   //
-  // Take final monetary value.
+  // ==========================================
 
-  const totalRows = [
-    ...invoiceSection.matchAll(
-      /\bTotal\s+\d+(?:\s+\d+(?:\.\d{1,3})?){0,10}\s+([\d,]+\.\d{1,2})\b/gi
+  const totalLineMatches = [
+    ...rawText.matchAll(
+      /^\s*Total\b.*$/gim
     ),
   ];
 
-  if (totalRows.length > 0) {
-    const value =
-      totalRows[
-        totalRows.length - 1
-      ][1].replace(/,/g, "");
+  if (
+    totalLineMatches.length > 0
+  ) {
+    for (
+      let i =
+        totalLineMatches.length - 1;
+      i >= 0;
+      i--
+    ) {
+      const totalLine =
+        totalLineMatches[i][0];
 
-    const number =
-      Number(value);
+      const amounts = [
+        ...totalLine.matchAll(
+          /(?:₹|Rs\.?)?\s*(\d[\d,]*\.\d{1,2})/gi
+        ),
+      ]
+        .map(
+          (match) =>
+            Number(
+              match[1].replace(/,/g, "")
+            )
+        )
+        .filter(
+          (value) =>
+            Number.isFinite(value) &&
+            value >= 0
+        );
 
-    if (Number.isFinite(number)) {
-      return number;
+      if (amounts.length > 0) {
+        const value =
+          amounts[amounts.length - 1];
+
+        console.log(
+          "Blinkit total from Total row:",
+          value
+        );
+
+        return value;
+      }
     }
   }
 
-
-  // Fallback:
+  // ==========================================
+  // STRATEGY 3
   //
-  // Search after last "Total"
+  // Total may be split over multiple OCR lines.
+  //
+  // Example:
+  //
+  // Total
+  // 1
+  // 30.00
+  //
+  // ==========================================
 
   const totalIndex =
-    invoiceSection.lastIndexOf(
-      "Total"
+    rawText.search(
+      /\bTotal\b/i
     );
 
   if (totalIndex !== -1) {
+    const afterTotal =
+      rawText.slice(
+        totalIndex,
+        totalIndex + 250
+      );
+
+    const amounts = [
+      ...afterTotal.matchAll(
+        /(?:₹|Rs\.?)?\s*(\d[\d,]*\.\d{1,2})/gi
+      ),
+    ]
+      .map(
+        (match) =>
+          Number(
+            match[1].replace(/,/g, "")
+          )
+      )
+      .filter(
+        (value) =>
+          Number.isFinite(value) &&
+          value >= 0
+      );
+
+    if (amounts.length > 0) {
+      const value =
+        amounts[amounts.length - 1];
+
+      console.log(
+        "Blinkit total from split Total section:",
+        value
+      );
+
+      return value;
+    }
+  }
+
+  // ==========================================
+  // STRATEGY 4
+  //
+  // Original Blinkit style fallback
+  //
+  // ==========================================
+
+  const normalizedTotalIndex =
+    normalizedText.lastIndexOf(
+      "Total"
+    );
+
+  if (
+    normalizedTotalIndex !== -1
+  ) {
     const totalSection =
-      invoiceSection.slice(
-        totalIndex
+      normalizedText.slice(
+        normalizedTotalIndex
       );
 
     const values = [
       ...totalSection.matchAll(
-        /(\d+\.\d{1,2})/g
+        /(\d[\d,]*\.\d{1,2})/g
       ),
-    ];
+    ]
+      .map(
+        (match) =>
+          Number(
+            match[1].replace(/,/g, "")
+          )
+      )
+      .filter(
+        (value) =>
+          Number.isFinite(value) &&
+          value >= 0
+      );
 
     if (values.length > 0) {
       const value =
-        values[
-          values.length - 1
-        ][1];
+        values[values.length - 1];
 
-      const number =
-        Number(value);
+      console.log(
+        "Blinkit total from final fallback:",
+        value
+      );
 
-      if (
-        Number.isFinite(number)
-      ) {
-        return number;
-      }
+      return value;
     }
   }
+
+  console.log(
+    "Blinkit Page Total: 0"
+  );
 
   return 0;
 }
@@ -828,8 +1330,11 @@ function extractBlinkitPageTotal(text) {
 // ==========================================
 //
 // IMPORTANT:
-// Keep this function because existing
-// Upload.jsx / router may still use it.
+//
+// DO NOT REMOVE.
+//
+// Existing Upload.jsx / router may still
+// use this function.
 //
 // ==========================================
 
@@ -874,6 +1379,9 @@ export function parseBlinkitInvoice(text) {
       productName
     );
 
+  // ==========================================
+  // CONFIDENCE
+  // ==========================================
 
   let confidence = 0;
 
@@ -908,7 +1416,6 @@ export function parseBlinkitInvoice(text) {
         1
       ).toFixed(2)
     );
-
 
   console.log(
     "========== BLINKIT PARSER =========="
@@ -947,7 +1454,6 @@ export function parseBlinkitInvoice(text) {
   console.log(
     "===================================="
   );
-
 
   return {
     storeName: "Blinkit",
@@ -1008,7 +1514,6 @@ export function parseBlinkitProductPages(
     };
   }
 
-
   const allProducts = [];
   const seen = new Set();
 
@@ -1018,7 +1523,6 @@ export function parseBlinkitProductPages(
   let totalAmount = 0;
 
   let productPageCount = 0;
-
 
   // ==========================================
   // PROCESS EVERY PAGE
@@ -1037,46 +1541,68 @@ export function parseBlinkitProductPages(
         page.text
       );
 
+    if (!pageText) {
+      continue;
+    }
 
-    // ------------------------------------------
+    console.log(
+      "=========================================="
+    );
+
+    console.log(
+      `BLINKIT PROCESSING PAGE ${page.pageNumber}`
+    );
+
+    // ========================================
     // DATE
-    // ------------------------------------------
+    // ========================================
 
-    if (!purchaseDate) {
-      purchaseDate =
-        extractPurchaseDate(
-          pageText
-        );
+    const pageDate =
+      extractPurchaseDate(
+        pageText
+      );
+
+    if (
+      !purchaseDate &&
+      pageDate
+    ) {
+      purchaseDate = pageDate;
     }
 
-
-    // ------------------------------------------
+    // ========================================
     // PAYMENT
-    // ------------------------------------------
+    // ========================================
 
-    if (!paymentMethod) {
+    const pagePayment =
+      extractPaymentMethod(
+        pageText
+      );
+
+    if (
+      !paymentMethod &&
+      pagePayment
+    ) {
       paymentMethod =
-        extractPaymentMethod(
-          pageText
-        );
+        pagePayment;
     }
 
-
-    // ------------------------------------------
+    // ========================================
     // PRODUCTS
-    // ------------------------------------------
+    // ========================================
 
     const pageProducts =
       extractBlinkitProducts(
         pageText
       );
 
-
     console.log(
-      `Blinkit Page ${page.pageNumber}:`,
+      `Blinkit Page ${page.pageNumber} products:`,
       pageProducts
     );
 
+    // ========================================
+    // PRODUCT PAGE CHECK
+    // ========================================
 
     if (
       pageProducts.length > 0
@@ -1084,9 +1610,9 @@ export function parseBlinkitProductPages(
       productPageCount += 1;
     }
 
-
-    // Add products without
-    // duplicates.
+    // ========================================
+    // ADD PRODUCTS
+    // ========================================
 
     for (
       const product of pageProducts
@@ -1098,25 +1624,58 @@ export function parseBlinkitProductPages(
       );
     }
 
-
-    // ------------------------------------------
+    // ========================================
     // PAGE TOTAL
-    // ------------------------------------------
-
-    const pageTotal =
-      extractBlinkitPageTotal(
-        pageText
-      );
-
+    // ========================================
+    //
+    // IMPORTANT:
+    //
+    // Only add total when page actually
+    // contains products.
+    //
+    // Therefore:
+    //
+    // Page 1 = ₹83
+    // Page 2 = ₹28
+    // Page 3 = ₹30
+    //
+    // Page 4:
+    // Handling Charge = ₹2
+    //
+    // Page 4 is not a product page,
+    // so ₹2 is NOT added.
+    //
+    // Final:
+    //
+    // ₹83 + ₹28 + ₹30 = ₹141
+    //
+    // ========================================
 
     if (
-      pageTotal > 0 &&
       pageProducts.length > 0
     ) {
-      totalAmount += pageTotal;
-    }
-  }
+      const pageTotal =
+        extractBlinkitPageTotal(
+          pageText
+        );
 
+      console.log(
+        `Blinkit Page ${page.pageNumber} total:`,
+        pageTotal
+      );
+
+      if (
+        pageTotal > 0
+      ) {
+        totalAmount +=
+          pageTotal;
+      }
+    }
+
+    console.log(
+      "=========================================="
+    );
+  }
 
   // ==========================================
   // FINAL PRODUCTS
@@ -1125,11 +1684,14 @@ export function parseBlinkitProductPages(
   const products =
     allProducts;
 
-
-  // Compatibility field.
+  // ==========================================
+  // COMPATIBILITY FIELD
+  // ==========================================
   //
   // Existing UI can still receive
   // productName as a string.
+  //
+  // ==========================================
 
   const productName =
     products.length > 0
@@ -1141,22 +1703,24 @@ export function parseBlinkitProductPages(
           .join(", ")
       : "";
 
-
   // ==========================================
   // CATEGORY
   // ==========================================
 
   let category = "Others";
 
-  if (products.length === 1) {
+  if (
+    products.length === 1
+  ) {
     category =
       products[0].category;
   }
 
-  if (products.length > 1) {
+  if (
+    products.length > 1
+  ) {
     category = "Multiple";
   }
-
 
   // ==========================================
   // CONFIDENCE
@@ -1164,19 +1728,27 @@ export function parseBlinkitProductPages(
 
   let confidence = 0;
 
-  if (products.length > 0) {
+  if (
+    products.length > 0
+  ) {
     confidence += 0.60;
   }
 
-  if (purchaseDate) {
+  if (
+    purchaseDate
+  ) {
     confidence += 0.20;
   }
 
-  if (paymentMethod) {
+  if (
+    paymentMethod
+  ) {
     confidence += 0.10;
   }
 
-  if (totalAmount > 0) {
+  if (
+    totalAmount > 0
+  ) {
     confidence += 0.10;
   }
 
@@ -1188,7 +1760,6 @@ export function parseBlinkitProductPages(
       ).toFixed(2)
     );
 
-
   // ==========================================
   // FINAL AMOUNT
   // ==========================================
@@ -1197,7 +1768,6 @@ export function parseBlinkitProductPages(
     totalAmount > 0
       ? totalAmount.toFixed(2)
       : "";
-
 
   // ==========================================
   // DEBUG
@@ -1264,7 +1834,6 @@ export function parseBlinkitProductPages(
     "================================================"
   );
 
-
   // ==========================================
   // FINAL RESULT
   // ==========================================
@@ -1272,10 +1841,10 @@ export function parseBlinkitProductPages(
   return {
     storeName: "Blinkit",
 
-    // NEW
+    // New multi-product field
     products,
 
-    // OLD COMPATIBILITY FIELD
+    // Old compatibility field
     productName,
 
     purchaseDate,

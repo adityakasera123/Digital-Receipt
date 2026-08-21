@@ -131,6 +131,20 @@ const Upload = () => {
   const isPDFResultIncomplete = (result) => {
     if (!result) return true;
 
+    // ==========================================
+    // MULTI-PRODUCT RESULT
+    //
+    // If products[] exists and contains products,
+    // this result is already valid.
+    // ==========================================
+
+    if (
+      Array.isArray(result.products) &&
+      result.products.length > 1
+    ) {
+      return false;
+    }
+
     const product =
       typeof result.productName === "string"
         ? result.productName.trim()
@@ -148,9 +162,9 @@ const Upload = () => {
 
     const amount = Number(result.amount);
 
-    // ------------------------------------------
+    // ==========================================
     // Product sanity checks
-    // ------------------------------------------
+    // ==========================================
 
     const invalidProductPatterns = [
       /^page\s+\d+/i,
@@ -162,15 +176,17 @@ const Upload = () => {
       /^invoice$/i,
     ];
 
-    const invalidProduct = invalidProductPatterns.some(
-      (pattern) => pattern.test(product)
-    );
+    const invalidProduct =
+      invalidProductPatterns.some(
+        (pattern) => pattern.test(product)
+      );
 
-    // ------------------------------------------
+    // ==========================================
     // Date sanity checks
-    // ------------------------------------------
+    // ==========================================
 
-    const dateParts = purchaseDate.split("-");
+    const dateParts =
+      purchaseDate.split("-");
 
     const invalidDate =
       !purchaseDate ||
@@ -182,9 +198,9 @@ const Upload = () => {
       Number(dateParts[2]) < 1 ||
       Number(dateParts[2]) > 31;
 
-    // ------------------------------------------
+    // ==========================================
     // Amount sanity check
-    // ------------------------------------------
+    // ==========================================
 
     const invalidAmount =
       !Number.isFinite(amount) ||
@@ -204,53 +220,44 @@ const Upload = () => {
   // Apply OCR/PDF result to Receipt Form
   // ==========================================
 
- // ==========================================
-// Apply OCR/PDF result to Receipt Form
-// ==========================================
+  const applyOCRResultToReceipt = (result) => {
+    setOCRData(result);
 
-const applyOCRResultToReceipt = (result) => {
-  setOCRData(result);
+    setReceiptData((prev) => ({
+      ...prev,
 
-  const products = Array.isArray(result.products)
-    ? result.products
-    : [];
+      productName:
+        result.productName || "",
 
-  const isMultiProduct = products.length > 1;
+      storeName:
+        result.storeName || "",
 
-  // Keep old single-product behavior.
-  // For multi-product PDFs, create a readable fallback
-  // productName until the UI gets the dedicated products list.
-  const productName =
-    result.productName ||
-    (isMultiProduct
-      ? products
-          .map((product) => product.productName)
-          .filter(Boolean)
-          .join(", ")
-      : "");
+      purchaseDate:
+        result.purchaseDate || "",
 
-  setReceiptData((prev) => ({
-    ...prev,
+      amount:
+        result.amount || "",
 
-    // Existing fields
-    productName,
-    storeName: result.storeName || "",
-    purchaseDate: result.purchaseDate || "",
-    amount: result.amount || "",
-    paymentMethod: result.paymentMethod || "",
-    category:
-      result.category ||
-      (isMultiProduct ? "Multiple" : ""),
+      paymentMethod:
+        result.paymentMethod || "",
 
-    // ==========================================
-    // MULTI-PRODUCT DATA
-    // ==========================================
+      category:
+        result.category || "",
 
-    products,
+      // ==========================================
+      // IMPORTANT
+      //
+      // Preserve multi-product data inside form
+      // state as well.
+      // ==========================================
 
-    isMultiProduct,
-  }));
-};
+      products:
+        Array.isArray(result.products)
+          ? result.products
+          : [],
+    }));
+  };
+
   // ==========================================
   // File Upload + OCR / PDF Processing
   // ==========================================
@@ -284,100 +291,285 @@ const applyOCRResultToReceipt = (result) => {
           "================================================"
         );
 
-        // ------------------------------------------
+        // ==========================================
         // STEP 1
         // Extract embedded PDF text
-        // ------------------------------------------
+        // ==========================================
 
-        const pdfResult = await extractTextFromPDF(file);
+        const pdfResult =
+          await extractTextFromPDF(file);
 
         console.log(
           "================ PDF TEXT ================"
         );
 
         console.log(pdfResult.text);
-        console.log("PDF Pages:", pdfResult.pageCount);
+        console.log(
+          "PDF Pages:",
+          pdfResult.pageCount
+        );
 
         console.log(
           "=========================================="
         );
 
-        // ------------------------------------------
+        let result;
+
+        // ==========================================
         // STEP 2
-        // PDF-specific existing parser routing
-        // ------------------------------------------
+        //
+        // IMPORTANT MULTI-PAGE ARCHITECTURE
+        //
+        // NEVER send a multi-page PDF directly
+        // to the old single-page parser.
+        //
+        // Multi-page PDF:
+        //
+        // PDF
+        // ↓
+        // visual OCR
+        // ↓
+        // page classifier
+        // ↓
+        // store-specific multi parser
+        //
+        // Single-page PDF:
+        //
+        // PDF
+        // ↓
+        // existing parser router
+        //
+        // This protects all old parsers.
+        // ==========================================
 
-        let result = parsePDFReceipt(
-          pdfResult.text
-        );
-
-        console.log(
-          "================ PDF PARSER RESULT ================"
-        );
-
-        console.log("Full Result:", result);
-        console.log("Product:", result.productName);
-        console.log("Store:", result.storeName);
-        console.log("Date:", result.purchaseDate);
-        console.log("Amount:", result.amount);
-        console.log("Category:", result.category);
-
-        console.log(
-          "==================================================="
-        );
-
-        // ------------------------------------------
-        // STEP 3
-        // Fallback to visual OCR if result
-        // is incomplete or obviously invalid
-        // ------------------------------------------
-
-        if (isPDFResultIncomplete(result)) {
+        if (pdfResult.pageCount > 1) {
           console.log(
-            "PDF parser result is incomplete or invalid."
+            "================================================"
           );
 
           console.log(
-            "Starting PDF visual OCR fallback..."
+            "PDF: Multiple pages detected."
           );
-
-          result = await runPDFOCRFallback(file);
 
           console.log(
-            "================ PDF OCR FALLBACK RESULT ================"
+            "PDF: Starting multi-page OCR pipeline."
           );
-
-          console.log("Full Result:", result);
-          console.log("Product:", result.productName);
-          console.log("Store:", result.storeName);
-          console.log("Date:", result.purchaseDate);
-          console.log("Amount:", result.amount);
-          console.log("Category:", result.category);
 
           console.log(
-            "=========================================================="
+            "================================================"
           );
+
+          result =
+            await runPDFOCRFallback(file);
+
+          console.log(
+            "================ PDF MULTI-PAGE RESULT ================"
+          );
+
+          console.log(
+            "Full Result:",
+            result
+          );
+
+          console.log(
+            "Product:",
+            result.productName
+          );
+
+          console.log(
+            "Products:",
+            result.products
+          );
+
+          console.log(
+            "Product Count:",
+            Array.isArray(result.products)
+              ? result.products.length
+              : 0
+          );
+
+          console.log(
+            "Store:",
+            result.storeName
+          );
+
+          console.log(
+            "Date:",
+            result.purchaseDate
+          );
+
+          console.log(
+            "Amount:",
+            result.amount
+          );
+
+          console.log(
+            "Category:",
+            result.category
+          );
+
+          console.log(
+            "Payment:",
+            result.paymentMethod
+          );
+
+          console.log(
+            "======================================================="
+          );
+        } else {
+          // ==========================================
+          // SINGLE PAGE PDF
+          //
+          // Existing behavior remains.
+          // ==========================================
+
+          console.log(
+            "PDF: Single page detected."
+          );
+
+          console.log(
+            "PDF: Using existing parser router."
+          );
+
+          result =
+            parsePDFReceipt(
+              pdfResult.text
+            );
+
+          console.log(
+            "================ PDF PARSER RESULT ================"
+          );
+
+          console.log(
+            "Full Result:",
+            result
+          );
+
+          console.log(
+            "Product:",
+            result.productName
+          );
+
+          console.log(
+            "Store:",
+            result.storeName
+          );
+
+          console.log(
+            "Date:",
+            result.purchaseDate
+          );
+
+          console.log(
+            "Amount:",
+            result.amount
+          );
+
+          console.log(
+            "Category:",
+            result.category
+          );
+
+          console.log(
+            "==================================================="
+          );
+
+          // ==========================================
+          // SINGLE PAGE FALLBACK
+          //
+          // Existing behavior preserved.
+          // ==========================================
+
+          if (
+            isPDFResultIncomplete(result)
+          ) {
+            console.log(
+              "PDF parser result is incomplete or invalid."
+            );
+
+            console.log(
+              "Starting PDF visual OCR fallback..."
+            );
+
+            result =
+              await runPDFOCRFallback(file);
+
+            console.log(
+              "================ PDF OCR FALLBACK RESULT ================"
+            );
+
+            console.log(
+              "Full Result:",
+              result
+            );
+
+            console.log(
+              "Product:",
+              result.productName
+            );
+
+            console.log(
+              "Store:",
+              result.storeName
+            );
+
+            console.log(
+              "Date:",
+              result.purchaseDate
+            );
+
+            console.log(
+              "Amount:",
+              result.amount
+            );
+
+            console.log(
+              "Category:",
+              result.category
+            );
+
+            console.log(
+              "=========================================================="
+            );
+          }
         }
 
-        // ------------------------------------------
-        // STEP 4
+        // ==========================================
+        // STEP 3
         // Apply final result
-        // ------------------------------------------
+        // ==========================================
 
         applyOCRResultToReceipt(result);
 
         console.log(
           "Setting PDF Receipt State:",
           {
-            productName: result.productName,
-            storeName: result.storeName,
-            purchaseDate: result.purchaseDate,
-            amount: result.amount,
-            category: result.category,
+            productName:
+              result.productName,
+
+            products:
+              result.products,
+
+            storeName:
+              result.storeName,
+
+            purchaseDate:
+              result.purchaseDate,
+
+            amount:
+              result.amount,
+
+            category:
+              result.category,
+
+            paymentMethod:
+              result.paymentMethod,
           }
         );
 
-        setOCRState(OCR_STATES.REVIEW);
+        setOCRState(
+          OCR_STATES.REVIEW
+        );
 
         return;
       } catch (error) {
@@ -391,7 +583,9 @@ const applyOCRResultToReceipt = (result) => {
             "PDF processing failed"
         );
 
-        setOCRState(OCR_STATES.FAILED);
+        setOCRState(
+          OCR_STATES.FAILED
+        );
 
         return;
       }
@@ -399,13 +593,18 @@ const applyOCRResultToReceipt = (result) => {
 
     // ==========================================
     // EXISTING IMAGE OCR FLOW
+    //
+    // DO NOT CHANGE
     // ==========================================
 
     try {
       setOCRError(null);
-      setOCRState(OCR_STATES.PROCESSING);
+      setOCRState(
+        OCR_STATES.PROCESSING
+      );
 
-      const result = await processReceipt(file);
+      const result =
+        await processReceipt(file);
 
       console.log(
         "================ RAW OCR TEXT ================"
@@ -421,12 +620,35 @@ const applyOCRResultToReceipt = (result) => {
         "================ OCR RESULT ================"
       );
 
-      console.log("Full Result:", result);
-      console.log("Product:", result.productName);
-      console.log("Store:", result.storeName);
-      console.log("Date:", result.purchaseDate);
-      console.log("Amount:", result.amount);
-      console.log("Category:", result.category);
+      console.log(
+        "Full Result:",
+        result
+      );
+
+      console.log(
+        "Product:",
+        result.productName
+      );
+
+      console.log(
+        "Store:",
+        result.storeName
+      );
+
+      console.log(
+        "Date:",
+        result.purchaseDate
+      );
+
+      console.log(
+        "Amount:",
+        result.amount
+      );
+
+      console.log(
+        "Category:",
+        result.category
+      );
 
       console.log(
         "============================================"
@@ -437,23 +659,37 @@ const applyOCRResultToReceipt = (result) => {
       console.log(
         "Setting Receipt State:",
         {
-          productName: result.productName,
-          storeName: result.storeName,
-          purchaseDate: result.purchaseDate,
-          amount: result.amount,
-          category: result.category,
+          productName:
+            result.productName,
+
+          storeName:
+            result.storeName,
+
+          purchaseDate:
+            result.purchaseDate,
+
+          amount:
+            result.amount,
+
+          category:
+            result.category,
         }
       );
 
-      setOCRState(OCR_STATES.REVIEW);
+      setOCRState(
+        OCR_STATES.REVIEW
+      );
     } catch (error) {
       console.error(error);
 
       setOCRError(
-        error.message || "OCR failed"
+        error.message ||
+          "OCR failed"
       );
 
-      setOCRState(OCR_STATES.FAILED);
+      setOCRState(
+        OCR_STATES.FAILED
+      );
     }
   };
 
@@ -462,7 +698,9 @@ const applyOCRResultToReceipt = (result) => {
   // ==========================================
 
   const handleRetryOCR = async () => {
-    if (!receiptData.receiptImage) return;
+    if (!receiptData.receiptImage) {
+      return;
+    }
 
     // ==========================================
     // PDF RETRY
@@ -475,15 +713,13 @@ const applyOCRResultToReceipt = (result) => {
     ) {
       try {
         setOCRError(null);
-        setOCRState(OCR_STATES.PROCESSING);
+        setOCRState(
+          OCR_STATES.PROCESSING
+        );
 
         console.log(
           "================ PDF RETRY ================"
         );
-
-        // ------------------------------------------
-        // Normal PDF text extraction
-        // ------------------------------------------
 
         const pdfResult =
           await extractTextFromPDF(
@@ -500,37 +736,75 @@ const applyOCRResultToReceipt = (result) => {
           pdfResult.pageCount
         );
 
-        // ------------------------------------------
-        // PDF-specific parser router
-        // ------------------------------------------
+        let result;
 
-        let result = parsePDFReceipt(
-          pdfResult.text
-        );
+        // ==========================================
+        // IMPORTANT:
+        // Multi-page retry must also use the
+        // multi-page OCR pipeline.
+        // ==========================================
 
-        // ------------------------------------------
-        // Fallback if result is invalid/incomplete
-        // ------------------------------------------
-
-        if (isPDFResultIncomplete(result)) {
+        if (pdfResult.pageCount > 1) {
           console.log(
-            "PDF retry result incomplete or invalid."
+            "PDF Retry: Multiple pages detected."
           );
 
           console.log(
-            "Starting PDF OCR fallback..."
+            "PDF Retry: Using multi-page OCR."
           );
 
-          result = await runPDFOCRFallback(
-            receiptData.receiptImage
-          );
+          result =
+            await runPDFOCRFallback(
+              receiptData.receiptImage
+            );
+        } else {
+          // ==========================================
+          // Existing single-page retry
+          // ==========================================
+
+          result =
+            parsePDFReceipt(
+              pdfResult.text
+            );
+
+          if (
+            isPDFResultIncomplete(result)
+          ) {
+            console.log(
+              "PDF retry result incomplete or invalid."
+            );
+
+            console.log(
+              "Starting PDF OCR fallback..."
+            );
+
+            result =
+              await runPDFOCRFallback(
+                receiptData.receiptImage
+              );
+          }
         }
 
         console.log(
           "================ PDF RETRY RESULT ================"
         );
 
-        console.log(result);
+        console.log(
+          "Result:",
+          result
+        );
+
+        console.log(
+          "Products:",
+          result.products
+        );
+
+        console.log(
+          "Product Count:",
+          Array.isArray(result.products)
+            ? result.products.length
+            : 0
+        );
 
         console.log(
           "==================================================="
@@ -538,7 +812,9 @@ const applyOCRResultToReceipt = (result) => {
 
         applyOCRResultToReceipt(result);
 
-        setOCRState(OCR_STATES.REVIEW);
+        setOCRState(
+          OCR_STATES.REVIEW
+        );
       } catch (error) {
         console.error(
           "PDF Retry Error:",
@@ -550,7 +826,9 @@ const applyOCRResultToReceipt = (result) => {
             "PDF processing failed"
         );
 
-        setOCRState(OCR_STATES.FAILED);
+        setOCRState(
+          OCR_STATES.FAILED
+        );
       }
 
       return;
@@ -562,11 +840,15 @@ const applyOCRResultToReceipt = (result) => {
 
     try {
       setOCRError(null);
-      setOCRState(OCR_STATES.PROCESSING);
 
-      const result = await processReceipt(
-        receiptData.receiptImage
+      setOCRState(
+        OCR_STATES.PROCESSING
       );
+
+      const result =
+        await processReceipt(
+          receiptData.receiptImage
+        );
 
       console.log(
         "================ OCR RETRY ================"
@@ -580,15 +862,20 @@ const applyOCRResultToReceipt = (result) => {
 
       applyOCRResultToReceipt(result);
 
-      setOCRState(OCR_STATES.REVIEW);
+      setOCRState(
+        OCR_STATES.REVIEW
+      );
     } catch (error) {
       console.error(error);
 
       setOCRError(
-        error.message || "OCR failed"
+        error.message ||
+          "OCR failed"
       );
 
-      setOCRState(OCR_STATES.FAILED);
+      setOCRState(
+        OCR_STATES.FAILED
+      );
     }
   };
 
@@ -597,7 +884,9 @@ const applyOCRResultToReceipt = (result) => {
   // ==========================================
 
   const handleManualEntry = () => {
-    setOCRState(OCR_STATES.REVIEW);
+    setOCRState(
+      OCR_STATES.REVIEW
+    );
   };
 
   // ==========================================
@@ -605,20 +894,27 @@ const applyOCRResultToReceipt = (result) => {
   // ==========================================
 
   const handleSaveReceipt = async () => {
-    const result = validateReceipt();
+    const result =
+      validateReceipt();
 
-    setErrors(result.errors);
+    setErrors(
+      result.errors
+    );
 
     if (!result.isValid) {
       toast.error(
-        Object.values(result.errors)[0]
+        Object.values(
+          result.errors
+        )[0]
       );
 
       return;
     }
 
     if (!user) {
-      toast.error("Please login first.");
+      toast.error(
+        "Please login first."
+      );
 
       return;
     }
@@ -635,10 +931,17 @@ const applyOCRResultToReceipt = (result) => {
       const receiptId =
         await saveReceipt({
           ...receiptData,
-          receiptImage: imageUrl,
-          userId: uid,
 
+          receiptImage:
+            imageUrl,
+
+          userId:
+            uid,
+
+          // ==========================================
           // Return Tracking
+          // ==========================================
+
           returnTracking:
             receiptData.returnTracking,
 
@@ -648,9 +951,10 @@ const applyOCRResultToReceipt = (result) => {
           returnType:
             receiptData.returnType,
 
-          returnDurationDays: Number(
-            receiptData.returnDurationDays
-          ),
+          returnDurationDays:
+            Number(
+              receiptData.returnDurationDays
+            ),
 
           returnStartDate:
             receiptData.returnStartDate,
@@ -659,7 +963,9 @@ const applyOCRResultToReceipt = (result) => {
             receiptData.returnEndDate,
         });
 
-      if (receiptData.hasWarranty) {
+      if (
+        receiptData.hasWarranty
+      ) {
         await saveWarranty({
           receiptId,
 
@@ -681,7 +987,8 @@ const applyOCRResultToReceipt = (result) => {
           expiryDate:
             receiptData.warrantyExpiry,
 
-          userId: uid,
+          userId:
+            uid,
         });
       }
 
@@ -689,7 +996,9 @@ const applyOCRResultToReceipt = (result) => {
         "Receipt saved successfully!"
       );
 
-      navigate("/receipts");
+      navigate(
+        "/receipts"
+      );
     } catch (error) {
       console.error(error);
 
@@ -713,62 +1022,91 @@ const applyOCRResultToReceipt = (result) => {
         errors={errors}
       />
 
-      {ocrState === OCR_STATES.PROCESSING && (
+      {ocrState ===
+        OCR_STATES.PROCESSING && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-sm p-4">
           <div className="w-full max-w-xs sm:max-w-sm lg:max-w-md">
             <OCRProcessingScreen
               image={previewImage}
-               file={receiptData.receiptImage}
+              file={
+                receiptData.receiptImage
+              }
             />
           </div>
         </div>
       )}
 
-      {ocrState === OCR_STATES.FAILED && (
+      {ocrState ===
+        OCR_STATES.FAILED && (
         <OCRFailureState
           image={previewImage}
-          onRetry={handleRetryOCR}
-          onManualEntry={handleManualEntry}
-        />
-      )}
-
-      {ocrState === OCR_STATES.REVIEW && (
-        <OCRReviewBanner
-          confidence={
-            ocrData?.confidence || 0.98
+          onRetry={
+            handleRetryOCR
+          }
+          onManualEntry={
+            handleManualEntry
           }
         />
       )}
 
-      {ocrState !== OCR_STATES.PROCESSING && (
+      {ocrState ===
+        OCR_STATES.REVIEW && (
+        <OCRReviewBanner
+          confidence={
+            ocrData?.confidence ||
+            0.98
+          }
+        />
+      )}
+
+      {ocrState !==
+        OCR_STATES.PROCESSING && (
         <>
           <ReceiptForm
-            receiptData={receiptData}
-            onInputChange={handleInputChange}
+            receiptData={
+              receiptData
+            }
+            onInputChange={
+              handleInputChange
+            }
             errors={errors}
             ocrData={ocrData}
           />
 
           <WarrantyForm
-            receiptData={receiptData}
-            onInputChange={handleInputChange}
+            receiptData={
+              receiptData
+            }
+            onInputChange={
+              handleInputChange
+            }
             errors={errors}
           />
 
           <ReturnWindowCard
-            receiptData={receiptData}
-            onInputChange={handleInputChange}
+            receiptData={
+              receiptData
+            }
+            onInputChange={
+              handleInputChange
+            }
             errors={errors}
           />
 
           <NotesField
-            receiptData={receiptData}
-            onInputChange={handleInputChange}
+            receiptData={
+              receiptData
+            }
+            onInputChange={
+              handleInputChange
+            }
           />
 
           <UploadActions
             mode="add"
-            onSave={handleSaveReceipt}
+            onSave={
+              handleSaveReceipt
+            }
           />
         </>
       )}

@@ -21,8 +21,7 @@ const PDF_WORKER_URL = new URL(
   import.meta.url
 ).toString();
 
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  PDF_WORKER_URL;
+pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL;
 
 // ==========================================
 // Normalize OCR text
@@ -40,23 +39,123 @@ function normalizePageText(text) {
 }
 
 // ==========================================
+// Detect Blinkit document
+// ==========================================
+
+function isBlinkitDocument(text) {
+  if (!text || typeof text !== "string") {
+    return false;
+  }
+
+  const lower = text.toLowerCase();
+
+  return (
+    lower.includes("blinkit") ||
+    lower.includes("blink commerce private limited") ||
+    lower.includes("grofers india private limited")
+  );
+}
+
+// ==========================================
+// Extract purchase date fallback
+//
+// Multi-product Blinkit parser may return blank
+// date depending on parser version.
+//
+// We safely recover it from OCR text.
+// ==========================================
+
+function extractPurchaseDateFallback(text) {
+  if (!text || typeof text !== "string") {
+    return "";
+  }
+
+  // ------------------------------------------
+  // DD-MMM-YYYY
+  // Example: 23-Apr-2024
+  // ------------------------------------------
+
+  const monthNames = {
+    jan: "01",
+    january: "01",
+    feb: "02",
+    february: "02",
+    mar: "03",
+    march: "03",
+    apr: "04",
+    april: "04",
+    may: "05",
+    jun: "06",
+    june: "06",
+    jul: "07",
+    july: "07",
+    aug: "08",
+    august: "08",
+    sep: "09",
+    sept: "09",
+    september: "09",
+    oct: "10",
+    october: "10",
+    nov: "11",
+    november: "11",
+    dec: "12",
+    december: "12",
+  };
+
+  const textDateMatch = text.match(
+    /\binvoice\s+date\s*:?\s*(\d{1,2})[-/ ]([A-Za-z]{3,9})[-/ ](\d{4})\b/i
+  );
+
+  if (textDateMatch) {
+    const day = textDateMatch[1].padStart(2, "0");
+    const monthName = textDateMatch[2].toLowerCase();
+    const year = textDateMatch[3];
+
+    const month = monthNames[monthName];
+
+    if (month) {
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  // ------------------------------------------
+  // DD/MM/YYYY or DD-MM-YYYY
+  // ------------------------------------------
+
+  const numericMatch = text.match(
+    /\binvoice\s+date\s*:?\s*(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b/i
+  );
+
+  if (numericMatch) {
+    const day = numericMatch[1].padStart(2, "0");
+    const month = numericMatch[2].padStart(2, "0");
+    const year = numericMatch[3];
+
+    return `${year}-${month}-${day}`;
+  }
+
+  // ------------------------------------------
+  // Last fallback:
+  // Any DD/MM/YYYY or DD-MM-YYYY
+  // ------------------------------------------
+
+  const fallbackMatch = text.match(
+    /\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b/
+  );
+
+  if (fallbackMatch) {
+    const day = fallbackMatch[1].padStart(2, "0");
+    const month = fallbackMatch[2].padStart(2, "0");
+    const year = fallbackMatch[3];
+
+    return `${year}-${month}-${day}`;
+  }
+
+  return "";
+}
+
+// ==========================================
 // Score a PDF page
-//
-// Goal:
-// Find the actual PRODUCT invoice page.
-//
-// We do NOT hardcode Myntra/Amazon/Flipkart.
-// This is generic.
-//
-// Product invoice pages usually contain:
-// - Tax Invoice
-// - product/item description
-// - Qty
-// - Total
-// - GST/HSN
-//
-// Service / transport / platform-fee pages
-// should receive lower priority.
 // ==========================================
 
 function scoreInvoicePage(text) {
@@ -134,8 +233,7 @@ function scoreInvoicePage(text) {
   // ------------------------------------------
 
   const rupeeMatches =
-    text.match(/(?:₹|Rs\.?)\s*[\d,]+(?:\.\d{1,2})?/gi) ||
-    [];
+    text.match(/(?:₹|Rs\.?)\s*[\d,]+(?:\.\d{1,2})?/gi) || [];
 
   if (rupeeMatches.length >= 2) {
     score += 8;
@@ -196,7 +294,7 @@ function scoreInvoicePage(text) {
   }
 
   // ------------------------------------------
-  // Penalize pages that are mostly legal/footer
+  // Footer-only page
   // ------------------------------------------
 
   if (
@@ -215,9 +313,6 @@ function scoreInvoicePage(text) {
 
 // ==========================================
 // Select best invoice page
-//
-// Generic page selection.
-// No Myntra/Amazon/Flipkart hardcoding.
 // ==========================================
 
 function selectBestInvoicePage(pageResults) {
@@ -235,9 +330,7 @@ function selectBestInvoicePage(pageResults) {
     };
   });
 
-  scoredPages.sort((a, b) => {
-    return b.score - a.score;
-  });
+  scoredPages.sort((a, b) => b.score - a.score);
 
   console.log(
     "================ PDF PAGE SCORING ================"
@@ -258,14 +351,113 @@ function selectBestInvoicePage(pageResults) {
 }
 
 // ==========================================
-// PDF OCR Fallback
-// ==========================================
-// PDF → Page Image → Existing Google Vision
-// → Existing OCR text extraction
-// → Select actual invoice page
-// → PDF-specific parser router
+// Normalize multi-product result
 //
-// Existing image OCR pipeline remains untouched.
+// Makes sure Upload.jsx receives a stable shape.
+// ==========================================
+
+function normalizeMultiProductResult(
+  multiPageResult,
+  productPages
+) {
+  const products = Array.isArray(
+    multiPageResult?.products
+  )
+    ? multiPageResult.products
+    : [];
+
+  const productNames = products
+    .map((product) => product?.productName)
+    .filter(Boolean);
+
+  // ------------------------------------------
+  // Date fallback
+  // ------------------------------------------
+
+  let purchaseDate =
+    multiPageResult?.purchaseDate || "";
+
+  if (!purchaseDate && productPages.length > 0) {
+    purchaseDate = extractPurchaseDateFallback(
+      productPages
+        .map((page) => page.text)
+        .join("\n")
+    );
+  }
+
+  // ------------------------------------------
+  // Category
+  // ------------------------------------------
+
+  let category =
+    multiPageResult?.category || "";
+
+  if (!category) {
+    if (products.length > 1) {
+      category = "Multiple";
+    } else if (products[0]?.category) {
+      category = products[0].category;
+    } else {
+      category = "Others";
+    }
+  }
+
+  // ------------------------------------------
+  // Product Name
+  //
+  // IMPORTANT:
+  // Keep productName as a readable summary.
+  // Upload.jsx can use `products` for the list.
+  // ------------------------------------------
+
+  const productName =
+    productNames.length > 0
+      ? productNames.join(", ")
+      : multiPageResult?.productName || "";
+
+  return {
+    ...multiPageResult,
+
+    storeName:
+      multiPageResult?.storeName || "Blinkit",
+
+    products,
+
+    productName,
+
+    purchaseDate,
+
+    amount:
+      multiPageResult?.amount || "",
+
+    paymentMethod:
+      multiPageResult?.paymentMethod || "",
+
+    category,
+
+    confidence:
+      typeof multiPageResult?.confidence === "number"
+        ? multiPageResult.confidence
+        : 0,
+  };
+}
+
+// ==========================================
+// PDF OCR Fallback
+//
+// PDF
+//  ↓
+// PDF.js
+//  ↓
+// Every page rendered
+//  ↓
+// Google Vision
+//  ↓
+// Page classification
+//  ↓
+// Blinkit multi-page parser when required
+//  ↓
+// Existing single-page parser otherwise
 // ==========================================
 
 export const runPDFOCRFallback = async (file) => {
@@ -277,6 +469,10 @@ export const runPDFOCRFallback = async (file) => {
     throw new Error("Only PDF files are supported.");
   }
 
+  // ==========================================
+  // Load PDF
+  // ==========================================
+
   const arrayBuffer = await file.arrayBuffer();
 
   const pdf = await pdfjsLib.getDocument({
@@ -284,7 +480,9 @@ export const runPDFOCRFallback = async (file) => {
   }).promise;
 
   let combinedText = "";
+
   const rawResults = [];
+
   const pageResults = [];
 
   console.log(
@@ -393,23 +591,29 @@ export const runPDFOCRFallback = async (file) => {
     console.log(pageText);
 
     // ==========================================
+    // Classify page
+    // ==========================================
+
+    const classification =
+      classifyPDFPage(pageText);
+
+    console.log(
+      `PDF Page ${pageNumber}:`,
+      classification
+    );
+
+    // ==========================================
     // Keep page separately
     // ==========================================
-const classification = classifyPDFPage(pageText);
 
-console.log(
-  `PDF Page ${pageNumber}:`,
-  classification
-);
-
-pageResults.push({
-  pageNumber,
-  text: pageText,
-  classification,
-});
+    pageResults.push({
+      pageNumber,
+      text: pageText,
+      classification,
+    });
 
     // ==========================================
-    // Keep combined text for debugging / raw
+    // Combined text
     // ==========================================
 
     if (pageText) {
@@ -418,6 +622,10 @@ pageResults.push({
 
       combinedText += `${pageText}\n`;
     }
+
+    // ==========================================
+    // Raw OCR
+    // ==========================================
 
     rawResults.push({
       pageNumber,
@@ -451,7 +659,7 @@ pageResults.push({
   );
 
   // ==========================================
-  // Select actual invoice page
+  // Select best invoice page
   // ==========================================
 
   const bestPage =
@@ -464,39 +672,48 @@ pageResults.push({
   }
 
   // ==========================================
-// MULTI-PAGE PRODUCT INVOICE DETECTION
-// ==========================================
+  // GROUP PAGES
+  // ==========================================
 
-const productPages = pageResults.filter(
-  (page) =>
-    page.classification?.type ===
-    "PRODUCT_INVOICE"
-);
+  const productPages =
+    pageResults.filter(
+      (page) =>
+        page.classification?.type ===
+        "PRODUCT_INVOICE"
+    );
 
-const chargePages = pageResults.filter(
-  (page) =>
-    page.classification?.type ===
-    "CHARGE_INVOICE"
-);
+  const chargePages =
+    pageResults.filter(
+      (page) =>
+        page.classification?.type ===
+        "CHARGE_INVOICE"
+    );
 
-console.log(
-  "================ PDF PAGE GROUPS ================"
-);
+  console.log(
+    "================ PDF PAGE GROUPS ================"
+  );
 
-console.log(
-  "Product Pages:",
-  productPages.map((page) => page.pageNumber)
-);
+  console.log(
+    "Product Pages:",
+    productPages.map(
+      (page) => page.pageNumber
+    )
+  );
 
-console.log(
-  "Charge Pages:",
-  chargePages.map((page) => page.pageNumber)
-);
+  console.log(
+    "Charge Pages:",
+    chargePages.map(
+      (page) => page.pageNumber
+    )
+  );
 
-console.log(
-  "=================================================="
-);
+  console.log(
+    "=================================================="
+  );
 
+  // ==========================================
+  // Selected Page Debug
+  // ==========================================
 
   console.log(
     "================ PDF SELECTED PAGE ================"
@@ -521,73 +738,170 @@ console.log(
     "===================================================="
   );
 
-// ==========================================
-// MULTI-PAGE PRODUCT PARSING
-// ==========================================
+  // ==========================================
+  // MULTI-PAGE PARSING
+  // ==========================================
 
-let parsed;
+  let parsed;
 
-// ------------------------------------------
-// If multiple PRODUCT_INVOICE pages exist,
-// parse all of them.
-//
-// This is currently used for Blinkit.
-// ------------------------------------------
+  const blinkitDocument =
+    isBlinkitDocument(finalText);
 
-if (productPages.length > 1) {
-  console.log(
-    "PDF: Multiple product pages detected."
-  );
+  // ==========================================
+  // IMPORTANT:
+  //
+  // Only use Blinkit multi-product parser
+  // when the PDF is actually Blinkit.
+  //
+  // This protects existing Amazon /
+  // Flipkart / Myntra / other parsers.
+  // ==========================================
 
-  const multiPageResult =
-    parseBlinkitProductPages(productPages);
+  if (
+    blinkitDocument &&
+    productPages.length > 1
+  ) {
+    console.log(
+      "=================================================="
+    );
 
-  parsed = {
-  ...multiPageResult,
+    console.log(
+      "PDF: Blinkit multi-product document detected."
+    );
 
-  storeName:
-    multiPageResult.storeName || "Blinkit",
+    console.log(
+      "Blinkit Product Pages:",
+      productPages.map(
+        (page) => page.pageNumber
+      )
+    );
 
-  products:
-    Array.isArray(multiPageResult.products)
-      ? multiPageResult.products
-      : [],
+    console.log(
+      "Blinkit Charge Pages:",
+      chargePages.map(
+        (page) => page.pageNumber
+      )
+    );
 
-  productName:
-    multiPageResult.productName ||
-    multiPageResult.products
-      ?.map((product) => product.productName)
-      .join(", ") ||
-    "",
+    console.log(
+      "=================================================="
+    );
 
-  purchaseDate:
-    multiPageResult.purchaseDate || "",
+    // ==========================================
+    // IMPORTANT:
+    //
+    // parseBlinkitProductPages expects the
+    // page objects containing:
+    //
+    // {
+    //   pageNumber,
+    //   text,
+    //   classification
+    // }
+    //
+    // Do NOT pass only strings here.
+    // ==========================================
 
-  amount:
-    multiPageResult.amount || "",
+    const multiPageResult =
+      parseBlinkitProductPages(
+        productPages
+      );
 
-  paymentMethod:
-    multiPageResult.paymentMethod || "",
+    console.log(
+      "================ BLINKIT MULTI RESULT ================"
+    );
 
-  category:
-    multiPageResult.category ||
-    (
-      multiPageResult.products?.length > 1
-        ? "Multiple"
-        : multiPageResult.products?.[0]?.category || "Others"
-    ),
+    console.log(
+      "Raw Multi Result:",
+      multiPageResult
+    );
 
-  confidence:
-    multiPageResult.confidence || 0,
-};
-} else {
-  // ------------------------------------------
-  // Existing single-page flow
-  // ------------------------------------------
+    console.log(
+      "Products:",
+      multiPageResult?.products
+    );
 
-  parsed =
-    parsePDFReceipt(bestPage.text);
-}
+    console.log(
+      "Product Count:",
+      multiPageResult?.products?.length || 0
+    );
+
+    console.log(
+      "======================================================="
+    );
+
+    parsed =
+      normalizeMultiProductResult(
+        multiPageResult,
+        productPages
+      );
+
+    // ==========================================
+    // SAFETY FALLBACK
+    //
+    // If the multi parser unexpectedly returns
+    // zero products, DO NOT destroy the existing
+    // single-page flow.
+    // ==========================================
+
+    if (
+      !Array.isArray(parsed.products) ||
+      parsed.products.length === 0
+    ) {
+      console.warn(
+        "Blinkit multi-product parser returned no products."
+      );
+
+      console.warn(
+        "Falling back to selected-page PDF parser."
+      );
+
+      parsed =
+        parsePDFReceipt(
+          bestPage.text
+        );
+    }
+  } else {
+    // ==========================================
+    // EXISTING SINGLE-PAGE FLOW
+    //
+    // This remains unchanged for:
+    //
+    // - Single-page PDFs
+    // - Non-Blinkit PDFs
+    // - Other existing stores
+    // ==========================================
+
+    console.log(
+      "PDF: Using existing single-page parser."
+    );
+
+    parsed =
+      parsePDFReceipt(
+        bestPage.text
+      );
+  }
+
+  // ==========================================
+  // Ensure safe result
+  // ==========================================
+
+  if (!parsed) {
+    parsed = {
+      storeName: "",
+      productName: "",
+      products: [],
+      purchaseDate: "",
+      amount: "",
+      paymentMethod: "",
+      category: "Others",
+      confidence: 0,
+    };
+  }
+
+  // ==========================================
+  // Final result debug
+  // ==========================================
 
   console.log(
     "================ PDF OCR FALLBACK RESULT ================"
@@ -606,6 +920,18 @@ if (productPages.length > 1) {
   console.log(
     "Product:",
     parsed.productName
+  );
+
+  console.log(
+    "Products:",
+    parsed.products
+  );
+
+  console.log(
+    "Product Count:",
+    Array.isArray(parsed.products)
+      ? parsed.products.length
+      : 0
   );
 
   console.log(
@@ -629,6 +955,11 @@ if (productPages.length > 1) {
   );
 
   console.log(
+    "Payment:",
+    parsed.paymentMethod
+  );
+
+  console.log(
     "=========================================================="
   );
 
@@ -637,20 +968,29 @@ if (productPages.length > 1) {
   // ==========================================
 
   return {
-    // Full OCR text is still available for debugging.
+    // Full OCR text
     text: finalText,
 
-    // Keep every page's raw OCR result.
+    // Every page's raw OCR result
     raw: rawResults,
 
-    // PDF metadata.
+    // PDF metadata
     pageCount: pdf.numPages,
 
-    // Useful debugging information.
+    // Debugging information
     selectedPage: bestPage.pageNumber,
     selectedPageScore: bestPage.score,
 
-    // Parsed receipt data.
+    // Page groups
+    productPages: productPages.map(
+      (page) => page.pageNumber
+    ),
+
+    chargePages: chargePages.map(
+      (page) => page.pageNumber
+    ),
+
+    // Parsed receipt data
     ...parsed,
   };
 };
