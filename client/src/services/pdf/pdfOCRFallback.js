@@ -8,6 +8,10 @@ import { extractText } from "../ocr/extractText";
 // Do NOT use the normal image parserRouter here.
 import { parsePDFReceipt } from "./pdfParserRouter";
 
+import { parseBlinkitProductPages } from "../../parsers/blinkitParser";
+
+import { classifyPDFPage } from "./pdfPageClassifier";
+
 // ==========================================
 // PDF.js Worker
 // ==========================================
@@ -391,11 +395,18 @@ export const runPDFOCRFallback = async (file) => {
     // ==========================================
     // Keep page separately
     // ==========================================
+const classification = classifyPDFPage(pageText);
 
-    pageResults.push({
-      pageNumber,
-      text: pageText,
-    });
+console.log(
+  `PDF Page ${pageNumber}:`,
+  classification
+);
+
+pageResults.push({
+  pageNumber,
+  text: pageText,
+  classification,
+});
 
     // ==========================================
     // Keep combined text for debugging / raw
@@ -452,6 +463,41 @@ export const runPDFOCRFallback = async (file) => {
     );
   }
 
+  // ==========================================
+// MULTI-PAGE PRODUCT INVOICE DETECTION
+// ==========================================
+
+const productPages = pageResults.filter(
+  (page) =>
+    page.classification?.type ===
+    "PRODUCT_INVOICE"
+);
+
+const chargePages = pageResults.filter(
+  (page) =>
+    page.classification?.type ===
+    "CHARGE_INVOICE"
+);
+
+console.log(
+  "================ PDF PAGE GROUPS ================"
+);
+
+console.log(
+  "Product Pages:",
+  productPages.map((page) => page.pageNumber)
+);
+
+console.log(
+  "Charge Pages:",
+  chargePages.map((page) => page.pageNumber)
+);
+
+console.log(
+  "=================================================="
+);
+
+
   console.log(
     "================ PDF SELECTED PAGE ================"
   );
@@ -475,22 +521,73 @@ export const runPDFOCRFallback = async (file) => {
     "===================================================="
   );
 
-  // ==========================================
-  // IMPORTANT
-  //
-  // Parse ONLY the selected invoice page.
-  //
-  // This prevents:
-  // - Myntra platform fee
-  // - Flipkart transport
-  // - Bill of supply
-  // - other service pages
-  //
-  // from contaminating product extraction.
-  // ==========================================
+// ==========================================
+// MULTI-PAGE PRODUCT PARSING
+// ==========================================
 
-  const parsed =
+let parsed;
+
+// ------------------------------------------
+// If multiple PRODUCT_INVOICE pages exist,
+// parse all of them.
+//
+// This is currently used for Blinkit.
+// ------------------------------------------
+
+if (productPages.length > 1) {
+  console.log(
+    "PDF: Multiple product pages detected."
+  );
+
+  const multiPageResult =
+    parseBlinkitProductPages(productPages);
+
+  parsed = {
+  ...multiPageResult,
+
+  storeName:
+    multiPageResult.storeName || "Blinkit",
+
+  products:
+    Array.isArray(multiPageResult.products)
+      ? multiPageResult.products
+      : [],
+
+  productName:
+    multiPageResult.productName ||
+    multiPageResult.products
+      ?.map((product) => product.productName)
+      .join(", ") ||
+    "",
+
+  purchaseDate:
+    multiPageResult.purchaseDate || "",
+
+  amount:
+    multiPageResult.amount || "",
+
+  paymentMethod:
+    multiPageResult.paymentMethod || "",
+
+  category:
+    multiPageResult.category ||
+    (
+      multiPageResult.products?.length > 1
+        ? "Multiple"
+        : multiPageResult.products?.[0]?.category || "Others"
+    ),
+
+  confidence:
+    multiPageResult.confidence || 0,
+};
+} else {
+  // ------------------------------------------
+  // Existing single-page flow
+  // ------------------------------------------
+
+  parsed =
     parsePDFReceipt(bestPage.text);
+}
 
   console.log(
     "================ PDF OCR FALLBACK RESULT ================"

@@ -204,20 +204,53 @@ const Upload = () => {
   // Apply OCR/PDF result to Receipt Form
   // ==========================================
 
-  const applyOCRResultToReceipt = (result) => {
-    setOCRData(result);
+ // ==========================================
+// Apply OCR/PDF result to Receipt Form
+// ==========================================
 
-    setReceiptData((prev) => ({
-      ...prev,
-      productName: result.productName || "",
-      storeName: result.storeName || "",
-      purchaseDate: result.purchaseDate || "",
-      amount: result.amount || "",
-      paymentMethod: result.paymentMethod || "",
-      category: result.category || "",
-    }));
-  };
+const applyOCRResultToReceipt = (result) => {
+  setOCRData(result);
 
+  const products = Array.isArray(result.products)
+    ? result.products
+    : [];
+
+  const isMultiProduct = products.length > 1;
+
+  // Keep old single-product behavior.
+  // For multi-product PDFs, create a readable fallback
+  // productName until the UI gets the dedicated products list.
+  const productName =
+    result.productName ||
+    (isMultiProduct
+      ? products
+          .map((product) => product.productName)
+          .filter(Boolean)
+          .join(", ")
+      : "");
+
+  setReceiptData((prev) => ({
+    ...prev,
+
+    // Existing fields
+    productName,
+    storeName: result.storeName || "",
+    purchaseDate: result.purchaseDate || "",
+    amount: result.amount || "",
+    paymentMethod: result.paymentMethod || "",
+    category:
+      result.category ||
+      (isMultiProduct ? "Multiple" : ""),
+
+    // ==========================================
+    // MULTI-PRODUCT DATA
+    // ==========================================
+
+    products,
+
+    isMultiProduct,
+  }));
+};
   // ==========================================
   // File Upload + OCR / PDF Processing
   // ==========================================
