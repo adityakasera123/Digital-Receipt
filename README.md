@@ -2109,3 +2109,42 @@ Overall:
 10. Export Data
 11. Premium Features
 12. Production Polish & Launch
+
+
+
+# Billvora — Zomato PDF Parser
+
+## Status
+
+🔒 **ZOMATO PARSER LOCKED**
+
+Zomato PDF extraction has been implemented, tested with a real Zomato PDF, committed, and pushed to Git.
+
+Current stable checkpoint:
+
+`feat: add Zomato PDF parser`
+
+Do not modify the Zomato parser unless a real Zomato PDF variant or an actual bug requires a change.
+
+---
+
+## Current Architecture
+
+```text
+Zomato PDF
+    ↓
+PDF.js
+    ↓
+Google Vision OCR
+    ↓
+PDF Page Classifier
+    ↓
+Zomato Detection
+    ↓
+Zomato Parser
+    ↓
+Normalized Receipt Result
+    ↓
+Upload.jsx
+    ↓
+ReceiptForm
