@@ -10,6 +10,11 @@ import { parsePDFReceipt } from "./pdfParserRouter";
 
 import { parseBlinkitProductPages } from "../../parsers/blinkitParser";
 
+import {
+  isZomatoDocument,
+  parseZomatoPages,
+} from "../../parsers/zomatoParser";
+
 import { classifyPDFPage } from "./pdfPageClassifier";
 
 // ==========================================
@@ -404,10 +409,6 @@ function normalizeMultiProductResult(
 
   // ------------------------------------------
   // Product Name
-  //
-  // IMPORTANT:
-  // Keep productName as a readable summary.
-  // Upload.jsx can use `products` for the list.
   // ------------------------------------------
 
   const productName =
@@ -455,9 +456,9 @@ function normalizeMultiProductResult(
 //  ↓
 // Page classification
 //  ↓
-// Blinkit multi-page parser when required
+// Zomato / Blinkit multi-page parser
 //  ↓
-// Existing single-page parser otherwise
+// Existing single-page parser
 // ==========================================
 
 export const runPDFOCRFallback = async (file) => {
@@ -747,17 +748,119 @@ export const runPDFOCRFallback = async (file) => {
   const blinkitDocument =
     isBlinkitDocument(finalText);
 
+  const zomatoDocument =
+    isZomatoDocument(finalText);
+
   // ==========================================
-  // IMPORTANT:
+  // ZOMATO MULTI-PAGE FLOW
   //
-  // Only use Blinkit multi-product parser
-  // when the PDF is actually Blinkit.
+  // Zomato:
   //
-  // This protects existing Amazon /
-  // Flipkart / Myntra / other parsers.
+  // Page 1 → Restaurant invoice
+  // Page 2 → Platform invoice
+  //
+  // Therefore send ALL pages to parser.
   // ==========================================
 
   if (
+    zomatoDocument &&
+    productPages.length > 0
+  ) {
+    console.log(
+      "=================================================="
+    );
+
+    console.log(
+      "PDF: Zomato document detected."
+    );
+
+    console.log(
+      "Zomato Product Pages:",
+      productPages.map(
+        (page) => page.pageNumber
+      )
+    );
+
+    console.log(
+      "Zomato Charge Pages:",
+      chargePages.map(
+        (page) => page.pageNumber
+      )
+    );
+
+    console.log(
+      "=================================================="
+    );
+
+    parsed = parseZomatoPages(
+      pageResults
+    );
+
+    console.log(
+      "================ ZOMATO RESULT ================"
+    );
+
+    console.log(
+      "Zomato Parsed Result:",
+      parsed
+    );
+
+    console.log(
+      "Products:",
+      parsed?.products
+    );
+
+    console.log(
+      "Product Count:",
+      Array.isArray(parsed?.products)
+        ? parsed.products.length
+        : 0
+    );
+
+    console.log(
+      "Store:",
+      parsed?.storeName
+    );
+
+    console.log(
+      "Date:",
+      parsed?.purchaseDate
+    );
+
+    console.log(
+      "Amount:",
+      parsed?.amount
+    );
+
+    console.log(
+      "Payment:",
+      parsed?.paymentMethod
+    );
+
+    console.log(
+      "Category:",
+      parsed?.category
+    );
+
+    console.log(
+      "Confidence:",
+      parsed?.confidence
+    );
+
+    console.log(
+      "Charges:",
+      parsed?.charges
+    );
+
+    console.log(
+      "================================================"
+    );
+
+  // ==========================================
+  // EXISTING BLINKIT MULTI-PAGE FLOW
+  // ==========================================
+
+  } else if (
     blinkitDocument &&
     productPages.length > 1
   ) {
@@ -790,16 +893,13 @@ export const runPDFOCRFallback = async (file) => {
     // ==========================================
     // IMPORTANT:
     //
-    // parseBlinkitProductPages expects the
-    // page objects containing:
+    // parseBlinkitProductPages expects:
     //
     // {
     //   pageNumber,
     //   text,
     //   classification
     // }
-    //
-    // Do NOT pass only strings here.
     // ==========================================
 
     const multiPageResult =
@@ -838,10 +938,6 @@ export const runPDFOCRFallback = async (file) => {
 
     // ==========================================
     // SAFETY FALLBACK
-    //
-    // If the multi parser unexpectedly returns
-    // zero products, DO NOT destroy the existing
-    // single-page flow.
     // ==========================================
 
     if (
@@ -861,17 +957,18 @@ export const runPDFOCRFallback = async (file) => {
           bestPage.text
         );
     }
-  } else {
-    // ==========================================
-    // EXISTING SINGLE-PAGE FLOW
-    //
-    // This remains unchanged for:
-    //
-    // - Single-page PDFs
-    // - Non-Blinkit PDFs
-    // - Other existing stores
-    // ==========================================
 
+  // ==========================================
+  // EXISTING SINGLE-PAGE FLOW
+  //
+  // This remains unchanged for:
+  //
+  // - Single-page PDFs
+  // - Non-Blinkit PDFs
+  // - Other existing stores
+  // ==========================================
+
+  } else {
     console.log(
       "PDF: Using existing single-page parser."
     );
