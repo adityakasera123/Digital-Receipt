@@ -5,6 +5,7 @@ import CategorySpending from '../../components/analytics/CategorySpending';
 import QuickInsights from '../../components/analytics/QuickInsights';
 import RecentActivity from '../../components/analytics/RecentActivity';
 import AnalyticsSkeleton from '../../components/analytics/AnalyticsSkeleton';
+import StoreSpending from '../../components/analytics/StoreSpending';
 
 import useAnalytics from '../../hooks/useAnalytics';
 
@@ -33,6 +34,8 @@ const Analytics = () => {
           <CategorySpending categories={analytics.categorySpending} />
         </div>
       </div>
+
+      <StoreSpending stores={analytics.storeSpending} />
 
       {/* Quick Insights */}
       <QuickInsights analytics={analytics} />

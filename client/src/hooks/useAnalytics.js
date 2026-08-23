@@ -11,6 +11,8 @@ import {
   calculateLowestPurchase,
   calculateMonthlyExpenses,
   calculateCategorySpending,
+  calculateYearlySpending,
+  calculateStoreSpending,
 } from "../utils/analyticsHelpers";
 
 const useAnalytics = () => {
@@ -18,16 +20,18 @@ const useAnalytics = () => {
 
   const [loading, setLoading] = useState(true);
 
-  const [analytics, setAnalytics] = useState({
-    receipts: [],
-    totalExpenses: 0,
-    totalReceipts: 0,
-    averagePurchase: 0,
-    highestPurchase: null,
-    lowestPurchase: null,
-    monthlyExpenses: [],
-    categorySpending: [],
-  });
+const [analytics, setAnalytics] = useState({
+  receipts: [],
+  totalExpenses: 0,
+  totalReceipts: 0,
+  averagePurchase: 0,
+  highestPurchase: null,
+  lowestPurchase: null,
+  monthlyExpenses: [],
+  yearlySpending: [],
+  categorySpending: [],
+  storeSpending: [],
+});
 
   useEffect(() => {
     if (!user) {
@@ -39,11 +43,17 @@ const useAnalytics = () => {
       try {
         const receipts = await getReceipts(user.uid);
 
-        const monthlyExpenses =
-          calculateMonthlyExpenses(receipts);
+       const monthlyExpenses =
+  calculateMonthlyExpenses(receipts);
 
-        const categorySpending =
-          calculateCategorySpending(receipts);
+const yearlySpending =
+  calculateYearlySpending(receipts);
+
+const categorySpending =
+  calculateCategorySpending(receipts);
+
+  const storeSpending =
+  calculateStoreSpending(receipts);
 
         setAnalytics({
           receipts,
@@ -64,8 +74,11 @@ const useAnalytics = () => {
             calculateLowestPurchase(receipts),
 
           monthlyExpenses,
+        yearlySpending,
 
-          categorySpending,
+categorySpending,
+
+storeSpending,
         });
       } catch (error) {
         console.error("Analytics Error:", error);

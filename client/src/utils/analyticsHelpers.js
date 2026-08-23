@@ -66,7 +66,15 @@ export const calculateLowestPurchase = (receipts = []) => {
  * MONTHLY EXPENSES
  * -----------------------------------------
  */
-export const calculateMonthlyExpenses = (receipts = []) => {
+/**
+ * -----------------------------------------
+ * MONTHLY EXPENSES
+ * -----------------------------------------
+ */
+export const calculateMonthlyExpenses = (
+  receipts = [],
+  year = new Date().getFullYear()
+) => {
   const months = [
     "Jan",
     "Feb",
@@ -103,14 +111,17 @@ export const calculateMonthlyExpenses = (receipts = []) => {
 
     if (isNaN(date.getTime())) return;
 
+    // Ignore receipts from other years
+    if (date.getFullYear() !== year) return;
+
     const monthIndex = date.getMonth();
 
-    monthlyData[monthIndex].amount += Number(receipt.amount) || 0;
+    monthlyData[monthIndex].amount +=
+      Number(receipt.amount) || 0;
   });
 
   return monthlyData;
 };
-
 /**
  * -----------------------------------------
  * CATEGORY SPENDING
@@ -148,6 +159,67 @@ export const calculateCategorySpending = (receipts = []) => {
       amount,
       percentage: Math.round((amount / totalExpenses) * 100),
       color: colors[index % colors.length],
+    }))
+    .sort((a, b) => b.amount - a.amount);
+};
+
+/**
+ * -----------------------------------------
+ * YEARLY SPENDING
+ * -----------------------------------------
+ */
+export const calculateYearlySpending = (receipts = []) => {
+  const yearlyData = {};
+
+  receipts.forEach((receipt) => {
+    if (!receipt.purchaseDate) return;
+
+    let date;
+
+    // Firestore Timestamp
+    if (receipt.purchaseDate?.toDate) {
+      date = receipt.purchaseDate.toDate();
+    }
+    // Date String
+    else {
+      date = new Date(receipt.purchaseDate);
+    }
+
+    if (isNaN(date.getTime())) return;
+
+    const year = date.getFullYear();
+    const amount = Number(receipt.amount) || 0;
+
+    yearlyData[year] = (yearlyData[year] || 0) + amount;
+  });
+
+  return Object.entries(yearlyData)
+    .map(([year, amount]) => ({
+      year: Number(year),
+      amount,
+    }))
+    .sort((a, b) => a.year - b.year);
+};
+
+/**
+ * -----------------------------------------
+ * STORE SPENDING
+ * -----------------------------------------
+ */
+export const calculateStoreSpending = (receipts = []) => {
+  const grouped = {};
+
+  receipts.forEach((receipt) => {
+    const storeName = receipt.storeName?.trim() || "Unknown Store";
+    const amount = Number(receipt.amount) || 0;
+
+    grouped[storeName] = (grouped[storeName] || 0) + amount;
+  });
+
+  return Object.entries(grouped)
+    .map(([storeName, amount]) => ({
+      storeName,
+      amount,
     }))
     .sort((a, b) => b.amount - a.amount);
 };
