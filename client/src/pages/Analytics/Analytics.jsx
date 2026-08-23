@@ -6,6 +6,7 @@ import QuickInsights from '../../components/analytics/QuickInsights';
 import RecentActivity from '../../components/analytics/RecentActivity';
 import AnalyticsSkeleton from '../../components/analytics/AnalyticsSkeleton';
 import StoreSpending from '../../components/analytics/StoreSpending';
+import MonthlyComparison from '../../components/analytics/MonthlyComparison';
 
 import useAnalytics from '../../hooks/useAnalytics';
 
@@ -36,6 +37,12 @@ const Analytics = () => {
       </div>
 
       <StoreSpending stores={analytics.storeSpending} />
+      
+      {/* Monthly Comparison */}
+<MonthlyComparison
+  comparison={analytics.monthlyComparison}
+/>
+
 
       {/* Quick Insights */}
       <QuickInsights analytics={analytics} />

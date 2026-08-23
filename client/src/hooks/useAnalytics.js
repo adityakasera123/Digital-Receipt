@@ -14,7 +14,8 @@ import {
   calculateYearlySpending,
   calculateStoreSpending,
   calculateTopCategory,
-calculateTopStore,
+  calculateTopStore,
+  calculateMonthlyComparison,
 } from "../utils/analyticsHelpers";
 
 const useAnalytics = () => {
@@ -32,6 +33,7 @@ const [analytics, setAnalytics] = useState({
   monthlyExpenses: [],
   yearlySpending: [],
   categorySpending: [],
+   monthlyComparison: null,
   storeSpending: [],
   topCategory: null,
 topStore: null,
@@ -56,8 +58,12 @@ const yearlySpending =
 const categorySpending =
   calculateCategorySpending(receipts);
 
+  const monthlyComparison =
+  calculateMonthlyComparison(receipts);
+
   const storeSpending =
   calculateStoreSpending(receipts);
+  
 
   const topCategory =
   calculateTopCategory(receipts);
@@ -88,6 +94,7 @@ const topStore =
 
 categorySpending,
 storeSpending,
+monthlyComparison,
 topCategory,
 topStore,
         });

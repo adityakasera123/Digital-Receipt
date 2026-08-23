@@ -253,3 +253,100 @@ export const calculateTopStore = (receipts = []) => {
 
   return storeSpending[0];
 };
+
+/**
+ * -----------------------------------------
+ * MONTHLY COMPARISON
+ * -----------------------------------------
+ */
+export const calculateMonthlyComparison = (receipts = []) => {
+  const now = new Date();
+
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  // Previous month
+  const previousMonthDate = new Date(
+    currentYear,
+    currentMonth - 1,
+    1
+  );
+
+  const previousYear = previousMonthDate.getFullYear();
+  const previousMonth = previousMonthDate.getMonth();
+
+  let currentMonthTotal = 0;
+  let previousMonthTotal = 0;
+
+  receipts.forEach((receipt) => {
+    if (!receipt.purchaseDate) return;
+
+    let date;
+
+    // Firestore Timestamp
+    if (receipt.purchaseDate?.toDate) {
+      date = receipt.purchaseDate.toDate();
+    }
+    // Date String
+    else {
+      date = new Date(receipt.purchaseDate);
+    }
+
+    if (isNaN(date.getTime())) return;
+
+    const amount = Number(receipt.amount) || 0;
+
+    if (
+      date.getFullYear() === currentYear &&
+      date.getMonth() === currentMonth
+    ) {
+      currentMonthTotal += amount;
+    }
+
+    if (
+      date.getFullYear() === previousYear &&
+      date.getMonth() === previousMonth
+    ) {
+      previousMonthTotal += amount;
+    }
+  });
+
+  let percentageChange = 0;
+
+  if (previousMonthTotal > 0) {
+    percentageChange = Math.round(
+      ((currentMonthTotal - previousMonthTotal) /
+        previousMonthTotal) *
+        100
+    );
+  }
+
+  let trend = 'stable';
+
+  if (percentageChange > 0) {
+    trend = 'increase';
+  } else if (percentageChange < 0) {
+    trend = 'decrease';
+  }
+
+  return {
+    currentMonth: {
+      year: currentYear,
+      month: currentMonth,
+      amount: currentMonthTotal,
+    },
+
+    previousMonth: {
+      year: previousYear,
+      month: previousMonth,
+      amount: previousMonthTotal,
+    },
+
+    difference:
+      currentMonthTotal - previousMonthTotal,
+
+    percentageChange,
+
+    trend,
+  };
+};
