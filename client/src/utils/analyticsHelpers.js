@@ -165,6 +165,21 @@ export const calculateCategorySpending = (receipts = []) => {
 
 /**
  * -----------------------------------------
+ * TOP SPENDING CATEGORY
+ * -----------------------------------------
+ */
+export const calculateTopCategory = (receipts = []) => {
+  const categorySpending = calculateCategorySpending(receipts);
+
+  if (!categorySpending.length) {
+    return null;
+  }
+
+  return categorySpending[0];
+};
+
+/**
+ * -----------------------------------------
  * YEARLY SPENDING
  * -----------------------------------------
  */
@@ -222,4 +237,19 @@ export const calculateStoreSpending = (receipts = []) => {
       amount,
     }))
     .sort((a, b) => b.amount - a.amount);
+};
+
+/**
+ * -----------------------------------------
+ * TOP SPENDING STORE
+ * -----------------------------------------
+ */
+export const calculateTopStore = (receipts = []) => {
+  const storeSpending = calculateStoreSpending(receipts);
+
+  if (!storeSpending.length) {
+    return null;
+  }
+
+  return storeSpending[0];
 };

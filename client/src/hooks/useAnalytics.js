@@ -13,6 +13,8 @@ import {
   calculateCategorySpending,
   calculateYearlySpending,
   calculateStoreSpending,
+  calculateTopCategory,
+calculateTopStore,
 } from "../utils/analyticsHelpers";
 
 const useAnalytics = () => {
@@ -31,6 +33,8 @@ const [analytics, setAnalytics] = useState({
   yearlySpending: [],
   categorySpending: [],
   storeSpending: [],
+  topCategory: null,
+topStore: null,
 });
 
   useEffect(() => {
@@ -55,6 +59,12 @@ const categorySpending =
   const storeSpending =
   calculateStoreSpending(receipts);
 
+  const topCategory =
+  calculateTopCategory(receipts);
+
+const topStore =
+  calculateTopStore(receipts);
+
         setAnalytics({
           receipts,
 
@@ -77,8 +87,9 @@ const categorySpending =
         yearlySpending,
 
 categorySpending,
-
 storeSpending,
+topCategory,
+topStore,
         });
       } catch (error) {
         console.error("Analytics Error:", error);

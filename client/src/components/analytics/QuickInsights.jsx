@@ -3,6 +3,7 @@ import {
   TrendingDown,
   BarChart3,
   Trophy,
+  Store,
   ChevronRight,
 } from 'lucide-react';
 import Card from '../ui/Card';
@@ -38,14 +39,22 @@ const QuickInsights = ({ analytics }) => {
       color: 'bg-emerald-100 text-emerald-600',
     },
     {
-      title: 'Top Category',
-      value:
-        analytics.categorySpending?.length > 0
-          ? analytics.categorySpending[0].title
-          : 'N/A',
-      icon: IndianRupee,
-      color: 'bg-amber-100 text-amber-600',
-    },
+  title: 'Top Category',
+  value: analytics.topCategory
+    ? analytics.topCategory.title
+    : 'N/A',
+  icon: IndianRupee,
+  color: 'bg-amber-100 text-amber-600',
+},
+
+{
+  title: 'Top Store',
+  value: analytics.topStore
+    ? analytics.topStore.storeName
+    : 'N/A',
+  icon: Store,
+  color: 'bg-violet-100 text-violet-600',
+},
   ];
 
   return (
@@ -60,7 +69,7 @@ const QuickInsights = ({ analytics }) => {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {insights.map((item) => {
           const Icon = item.icon;
 
