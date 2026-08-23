@@ -7,6 +7,8 @@ import RecentActivity from '../../components/analytics/RecentActivity';
 import AnalyticsSkeleton from '../../components/analytics/AnalyticsSkeleton';
 import StoreSpending from '../../components/analytics/StoreSpending';
 import MonthlyComparison from '../../components/analytics/MonthlyComparison';
+import SpendingTrend from '../../components/analytics/SpendingTrend';
+import SpendingInsights from '../../components/analytics/SpendingInsights';
 
 import useAnalytics from '../../hooks/useAnalytics';
 
@@ -37,15 +39,23 @@ const Analytics = () => {
       </div>
 
       <StoreSpending stores={analytics.storeSpending} />
-      
+
       {/* Monthly Comparison */}
 <MonthlyComparison
   comparison={analytics.monthlyComparison}
 />
 
+<SpendingTrend
+  trend={analytics.spendingTrend}
+/>
 
       {/* Quick Insights */}
       <QuickInsights analytics={analytics} />
+
+      {/* Spending Insights */}
+<SpendingInsights
+  insights={analytics.spendingInsights}
+/>
 
       {/* Recent Activity */}
       <RecentActivity receipts={analytics.receipts} />

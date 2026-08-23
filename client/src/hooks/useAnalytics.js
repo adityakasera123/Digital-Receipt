@@ -16,6 +16,8 @@ import {
   calculateTopCategory,
   calculateTopStore,
   calculateMonthlyComparison,
+  calculateSpendingTrend,
+  calculateSpendingInsights,
 } from "../utils/analyticsHelpers";
 
 const useAnalytics = () => {
@@ -23,21 +25,27 @@ const useAnalytics = () => {
 
   const [loading, setLoading] = useState(true);
 
-const [analytics, setAnalytics] = useState({
-  receipts: [],
-  totalExpenses: 0,
-  totalReceipts: 0,
-  averagePurchase: 0,
-  highestPurchase: null,
-  lowestPurchase: null,
-  monthlyExpenses: [],
-  yearlySpending: [],
-  categorySpending: [],
-   monthlyComparison: null,
-  storeSpending: [],
-  topCategory: null,
-topStore: null,
-});
+  const [analytics, setAnalytics] = useState({
+    receipts: [],
+    totalExpenses: 0,
+    totalReceipts: 0,
+    averagePurchase: 0,
+    highestPurchase: null,
+    lowestPurchase: null,
+
+    monthlyExpenses: [],
+    yearlySpending: [],
+
+    categorySpending: [],
+    storeSpending: [],
+
+    topCategory: null,
+    topStore: null,
+
+    monthlyComparison: null,
+    spendingTrend: null,
+    spendingInsights: [],
+  });
 
   useEffect(() => {
     if (!user) {
@@ -49,54 +57,103 @@ topStore: null,
       try {
         const receipts = await getReceipts(user.uid);
 
-       const monthlyExpenses =
-  calculateMonthlyExpenses(receipts);
+        // -----------------------------------------
+        // BASIC ANALYTICS
+        // -----------------------------------------
 
-const yearlySpending =
-  calculateYearlySpending(receipts);
+        const totalExpenses =
+          calculateTotalExpenses(receipts);
 
-const categorySpending =
-  calculateCategorySpending(receipts);
+        const totalReceipts =
+          calculateTotalReceipts(receipts);
 
-  const monthlyComparison =
-  calculateMonthlyComparison(receipts);
+        const averagePurchase =
+          calculateAveragePurchase(receipts);
 
-  const storeSpending =
-  calculateStoreSpending(receipts);
-  
+        const highestPurchase =
+          calculateHighestPurchase(receipts);
 
-  const topCategory =
+        const lowestPurchase =
+          calculateLowestPurchase(receipts);
+
+        // -----------------------------------------
+        // SPENDING ANALYTICS
+        // -----------------------------------------
+
+        const monthlyExpenses =
+          calculateMonthlyExpenses(receipts);
+
+        const yearlySpending =
+          calculateYearlySpending(receipts);
+
+        const categorySpending =
+          calculateCategorySpending(receipts);
+
+        const storeSpending =
+          calculateStoreSpending(receipts);
+
+        // -----------------------------------------
+        // TOP CATEGORY / TOP STORE
+        // -----------------------------------------
+
+     const topCategory =
   calculateTopCategory(receipts);
 
 const topStore =
   calculateTopStore(receipts);
 
+        // -----------------------------------------
+        // MONTHLY COMPARISON
+        // -----------------------------------------
+
+        const monthlyComparison =
+          calculateMonthlyComparison(receipts);
+
+        // -----------------------------------------
+        // SPENDING TREND
+        // -----------------------------------------
+
+        const spendingTrend =
+          calculateSpendingTrend(monthlyComparison);
+
+        // -----------------------------------------
+        // SPENDING INSIGHTS
+        // -----------------------------------------
+
+        const spendingInsights =
+          calculateSpendingInsights({
+            totalExpenses,
+            highestPurchase,
+            topCategory,
+            topStore,
+            monthlyComparison,
+          });
+
+        // -----------------------------------------
+        // FINAL ANALYTICS STATE
+        // -----------------------------------------
+
         setAnalytics({
           receipts,
 
-          totalExpenses:
-            calculateTotalExpenses(receipts),
-
-          totalReceipts:
-            calculateTotalReceipts(receipts),
-
-          averagePurchase:
-            calculateAveragePurchase(receipts),
-
-          highestPurchase:
-            calculateHighestPurchase(receipts),
-
-          lowestPurchase:
-            calculateLowestPurchase(receipts),
+          totalExpenses,
+          totalReceipts,
+          averagePurchase,
+          highestPurchase,
+          lowestPurchase,
 
           monthlyExpenses,
-        yearlySpending,
+          yearlySpending,
 
-categorySpending,
-storeSpending,
-monthlyComparison,
-topCategory,
-topStore,
+          categorySpending,
+          storeSpending,
+
+          topCategory,
+          topStore,
+
+          monthlyComparison,
+          spendingTrend,
+          spendingInsights,
         });
       } catch (error) {
         console.error("Analytics Error:", error);

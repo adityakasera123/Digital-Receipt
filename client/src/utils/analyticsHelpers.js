@@ -350,3 +350,140 @@ export const calculateMonthlyComparison = (receipts = []) => {
     trend,
   };
 };
+
+/**
+ * -----------------------------------------
+ * SPENDING TREND
+ * -----------------------------------------
+ */
+export const calculateSpendingTrend = (monthlyComparison) => {
+  if (!monthlyComparison) {
+    return {
+      trend: "no-data",
+      percentageChange: 0,
+      difference: 0,
+    };
+  }
+
+  const {
+    currentMonth,
+    previousMonth,
+    percentageChange,
+    difference,
+  } = monthlyComparison;
+
+  // Cannot calculate a meaningful trend
+  // when there is no previous-month spending.
+  if (!previousMonth || previousMonth.amount === 0) {
+    return {
+      trend: "no-data",
+      percentageChange: 0,
+      difference: difference || 0,
+    };
+  }
+
+  let trend = "stable";
+
+  if (percentageChange > 0) {
+    trend = "increase";
+  } else if (percentageChange < 0) {
+    trend = "decrease";
+  }
+
+  return {
+    trend,
+    percentageChange,
+    difference,
+  };
+};
+
+/**
+ * -----------------------------------------
+ * SPENDING INSIGHTS
+ * -----------------------------------------
+ */
+export const calculateSpendingInsights = ({
+  totalExpenses = 0,
+  highestPurchase = null,
+  topCategory = null,
+  topStore = null,
+  monthlyComparison = null,
+} = {}) => {
+  const insights = [];
+
+  // Highest purchase
+  if (highestPurchase) {
+    insights.push({
+      type: "highest-purchase",
+      title: "Highest Purchase",
+      message: `Your highest purchase was ₹${Number(
+        highestPurchase.amount || 0
+      ).toLocaleString("en-IN")}.`,
+    });
+  }
+
+  // Top category
+  if (topCategory) {
+    insights.push({
+      type: "top-category",
+      title: "Top Category",
+      message: `${topCategory.title} is your highest spending category.`,
+    });
+  }
+
+  // Top store
+  if (topStore) {
+    insights.push({
+      type: "top-store",
+      title: "Top Store",
+      message: `${topStore.storeName} is your highest spending store.`,
+    });
+  }
+
+  // Monthly comparison
+  if (
+    monthlyComparison?.previousMonth?.amount > 0
+  ) {
+    if (monthlyComparison.trend === "increase") {
+      insights.push({
+        type: "monthly-increase",
+        title: "Spending Trend",
+        message: `Your spending increased by ${Math.abs(
+          monthlyComparison.percentageChange
+        )}% compared with last month.`,
+      });
+    }
+
+    if (monthlyComparison.trend === "decrease") {
+      insights.push({
+        type: "monthly-decrease",
+        title: "Spending Trend",
+        message: `Your spending decreased by ${Math.abs(
+          monthlyComparison.percentageChange
+        )}% compared with last month.`,
+      });
+    }
+
+    if (monthlyComparison.trend === "stable") {
+      insights.push({
+        type: "monthly-stable",
+        title: "Spending Trend",
+        message:
+          "Your spending is stable compared with last month.",
+      });
+    }
+  }
+
+  // Total spending
+  if (totalExpenses > 0) {
+    insights.push({
+      type: "total-spending",
+      title: "Total Spending",
+      message: `You have spent ₹${Number(
+        totalExpenses
+      ).toLocaleString("en-IN")} in total.`,
+    });
+  }
+
+  return insights;
+};
