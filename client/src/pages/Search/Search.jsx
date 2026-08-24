@@ -12,6 +12,8 @@ import { getReceipts } from '../../services/receiptService';
 import { searchReceipts } from '../../services/searchService';
 import { AuthContext } from '../../context/AuthContext';
 
+import SearchAmountFilter from '../../components/search/SearchAmountFilter';
+
 const Search = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -22,6 +24,8 @@ const Search = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedStore, setSelectedStore] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
+  const [minAmount, setMinAmount] = useState('');
+const [maxAmount, setMaxAmount] = useState('');
 
   const [receipts, setReceipts] = useState([]);
   const [results, setResults] = useState([]);
@@ -73,22 +77,26 @@ const Search = () => {
   // Search + Filter + Sort
   // ===============================
   useEffect(() => {
-    const filteredResults = searchReceipts({
-      receipts,
-      query,
-      category: selectedCategory,
-      store: selectedStore,
-      sortBy,
-    });
+  const filteredResults = searchReceipts({
+  receipts,
+  query,
+  category: selectedCategory,
+  store: selectedStore,
+  minAmount,
+  maxAmount,
+  sortBy,
+});
 
     setResults(filteredResults);
   }, [
-    query,
-    selectedCategory,
-    selectedStore,
-    sortBy,
-    receipts,
-  ]);
+  query,
+  selectedCategory,
+  selectedStore,
+  minAmount,
+  maxAmount,
+  sortBy,
+  receipts,
+]);
 
   // ===============================
   // Open Receipt Detail
@@ -141,33 +149,42 @@ const Search = () => {
         </div>
 
         {/* Filters + Sorting */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          {/* Category + Store Filters */}
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-            {/* Category Filters */}
-            <div className="overflow-x-auto">
-              <div className="min-w-max">
-                <SearchFilters
-                  selectedCategory={selectedCategory}
-                  onCategoryChange={setSelectedCategory}
-                />
-              </div>
-            </div>
+        {/* Filters + Sorting */}
+<div className="space-y-4">
+  {/* Advanced Filters */}
+  <div className="w-full overflow-x-auto pb-1">
+    <div className="flex min-w-max items-center gap-4">
+      {/* Category Filters */}
+      <SearchFilters
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
+      />
 
-            {/* Store Filter */}
-            <SearchStoreFilter
-              stores={stores}
-              selectedStore={selectedStore}
-              onStoreChange={setSelectedStore}
-            />
-          </div>
+      {/* Store Filter */}
+      <SearchStoreFilter
+        stores={stores}
+        selectedStore={selectedStore}
+        onStoreChange={setSelectedStore}
+      />
 
-          {/* Sorting */}
-          <SearchSort
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-          />
-        </div>
+      {/* Amount Filter */}
+      <SearchAmountFilter
+        minAmount={minAmount}
+        maxAmount={maxAmount}
+        onMinAmountChange={setMinAmount}
+        onMaxAmountChange={setMaxAmount}
+      />
+    </div>
+  </div>
+
+  {/* Sorting */}
+  <div className="flex justify-end">
+    <SearchSort
+      sortBy={sortBy}
+      onSortChange={setSortBy}
+    />
+  </div>
+</div>
       </div>
 
       {/* Result Count */}
