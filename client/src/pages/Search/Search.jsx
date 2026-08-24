@@ -7,12 +7,12 @@ import SearchSort from '../../components/search/SearchSort';
 import SearchResults from '../../components/search/SearchResults';
 import SearchSkeleton from '../../components/search/SearchSkeleton';
 import SearchStoreFilter from '../../components/search/SearchStoreFilter';
+import SearchAmountFilter from '../../components/search/SearchAmountFilter';
+import SearchDateFilter from '../../components/search/SearchDateFilter';
 
 import { getReceipts } from '../../services/receiptService';
 import { searchReceipts } from '../../services/searchService';
 import { AuthContext } from '../../context/AuthContext';
-
-import SearchAmountFilter from '../../components/search/SearchAmountFilter';
 
 const Search = () => {
   const navigate = useNavigate();
@@ -23,9 +23,14 @@ const Search = () => {
   const [query, setQuery] = useState(searchParams.get('q') || '');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedStore, setSelectedStore] = useState('All');
-  const [sortBy, setSortBy] = useState('newest');
+
   const [minAmount, setMinAmount] = useState('');
-const [maxAmount, setMaxAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
+
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const [sortBy, setSortBy] = useState('newest');
 
   const [receipts, setReceipts] = useState([]);
   const [results, setResults] = useState([]);
@@ -77,26 +82,30 @@ const [maxAmount, setMaxAmount] = useState('');
   // Search + Filter + Sort
   // ===============================
   useEffect(() => {
-  const filteredResults = searchReceipts({
-  receipts,
-  query,
-  category: selectedCategory,
-  store: selectedStore,
-  minAmount,
-  maxAmount,
-  sortBy,
-});
+    const filteredResults = searchReceipts({
+      receipts,
+      query,
+      category: selectedCategory,
+      store: selectedStore,
+      startDate,
+      endDate,
+      minAmount,
+      maxAmount,
+      sortBy,
+    });
 
     setResults(filteredResults);
   }, [
-  query,
-  selectedCategory,
-  selectedStore,
-  minAmount,
-  maxAmount,
-  sortBy,
-  receipts,
-]);
+    query,
+    selectedCategory,
+    selectedStore,
+    startDate,
+    endDate,
+    minAmount,
+    maxAmount,
+    sortBy,
+    receipts,
+  ]);
 
   // ===============================
   // Open Receipt Detail
@@ -148,43 +157,55 @@ const [maxAmount, setMaxAmount] = useState('');
           />
         </div>
 
-        {/* Filters + Sorting */}
-        {/* Filters + Sorting */}
-<div className="space-y-4">
-  {/* Advanced Filters */}
-  <div className="w-full overflow-x-auto pb-1">
-    <div className="flex min-w-max items-center gap-4">
-      {/* Category Filters */}
-      <SearchFilters
-        selectedCategory={selectedCategory}
-        onCategoryChange={setSelectedCategory}
-      />
+        {/* ===============================
+            Category Filters
+            =============================== */}
+        <div className="mb-4 w-full overflow-x-auto pb-1">
+          <div className="flex min-w-max gap-3">
+            <SearchFilters
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+            />
+          </div>
+        </div>
 
-      {/* Store Filter */}
-      <SearchStoreFilter
-        stores={stores}
-        selectedStore={selectedStore}
-        onStoreChange={setSelectedStore}
-      />
+        {/* ===============================
+            Advanced Filters
+            =============================== */}
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Store Filter */}
+          <SearchStoreFilter
+            stores={stores}
+            selectedStore={selectedStore}
+            onStoreChange={setSelectedStore}
+          />
 
-      {/* Amount Filter */}
-      <SearchAmountFilter
-        minAmount={minAmount}
-        maxAmount={maxAmount}
-        onMinAmountChange={setMinAmount}
-        onMaxAmountChange={setMaxAmount}
-      />
-    </div>
-  </div>
+          {/* Amount Filter */}
+          <SearchAmountFilter
+            minAmount={minAmount}
+            maxAmount={maxAmount}
+            onMinAmountChange={setMinAmount}
+            onMaxAmountChange={setMaxAmount}
+          />
 
-  {/* Sorting */}
-  <div className="flex justify-end">
-    <SearchSort
-      sortBy={sortBy}
-      onSortChange={setSortBy}
-    />
-  </div>
-</div>
+          {/* Date Filter */}
+          <SearchDateFilter
+            startDate={startDate}
+            endDate={endDate}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+          />
+        </div>
+
+        {/* ===============================
+            Sorting
+            =============================== */}
+        <div className="mt-4 flex justify-end">
+          <SearchSort
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+          />
+        </div>
       </div>
 
       {/* Result Count */}
