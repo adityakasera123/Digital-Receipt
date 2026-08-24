@@ -8,6 +8,7 @@ import SearchResults from '../../components/search/SearchResults';
 import SearchSkeleton from '../../components/search/SearchSkeleton';
 
 import { getReceipts } from '../../services/receiptService';
+import { searchReceipts } from '../../services/searchService';
 import { AuthContext } from '../../context/AuthContext';
 
 const Search = () => {
@@ -25,7 +26,9 @@ const Search = () => {
 
   const [loading, setLoading] = useState(true);
 
-  // Load Receipts (Current Logged-in User Only)
+  // ===============================
+  // Load Receipts (Current User Only)
+  // ===============================
   useEffect(() => {
     if (!user) {
       setLoading(false);
@@ -46,65 +49,30 @@ const Search = () => {
     loadReceipts();
   }, [user]);
 
+  // ===============================
   // Read URL Query
+  // ===============================
   useEffect(() => {
     setQuery(searchParams.get('q') || '');
   }, [searchParams]);
 
+  // ===============================
   // Search + Filter + Sort
+  // ===============================
   useEffect(() => {
-    let filtered = [...receipts];
+    const filteredResults = searchReceipts({
+      receipts,
+      query,
+      category: selectedCategory,
+      sortBy,
+    });
 
-    // Category Filter
-    if (selectedCategory !== 'All') {
-      filtered = filtered.filter(
-        (receipt) => receipt.category === selectedCategory
-      );
-    }
-
-    // Search
-    if (query.trim()) {
-      const search = query.trim().toLowerCase();
-
-      filtered = filtered.filter((receipt) => {
-        return (
-          receipt.productName?.toLowerCase().includes(search) ||
-          receipt.storeName?.toLowerCase().includes(search) ||
-          receipt.category?.toLowerCase().includes(search)
-        );
-      });
-    }
-
-    // Sorting
-    switch (sortBy) {
-      case 'highest':
-        filtered.sort((a, b) => Number(b.amount) - Number(a.amount));
-        break;
-
-      case 'lowest':
-        filtered.sort((a, b) => Number(a.amount) - Number(b.amount));
-        break;
-
-      case 'oldest':
-        filtered.sort(
-          (a, b) =>
-            new Date(a.purchaseDate) - new Date(b.purchaseDate)
-        );
-        break;
-
-      case 'newest':
-      default:
-        filtered.sort(
-          (a, b) =>
-            new Date(b.purchaseDate) - new Date(a.purchaseDate)
-        );
-        break;
-    }
-
-    setResults(filtered);
+    setResults(filteredResults);
   }, [query, selectedCategory, sortBy, receipts]);
 
+  // ===============================
   // Open Receipt Detail
+  // ===============================
   const handleView = (id) => {
     navigate(`/receipts/${id}`, {
       state: {
@@ -113,6 +81,9 @@ const Search = () => {
     });
   };
 
+  // ===============================
+  // Loading State
+  // ===============================
   if (loading) {
     return (
       <main className="space-y-8">
@@ -121,6 +92,9 @@ const Search = () => {
     );
   }
 
+  // ===============================
+  // Page
+  // ===============================
   return (
     <main className="space-y-8">
       {/* Header */}
@@ -148,6 +122,7 @@ const Search = () => {
 
         {/* Filters + Sorting */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          {/* Category Filters */}
           <div className="overflow-x-auto">
             <div className="min-w-max">
               <SearchFilters
@@ -157,6 +132,7 @@ const Search = () => {
             </div>
           </div>
 
+          {/* Sorting */}
           <SearchSort
             sortBy={sortBy}
             onSortChange={setSortBy}
