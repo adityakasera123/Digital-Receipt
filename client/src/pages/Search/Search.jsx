@@ -6,6 +6,7 @@ import SearchFilters from '../../components/search/SearchFilters';
 import SearchSort from '../../components/search/SearchSort';
 import SearchResults from '../../components/search/SearchResults';
 import SearchSkeleton from '../../components/search/SearchSkeleton';
+import SearchStoreFilter from '../../components/search/SearchStoreFilter';
 
 import { getReceipts } from '../../services/receiptService';
 import { searchReceipts } from '../../services/searchService';
@@ -19,6 +20,7 @@ const Search = () => {
 
   const [query, setQuery] = useState(searchParams.get('q') || '');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedStore, setSelectedStore] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
 
   const [receipts, setReceipts] = useState([]);
@@ -57,6 +59,17 @@ const Search = () => {
   }, [searchParams]);
 
   // ===============================
+  // Get Unique Stores
+  // ===============================
+  const stores = [
+    ...new Set(
+      receipts
+        .map((receipt) => receipt.storeName?.trim())
+        .filter(Boolean)
+    ),
+  ].sort((a, b) => a.localeCompare(b));
+
+  // ===============================
   // Search + Filter + Sort
   // ===============================
   useEffect(() => {
@@ -64,11 +77,18 @@ const Search = () => {
       receipts,
       query,
       category: selectedCategory,
+      store: selectedStore,
       sortBy,
     });
 
     setResults(filteredResults);
-  }, [query, selectedCategory, sortBy, receipts]);
+  }, [
+    query,
+    selectedCategory,
+    selectedStore,
+    sortBy,
+    receipts,
+  ]);
 
   // ===============================
   // Open Receipt Detail
@@ -122,14 +142,24 @@ const Search = () => {
 
         {/* Filters + Sorting */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          {/* Category Filters */}
-          <div className="overflow-x-auto">
-            <div className="min-w-max">
-              <SearchFilters
-                selectedCategory={selectedCategory}
-                onCategoryChange={setSelectedCategory}
-              />
+          {/* Category + Store Filters */}
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+            {/* Category Filters */}
+            <div className="overflow-x-auto">
+              <div className="min-w-max">
+                <SearchFilters
+                  selectedCategory={selectedCategory}
+                  onCategoryChange={setSelectedCategory}
+                />
+              </div>
             </div>
+
+            {/* Store Filter */}
+            <SearchStoreFilter
+              stores={stores}
+              selectedStore={selectedStore}
+              onStoreChange={setSelectedStore}
+            />
           </div>
 
           {/* Sorting */}
