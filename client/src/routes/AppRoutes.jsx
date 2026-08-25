@@ -10,6 +10,7 @@ import Signup from "../pages/Signup/Signup";
 import ForgotPassword from "../pages/ForgotPassword/ForgotPassword";
 
 import Dashboard from "../pages/Dashboard/Dashboard";
+import AIAssistant from "../pages/AIAssistant/AIAssistant";
 
 import Receipts from "../pages/Receipts/Receipts";
 import ReceiptDetail from "../pages/Receipts/ReceiptDetail/ReceiptDetail";
@@ -70,6 +71,9 @@ function AppRoutes() {
       >
         {/* Dashboard */}
         <Route path="/dashboard" element={<Dashboard />} />
+
+        {/* Ask Billvora */}
+        <Route path="/ask-billvora" element={<AIAssistant />} />
 
         {/* Receipts */}
         <Route path="/receipts" element={<Receipts />} />

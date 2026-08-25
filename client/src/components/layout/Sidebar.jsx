@@ -5,13 +5,11 @@ import {
   ShieldCheck,
   ChartColumn,
   Search,
+  MessageCircle,
   Settings,
   CircleHelp,
 } from 'lucide-react';
-import { useContext } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-
-import { AuthContext } from '../../context/AuthContext';
+import { NavLink } from 'react-router-dom';
 
 const navItem = ({ isActive }) =>
   `flex items-center gap-3 rounded-xl px-4 py-3 transition-all ${
@@ -21,12 +19,6 @@ const navItem = ({ isActive }) =>
   }`;
 
 function Sidebar({ isOpen, onClose }) {
-  const { user } = useContext(AuthContext);
-  const navigate = useNavigate();
-
-  const displayName = user?.displayName || 'User';
-  const initial = displayName.charAt(0).toUpperCase();
-
   return (
     <>
       {/* Mobile Backdrop */}
@@ -52,7 +44,7 @@ function Sidebar({ isOpen, onClose }) {
         </div>
 
         {/* Main Menu */}
-        <div className="px-6 pt-8">
+       <div className="flex-1 overflow-y-auto px-6 pt-6">
           <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-secondary">
             Main
           </p>
@@ -103,6 +95,16 @@ function Sidebar({ isOpen, onClose }) {
               Analytics
             </NavLink>
 
+            {/* Ask Billvora */}
+            <NavLink
+              to="/ask-billvora"
+              className={navItem}
+              onClick={onClose}
+            >
+              <MessageCircle size={20} />
+              Ask Billvora
+            </NavLink>
+
             <NavLink
               to="/search"
               className={navItem}
@@ -112,54 +114,32 @@ function Sidebar({ isOpen, onClose }) {
               Search
             </NavLink>
           </nav>
-        </div>
 
-        {/* Support */}
-        <div className="mt-10 px-6">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-secondary">
-            Support
-          </p>
+          {/* Support */}
+          <div className="mt-6">
+            <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-secondary">
+              Support
+            </p>
 
-          <nav className="space-y-2">
-            <NavLink
-              to="/settings"
-              className={navItem}
-              onClick={onClose}
-            >
-              <Settings size={20} />
-              Settings
-            </NavLink>
+            <nav className="space-y-2">
+              <NavLink
+                to="/settings"
+                className={navItem}
+                onClick={onClose}
+              >
+                <Settings size={20} />
+                Settings
+              </NavLink>
 
-            <NavLink
-              to="/help-center"
-              className={navItem}
-              onClick={onClose}
-            >
-              <CircleHelp size={20} />
-              Help Center
-            </NavLink>
-          </nav>
-        </div>
-
-        {/* User Card */}
-        <div
-          onClick={() => navigate('/settings')}
-          className="mt-auto cursor-pointer border-t border-default p-6 transition-all hover:bg-surface-hover"
-        >
-          <div className="flex items-center gap-3">
-            <div className="button-primary flex h-12 w-12 items-center justify-center rounded-full font-semibold">
-              {initial}
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-primary">
-                {displayName}
-              </h3>
-
-              <p className="text-sm text-secondary">
-                Personal Plan
-              </p>
-            </div>
+              <NavLink
+                to="/help-center"
+                className={navItem}
+                onClick={onClose}
+              >
+                <CircleHelp size={20} />
+                Help Center
+              </NavLink>
+            </nav>
           </div>
         </div>
       </aside>
