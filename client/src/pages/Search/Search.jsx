@@ -11,7 +11,12 @@ import SearchAmountFilter from '../../components/search/SearchAmountFilter';
 import SearchDateFilter from '../../components/search/SearchDateFilter';
 
 import { getReceipts } from '../../services/receiptService';
+import { getWarranties } from '../../services/warrantyService';
 import { searchReceipts } from '../../services/searchService';
+
+import { getWarrantyStatus } from '../../utils/warrantyStatus';
+import { getReturnStatus } from '../../utils/returnUtils';
+
 import { AuthContext } from '../../context/AuthContext';
 
 const Search = () => {
@@ -30,15 +35,21 @@ const Search = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  const [warrantyStatus, setWarrantyStatus] = useState('All');
+  const [returnStatus, setReturnStatus] = useState('All');
+
   const [sortBy, setSortBy] = useState('newest');
 
   const [receipts, setReceipts] = useState([]);
+  const [warranties, setWarranties] = useState([]);
+
   const [results, setResults] = useState([]);
 
   const [loading, setLoading] = useState(true);
 
   // ===============================
-  // Load Receipts (Current User Only)
+  // Load Receipts + Warranties
+  // Current User Only
   // ===============================
   useEffect(() => {
     if (!user) {
@@ -46,18 +57,23 @@ const Search = () => {
       return;
     }
 
-    const loadReceipts = async () => {
+    const loadData = async () => {
       try {
-        const data = await getReceipts(user.uid);
-        setReceipts(data);
+        const [receiptData, warrantyData] = await Promise.all([
+          getReceipts(user.uid),
+          getWarranties(),
+        ]);
+
+        setReceipts(receiptData);
+        setWarranties(warrantyData);
       } catch (error) {
-        console.error('Failed to load receipts:', error);
+        console.error('Failed to load search data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadReceipts();
+    loadData();
   }, [user]);
 
   // ===============================
@@ -79,6 +95,36 @@ const Search = () => {
   ].sort((a, b) => a.localeCompare(b));
 
   // ===============================
+  // Create Receipt → Warranty Status Map
+  // ===============================
+  const warrantyStatusMap = {};
+
+  warranties.forEach((warranty) => {
+    if (!warranty.receiptId) return;
+
+    warrantyStatusMap[warranty.receiptId] = getWarrantyStatus(
+      warranty.expiryDate,
+      warranty.warrantyDuration
+    );
+  });
+
+  // ===============================
+  // Create Receipt → Return Status Map
+  // ===============================
+  const returnStatusMap = {};
+
+  receipts.forEach((receipt) => {
+    if (!receipt.returnTracking) {
+      returnStatusMap[receipt.id] = 'Unknown';
+      return;
+    }
+
+    returnStatusMap[receipt.id] = getReturnStatus(
+      receipt.returnEndDate
+    );
+  });
+
+  // ===============================
   // Search + Filter + Sort
   // ===============================
   useEffect(() => {
@@ -91,6 +137,10 @@ const Search = () => {
       endDate,
       minAmount,
       maxAmount,
+      warrantyStatus,
+      warrantyStatusMap,
+      returnStatus,
+      returnStatusMap,
       sortBy,
     });
 
@@ -103,8 +153,11 @@ const Search = () => {
     endDate,
     minAmount,
     maxAmount,
+    warrantyStatus,
+    returnStatus,
     sortBy,
     receipts,
+    warranties,
   ]);
 
   // ===============================
@@ -157,9 +210,7 @@ const Search = () => {
           />
         </div>
 
-        {/* ===============================
-            Category Filters
-            =============================== */}
+        {/* Category Filters */}
         <div className="mb-4 w-full overflow-x-auto pb-1">
           <div className="flex min-w-max gap-3">
             <SearchFilters
@@ -169,9 +220,7 @@ const Search = () => {
           </div>
         </div>
 
-        {/* ===============================
-            Advanced Filters
-            =============================== */}
+        {/* Advanced Filters */}
         <div className="flex flex-wrap items-center gap-4">
           {/* Store Filter */}
           <SearchStoreFilter
@@ -195,11 +244,55 @@ const Search = () => {
             onStartDateChange={setStartDate}
             onEndDateChange={setEndDate}
           />
+
+          {/* Warranty Filter */}
+          <div className="flex items-center gap-3">
+            <label
+              htmlFor="search-warranty-status"
+              className="text-sm font-medium text-secondary"
+            >
+              Warranty
+            </label>
+
+            <select
+              id="search-warranty-status"
+              value={warrantyStatus}
+              onChange={(e) => setWarrantyStatus(e.target.value)}
+              className="rounded-xl border border-default bg-surface px-4 py-2 text-sm text-primary outline-none transition-theme focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+            >
+              <option value="All">All Status</option>
+              <option value="active">Active</option>
+              <option value="expiring">Expiring Soon</option>
+              <option value="expired">Expired</option>
+              <option value="lifetime">Lifetime</option>
+            </select>
+          </div>
+
+          {/* Return Filter */}
+          <div className="flex items-center gap-3">
+            <label
+              htmlFor="search-return-status"
+              className="text-sm font-medium text-secondary"
+            >
+              Return
+            </label>
+
+            <select
+              id="search-return-status"
+              value={returnStatus}
+              onChange={(e) => setReturnStatus(e.target.value)}
+              className="rounded-xl border border-default bg-surface px-4 py-2 text-sm text-primary outline-none transition-theme focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+            >
+              <option value="All">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Ending Soon">Ending Soon</option>
+              <option value="Expired">Expired</option>
+              <option value="Unknown">Unknown</option>
+            </select>
+          </div>
         </div>
 
-        {/* ===============================
-            Sorting
-            =============================== */}
+        {/* Sorting */}
         <div className="mt-4 flex justify-end">
           <SearchSort
             sortBy={sortBy}

@@ -1,31 +1,8 @@
 import Card from '../ui/Card';
 import WarrantyRow from './WarrantyRow';
+import { getWarrantyStatus } from '../../utils/warrantyStatus';
 
 const WarrantyTable = ({ warranties, onDelete }) => {
-  const today = new Date();
-
-  const getStatus = (expiryDate, duration) => {
-    if (duration?.toLowerCase() === 'lifetime') {
-      return 'lifetime';
-    }
-
-    const expiry = new Date(expiryDate);
-
-    if (expiry < today) {
-      return 'expired';
-    }
-
-    const diffDays = Math.ceil(
-      (expiry - today) / (1000 * 60 * 60 * 24)
-    );
-
-    if (diffDays <= 30) {
-      return 'expiring';
-    }
-
-    return 'active';
-  };
-
   return (
     <Card>
       {/* Header */}
@@ -73,7 +50,7 @@ const WarrantyTable = ({ warranties, onDelete }) => {
                   brand={item.category}
                   purchaseDate={item.purchaseDate}
                   expiryDate={item.expiryDate}
-                  status={getStatus(
+                  status={getWarrantyStatus(
                     item.expiryDate,
                     item.warrantyDuration
                   )}

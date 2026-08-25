@@ -13,7 +13,9 @@ export const searchReceipts = ({
   minAmount = '',
   maxAmount = '',
   warrantyStatus = 'All',
+  warrantyStatusMap = {},
   returnStatus = 'All',
+  returnStatusMap = {},
   sortBy = 'newest',
 }) => {
   let filtered = [...receipts];
@@ -99,7 +101,7 @@ export const searchReceipts = ({
   if (warrantyStatus && warrantyStatus !== 'All') {
     filtered = filtered.filter(
       (receipt) =>
-        receipt.warrantyStatus === warrantyStatus
+        warrantyStatusMap[receipt.id] === warrantyStatus
     );
   }
 
@@ -109,7 +111,7 @@ export const searchReceipts = ({
   if (returnStatus && returnStatus !== 'All') {
     filtered = filtered.filter(
       (receipt) =>
-        receipt.returnStatus === returnStatus
+        returnStatusMap[receipt.id] === returnStatus
     );
   }
 
@@ -150,4 +152,4 @@ export const searchReceipts = ({
   }
 
   return filtered;
-};
+}; 
