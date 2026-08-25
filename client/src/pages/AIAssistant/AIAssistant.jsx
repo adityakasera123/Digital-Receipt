@@ -1,19 +1,37 @@
 import { useState } from 'react';
 import AskBillvoraInput from '../../components/ai/AskBillvoraInput';
 import AskBillvoraMessage from '../../components/ai/AskBillvoraMessage';
+import useAskBillvora from '../../hooks/useAskBillvora';
 
 const AIAssistant = () => {
   const [messages, setMessages] = useState([]);
 
-  const handleSend = (content) => {
+  const { askBillvora, loading, error } = useAskBillvora();
+
+  const handleSend = async (content) => {
+    const userMessage = {
+      id: `${Date.now()}-user`,
+      role: 'user',
+      content,
+    };
+
     setMessages((currentMessages) => [
       ...currentMessages,
-      {
-        id: Date.now(),
-        role: 'user',
-        content,
-      },
+      userMessage,
     ]);
+
+    const response = await askBillvora(content);
+
+    if (response) {
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        {
+          id: `${Date.now()}-assistant`,
+          role: 'assistant',
+          content: response,
+        },
+      ]);
+    }
   };
 
   return (
@@ -56,12 +74,29 @@ const AIAssistant = () => {
                     content={message.content}
                   />
                 ))}
+
+                {loading && (
+                  <AskBillvoraMessage
+                    role="assistant"
+                    content="Thinking..."
+                  />
+                )}
+
+                {error && !loading && (
+                  <AskBillvoraMessage
+                    role="assistant"
+                    content={error}
+                  />
+                )}
               </div>
             )}
           </div>
 
           {/* Input */}
-          <AskBillvoraInput onSend={handleSend} />
+          <AskBillvoraInput
+            onSend={handleSend}
+            disabled={loading}
+          />
         </div>
       </div>
     </div>
