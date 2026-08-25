@@ -1014,6 +1014,191 @@ function getRequestedProductCount(message) {
 
   return 1;
 }
+
+
+// ==========================================
+// Payment Intelligence
+// ==========================================
+
+/**
+ * Aggregates spending by payment method.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @return {Array<Object>} Payment method spending summary.
+ */
+function calculatePaymentSpending(receipts) {
+  const paymentMap = {};
+
+  receipts.forEach((receipt) => {
+    const paymentMethod =
+      typeof receipt.paymentMethod === "string" ?
+        receipt.paymentMethod.trim() :
+        "";
+
+    if (!paymentMethod) {
+      return;
+    }
+
+    const normalizedPaymentMethod =
+      paymentMethod.toLowerCase();
+
+    if (!paymentMap[normalizedPaymentMethod]) {
+      paymentMap[normalizedPaymentMethod] = {
+        paymentMethod,
+        total: 0,
+        purchaseCount: 0,
+      };
+    }
+
+    const payment = paymentMap[normalizedPaymentMethod];
+    const amount = parseAmount(receipt.amount);
+
+    payment.total += amount;
+    payment.purchaseCount += 1;
+  });
+
+  return Object.values(paymentMap)
+      .map((payment) => ({
+        ...payment,
+        total: Number(payment.total.toFixed(2)),
+      }))
+      .sort((a, b) => b.total - a.total);
+}
+
+/**
+ * Finds a payment method mentioned by the user.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @param {string} message - User's question.
+ * @return {string|null} Matching payment method.
+ */
+function resolvePaymentMethodQuery(receipts, message) {
+  if (!message || typeof message !== "string") {
+    return null;
+  }
+
+  const text = message.trim().toLowerCase();
+
+  const paymentMethods = [
+    ...new Set(
+        receipts
+            .map((receipt) => receipt.paymentMethod)
+            .filter(
+                (paymentMethod) =>
+                  typeof paymentMethod === "string" &&
+                  paymentMethod.trim(),
+            ),
+    ),
+  ];
+
+  // Match longer payment-method names first.
+  paymentMethods.sort(
+      (a, b) => b.length - a.length,
+  );
+
+  for (const paymentMethod of paymentMethods) {
+    const normalizedPaymentMethod =
+      paymentMethod.trim().toLowerCase();
+
+    if (text.includes(normalizedPaymentMethod)) {
+      return paymentMethod;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Returns payment-method-specific spending information.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @param {string} paymentMethod - Payment method name.
+ * @return {Object|null} Payment method result.
+ */
+function getPaymentMethodResult(
+    receipts,
+    paymentMethod,
+) {
+  if (!paymentMethod) {
+    return null;
+  }
+
+  const normalizedPaymentMethod =
+    paymentMethod.trim().toLowerCase();
+
+  const paymentReceipts = receipts.filter(
+      (receipt) =>
+        typeof receipt.paymentMethod === "string" &&
+        receipt.paymentMethod.trim().toLowerCase() ===
+          normalizedPaymentMethod,
+  );
+
+  if (paymentReceipts.length === 0) {
+    return null;
+  }
+
+  const total = paymentReceipts.reduce(
+      (sum, receipt) =>
+        sum + parseAmount(receipt.amount),
+      0,
+  );
+
+  return {
+    paymentMethod:
+      paymentReceipts[0].paymentMethod,
+    total: Number(total.toFixed(2)),
+    purchaseCount: paymentReceipts.length,
+  };
+}
+
+/**
+ * Checks whether the user is asking for payment-method ranking.
+ *
+ * @param {string} message - User's question.
+ * @return {boolean} Whether this is a payment ranking question.
+ */
+function isPaymentMethodRankingQuestion(message) {
+  if (!message || typeof message !== "string") {
+    return false;
+  }
+
+  const text = message.trim().toLowerCase();
+
+  const rankingWords = [
+    "top",
+    "highest",
+    "maximum",
+    "most",
+    "sabse zyada",
+    "zyada",
+  ];
+
+  const paymentWords = [
+    "payment",
+    "payments",
+    "payment method",
+    "payment methods",
+    "upi",
+    "cash",
+    "card",
+    "credit card",
+    "debit card",
+    "net banking",
+    "bank transfer",
+  ];
+
+  const hasRankingWord = rankingWords.some(
+      (word) => text.includes(word),
+  );
+
+  const hasPaymentWord = paymentWords.some(
+      (word) => text.includes(word),
+  );
+
+  return hasRankingWord && hasPaymentWord;
+}
+
+
 // ==========================================
 // Existing OCR function — unchanged
 // ==========================================
@@ -1400,6 +1585,53 @@ exports.askBillvora = onRequest(
           0,
           requestedProductCount,
       );
+
+
+        // ==========================================
+        // Payment Intelligence
+        // ==========================================
+
+        const paymentSpending =
+          calculatePaymentSpending(receipts);
+
+        const paymentMethodQuery =
+          resolvePaymentMethodQuery(
+              receipts,
+              trimmedMessage,
+          );
+
+        const paymentMethodResult =
+          paymentMethodQuery ?
+            getPaymentMethodResult(
+                receipts,
+                paymentMethodQuery,
+            ) :
+            null;
+
+        const paymentRankingQuestion =
+          isPaymentMethodRankingQuestion(
+              trimmedMessage,
+          );
+
+        const mostUsedPaymentMethod =
+          paymentSpending.length > 0 ?
+            [...paymentSpending]
+                .sort(
+                    (a, b) =>
+                      b.purchaseCount - a.purchaseCount,
+                )[0] :
+            null;
+
+        const highestSpendingPaymentMethod =
+          paymentSpending.length > 0 ?
+            [...paymentSpending]
+                .sort(
+                    (a, b) =>
+                      b.total - a.total,
+                )[0] :
+            null;
+
+
         // ==========================================
         // AI context
         // ==========================================
@@ -1424,7 +1656,12 @@ exports.askBillvora = onRequest(
           productRankingQuestion,
           requestedProductCount,
           topProducts,
-
+          paymentSpending,
+          paymentMethodQuery,
+          paymentMethodResult,
+          paymentRankingQuestion,
+          mostUsedPaymentMethod,
+          highestSpendingPaymentMethod,
           receipts,
           warranties,
         };
@@ -1610,6 +1847,40 @@ MOST EXPENSIVE PRODUCT OVERRIDE:
   for the answer.
 
 - Do not use productSpending.total to decide the most expensive product.
+
+PAYMENT INTELLIGENCE RULES:
+
+1. For payment-method-specific questions, use
+   paymentMethodResult when available.
+
+2. paymentMethodResult is the authoritative
+   server-side result.
+
+3. Never calculate, guess, estimate, or invent
+   payment-method spending or purchase counts.
+
+4. If paymentMethodResult is null, clearly say that
+   the requested payment information is not available
+   in the user's Billvora data.
+
+5. For "most used payment method" questions, use
+   purchase count.
+
+6. For "highest spending payment method" questions,
+   use total spending.
+
+7. Never confuse purchase count with spending amount.
+
+8. Preserve the actual paymentMethod name from
+   Billvora data.
+
+9. For payment-method ranking questions, use
+   mostUsedPaymentMethod or
+   highestSpendingPaymentMethod according to
+   the user's question.
+
+10. Never reveal internal Firestore document IDs
+    or implementation details.
 
 Billvora user data context:
 ${JSON.stringify(context)}
