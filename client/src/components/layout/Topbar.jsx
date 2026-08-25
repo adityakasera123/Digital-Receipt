@@ -1,29 +1,14 @@
-import { Menu, Search } from 'lucide-react';
-import { useContext, useState } from 'react';
+import { Menu } from 'lucide-react';
+import { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { AuthContext } from '../../context/AuthContext';
 import NotificationBell from './NotificationBell';
+import GlobalSearch from '../search/GlobalSearch';
 
 function Topbar({ onMenuClick }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-
-  const [search, setSearch] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    const query = search.trim();
-
-    if (!query) {
-      navigate('/search');
-      return;
-    }
-
-    navigate(`/search?q=${encodeURIComponent(query)}`);
-    setSearch('');
-  };
 
   return (
     <header className="flex h-16 lg:h-20 items-center border-b border-default bg-surface px-4 transition-theme lg:px-8">
@@ -37,26 +22,8 @@ function Topbar({ onMenuClick }) {
         <Menu size={22} />
       </button>
 
-      {/* Search Bar */}
-      <form
-        onSubmit={handleSubmit}
-        className="min-w-0 flex-1 lg:max-w-2xl"
-      >
-        <div className="flex h-10 lg:h-12 items-center gap-2 rounded-xl lg:rounded-2xl border border-default bg-surface px-3 lg:px-4 transition-theme focus-within:border-blue-500">
-          <Search
-            size={16}
-            className="shrink-0 text-secondary"
-          />
-
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search receipts..."
-            className="min-w-0 w-full bg-transparent text-sm text-primary outline-none placeholder:text-secondary"
-          />
-        </div>
-      </form>
+      {/* Global Search */}
+      <GlobalSearch />
 
       {/* Right Side Actions */}
       <div className="ml-3 flex shrink-0 items-center gap-2 lg:ml-8 lg:gap-4">
@@ -67,11 +34,11 @@ function Topbar({ onMenuClick }) {
         <button
           type="button"
           onClick={() => navigate('/settings')}
-          className="flex shrink-0 items-center gap-3 rounded-2xl border border-default bg-surface p-2 lg:px-4 lg:py-2 text-left transition-theme hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          className="flex shrink-0 items-center gap-3 rounded-2xl border border-default bg-surface p-2 text-left transition-theme hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-blue-500/20 lg:px-4 lg:py-2"
           aria-label="Open profile settings"
         >
           {/* Avatar */}
-          <div className="button-primary flex h-10 w-10 lg:h-11 lg:w-11 shrink-0 items-center justify-center rounded-full font-semibold">
+          <div className="button-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-semibold lg:h-11 lg:w-11">
             {user?.displayName?.charAt(0).toUpperCase() || 'U'}
           </div>
 
