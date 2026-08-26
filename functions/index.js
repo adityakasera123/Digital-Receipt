@@ -746,7 +746,274 @@ function getRequestedMerchantCount(message) {
 
   return 1;
 }
+// ==========================================
+// Product Intelligence
+// ==========================================
 
+/**
+ * Aggregates spending by product.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @return {Array<Object>} Product spending summary.
+ */
+function calculateProductSpending(receipts) {
+  const productMap = {};
+
+  receipts.forEach((receipt) => {
+    const productName =
+      typeof receipt.productName === "string" ?
+        receipt.productName.trim() :
+        "";
+
+    if (!productName) {
+      return;
+    }
+
+    const normalizedProduct =
+      productName.toLowerCase();
+
+    if (!productMap[normalizedProduct]) {
+      productMap[normalizedProduct] = {
+        productName,
+        total: 0,
+        purchaseCount: 0,
+        highestPurchase: null,
+        purchaseDates: [],
+      };
+    }
+
+    const product = productMap[normalizedProduct];
+    const amount = parseAmount(receipt.amount);
+
+    product.total += amount;
+    product.purchaseCount += 1;
+
+    if (
+      receipt.purchaseDate &&
+      isValidDate(receipt.purchaseDate)
+    ) {
+      product.purchaseDates.push(receipt.purchaseDate);
+    }
+
+    if (
+      !product.highestPurchase ||
+      amount >
+        parseAmount(product.highestPurchase.amount)
+    ) {
+      product.highestPurchase = receipt;
+    }
+  });
+
+  return Object.values(productMap)
+      .map((product) => ({
+        ...product,
+        total: Number(product.total.toFixed(2)),
+        purchaseDates: [...product.purchaseDates].sort(),
+      }))
+      .sort((a, b) => b.total - a.total);
+}
+
+/**
+ * Finds a product mentioned by the user.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @param {string} message - User's question.
+ * @return {string|null} Matching product name.
+ */
+function resolveProductQuery(receipts, message) {
+  if (!message || typeof message !== "string") {
+    return null;
+  }
+
+  const text = message.trim().toLowerCase();
+
+  const products = [
+    ...new Set(
+        receipts
+            .map((receipt) => receipt.productName)
+            .filter(
+                (productName) =>
+                  typeof productName === "string" &&
+                  productName.trim(),
+            ),
+    ),
+  ];
+
+  // Match longer product names first.
+  products.sort(
+      (a, b) => b.length - a.length,
+  );
+
+  for (const product of products) {
+    const normalizedProduct =
+      product.trim().toLowerCase();
+
+    if (text.includes(normalizedProduct)) {
+      return product;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Returns product-specific spending information.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @param {string} productName - Product name.
+ * @return {Object|null} Product spending result.
+ */
+function getProductSpending(
+    receipts,
+    productName,
+) {
+  if (!productName) {
+    return null;
+  }
+
+  const normalizedProduct =
+    productName.trim().toLowerCase();
+
+  const productReceipts = receipts.filter(
+      (receipt) =>
+        typeof receipt.productName === "string" &&
+        receipt.productName.trim().toLowerCase() ===
+          normalizedProduct,
+  );
+
+  if (productReceipts.length === 0) {
+    return null;
+  }
+
+  const total = productReceipts.reduce(
+      (sum, receipt) =>
+        sum + parseAmount(receipt.amount),
+      0,
+  );
+
+  const highestPurchase =
+    productReceipts.reduce(
+        (highest, receipt) => {
+          if (
+            !highest ||
+            parseAmount(receipt.amount) >
+              parseAmount(highest.amount)
+          ) {
+            return receipt;
+          }
+
+          return highest;
+        },
+        null,
+    );
+
+  const purchaseDates = productReceipts
+      .map((receipt) => receipt.purchaseDate)
+      .filter((date) => isValidDate(date))
+      .sort();
+
+  return {
+    productName:
+      productReceipts[0].productName,
+    total: Number(total.toFixed(2)),
+    purchaseCount: productReceipts.length,
+    highestPurchase,
+    purchaseDates,
+    firstPurchaseDate:
+      purchaseDates.length > 0 ?
+        purchaseDates[0] :
+        null,
+    latestPurchaseDate:
+      purchaseDates.length > 0 ?
+        purchaseDates[purchaseDates.length - 1] :
+        null,
+  };
+}
+
+/**
+ * Checks whether the user is asking for product ranking.
+ *
+ * @param {string} message - User's question.
+ * @return {boolean} Whether this is a top-product question.
+ */
+function isProductRankingQuestion(message) {
+  if (!message || typeof message !== "string") {
+    return false;
+  }
+
+  const text = message.trim().toLowerCase();
+
+  const rankingWords = [
+    "top",
+    "highest",
+    "maximum",
+    "most",
+    "expensive",
+    "costly",
+    "sabse mehenga",
+    "sabse expensive",
+    "sabse costly",
+  ];
+
+  const productWords = [
+    "product",
+    "products",
+    "item",
+    "items",
+    "purchase",
+    "purchases",
+    "kharida",
+    "kharidi",
+    "cheez",
+  ];
+
+  const hasRankingWord = rankingWords.some(
+      (word) => text.includes(word),
+  );
+
+  const hasProductWord = productWords.some(
+      (word) => text.includes(word),
+  );
+
+  return hasRankingWord && hasProductWord;
+}
+
+/**
+ * Returns the requested number of top products.
+ *
+ * @param {string} message - User's question.
+ * @return {number} Requested product count.
+ */
+function getRequestedProductCount(message) {
+  if (!message || typeof message !== "string") {
+    return 1;
+  }
+
+  const text = message.trim().toLowerCase();
+
+  const numberMatch = text.match(
+      /\b(?:top|first)\s+(\d+)\b/,
+  );
+
+  if (numberMatch) {
+    const count = Number(numberMatch[1]);
+
+    if (Number.isInteger(count) && count > 0) {
+      return Math.min(count, 10);
+    }
+  }
+
+  if (
+    text.includes("top 3") ||
+    text.includes("three products") ||
+    text.includes("3 products") ||
+    text.includes("top three")
+  ) {
+    return 3;
+  }
+
+  return 1;
+}
 // ==========================================
 // Existing OCR function — unchanged
 // ==========================================
@@ -1082,7 +1349,57 @@ exports.askBillvora = onRequest(
               0,
               requestedMerchantCount,
           );
+        // ==========================================
+        // Product Intelligence
+        // ==========================================
 
+        const productSpending =
+          calculateProductSpending(receipts);
+
+        const productQuery =
+          resolveProductQuery(
+              receipts,
+              trimmedMessage,
+          );
+
+        const productResult =
+          productQuery ?
+            getProductSpending(
+                receipts,
+                productQuery,
+            ) :
+            null;
+
+        const productRankingQuestion =
+          isProductRankingQuestion(
+              trimmedMessage,
+          );
+
+        const requestedProductCount =
+          productRankingQuestion ?
+            getRequestedProductCount(
+                trimmedMessage,
+            ) :
+            1;
+
+        const topProducts =
+  [...productSpending]
+      .sort((a, b) =>
+        parseAmount(
+            b.highestPurchase ?
+              b.highestPurchase.amount :
+              0,
+        ) -
+        parseAmount(
+            a.highestPurchase ?
+              a.highestPurchase.amount :
+              0,
+        ),
+      )
+      .slice(
+          0,
+          requestedProductCount,
+      );
         // ==========================================
         // AI context
         // ==========================================
@@ -1101,6 +1418,13 @@ exports.askBillvora = onRequest(
           merchantRankingQuestion,
           requestedMerchantCount,
           topMerchants,
+          productSpending,
+          productQuery,
+          productResult,
+          productRankingQuestion,
+          requestedProductCount,
+          topProducts,
+
           receipts,
           warranties,
         };
@@ -1225,6 +1549,67 @@ IMPORTANT RULES:
     they are unrelated to Billvora purchases.
 
 37. Be concise, friendly, and helpful.
+
+PRODUCT INTELLIGENCE RULES:
+
+1. For a specific product question, use productResult when
+   productQuery is present.
+
+2. productResult is the authoritative server-side calculation
+   for a specific product.
+
+3. Never calculate, guess, estimate, or invent product spending
+   when productResult is available.
+
+4. For product spending questions, use:
+   - productResult.productName
+   - productResult.total
+   - productResult.purchaseCount
+   - productResult.highestPurchase
+   - productResult.firstPurchaseDate
+   - productResult.latestPurchaseDate
+   as the authoritative server-side result.
+
+5. For product purchase-date questions, use the purchase dates
+   provided by productResult.
+
+6. If productResult is null, clearly say that the requested
+   product information is not available in the user's Billvora data.
+
+7. For top product questions, use topProducts.
+
+8. topProducts is already sorted by total spending from highest
+   to lowest.
+
+9. If the user asks for the most expensive product, the answer must
+   be based on the highest single purchase amount, not total product
+   spending.
+
+10. For the most expensive product question, use the first item in
+    topProducts and use that item's highestPurchase.amount as the
+    authoritative amount.
+
+11. Do not use productSpending.total to determine which product is
+    the most expensive.
+
+12. Preserve the actual productName from Billvora data.
+
+13. Do not invent, rename, or alter product names.
+
+14. Never reveal internal Firestore document IDs or receipt IDs.
+
+MOST EXPENSIVE PRODUCT OVERRIDE:
+
+- "Most expensive product" means the product with the highest
+  single purchase amount, not the highest total spending.
+
+- For this question, topProducts is authoritative and already sorted
+  by highest single purchase amount.
+
+- Use topProducts[0].productName and topProducts[0].highestPurchase.amount
+  for the answer.
+
+- Do not use productSpending.total to decide the most expensive product.
 
 Billvora user data context:
 ${JSON.stringify(context)}
