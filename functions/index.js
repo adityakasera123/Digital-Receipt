@@ -178,8 +178,36 @@ exports.askBillvora = onRequest(
         // ==========================================
         // Build safe warranty context
         // ==========================================
+        // ==========================================
+        // Build safe warranty context
+        // ==========================================
+        const currentDate = new Date().toISOString().slice(0, 10);
+
         const warranties = warrantiesSnapshot.docs.map((doc) => {
           const data = doc.data();
+          const expiryDate = data.expiryDate || "";
+
+          let expiryStatus = "unknown";
+          let daysRemaining = null;
+
+          if (expiryDate) {
+            const todayMs = Date.parse(`${currentDate}T00:00:00Z`);
+            const expiryMs = Date.parse(`${expiryDate}T00:00:00Z`);
+
+            if (!Number.isNaN(expiryMs)) {
+              daysRemaining = Math.round(
+                  (expiryMs - todayMs) / (1000 * 60 * 60 * 24),
+              );
+
+              if (daysRemaining < 0) {
+                expiryStatus = "expired";
+              } else if (daysRemaining === 0) {
+                expiryStatus = "expires_today";
+              } else {
+                expiryStatus = "active";
+              }
+            }
+          }
 
           return {
             id: doc.id,
@@ -188,9 +216,10 @@ exports.askBillvora = onRequest(
             storeName: data.storeName || "",
             category: data.category || "",
             purchaseDate: data.purchaseDate || "",
-            warrantyDuration:
-              data.warrantyDuration || "",
-            expiryDate: data.expiryDate || "",
+            warrantyDuration: data.warrantyDuration || "",
+            expiryDate,
+            expiryStatus,
+            daysRemaining,
           };
         });
 
