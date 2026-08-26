@@ -159,6 +159,209 @@ function getNextMonthStart(currentDate) {
   return `${nextYear}-${nextMonth}-01`;
 }
 
+/**
+ * Resolves a natural-language spending period into a date range.
+ *
+ * The start date is inclusive and the end date is exclusive.
+ *
+ * @param {string} message - User's spending question.
+ * @param {Date} now - Current server date.
+ * @return {Object|null} Resolved date range or null.
+ */
+function resolveSpendingDateRange(message, now = new Date()) {
+  if (!message || typeof message !== "string") {
+    return null;
+  }
+
+  const text = message.trim().toLowerCase();
+
+  const currentYear = now.getUTCFullYear();
+  const currentMonth = now.getUTCMonth();
+
+  // ==========================================
+  // This month
+  // ==========================================
+
+  if (
+    /\bthis month\b/.test(text) ||
+    /\bis month\b/.test(text) ||
+    /\biss month\b/.test(text) ||
+    /\bis mahine\b/.test(text) ||
+    /\biss mahine\b/.test(text)
+  ) {
+    const start = new Date(
+        Date.UTC(currentYear, currentMonth, 1),
+    );
+
+    const end = new Date(
+        Date.UTC(currentYear, currentMonth + 1, 1),
+    );
+
+    return {
+      label: `this month (${start.toLocaleString("en-US", {
+        month: "long",
+        timeZone: "UTC",
+      })} ${currentYear})`,
+      startDate: start.toISOString().slice(0, 10),
+      endDate: end.toISOString().slice(0, 10),
+    };
+  }
+
+  // ==========================================
+  // Last month
+  // ==========================================
+
+  if (
+    /\blast month\b/.test(text) ||
+    /\bpichle month\b/.test(text) ||
+    /\bpichhle month\b/.test(text) ||
+    /\bpichle mahine\b/.test(text) ||
+    /\bpichhle mahine\b/.test(text)
+  ) {
+    const start = new Date(
+        Date.UTC(currentYear, currentMonth - 1, 1),
+    );
+
+    const end = new Date(
+        Date.UTC(currentYear, currentMonth, 1),
+    );
+
+    const monthName = start.toLocaleString("en-US", {
+      month: "long",
+      timeZone: "UTC",
+    });
+
+    return {
+      label: `last month (${monthName} ${start.getUTCFullYear()})`,
+      startDate: start.toISOString().slice(0, 10),
+      endDate: end.toISOString().slice(0, 10),
+    };
+  }
+
+  // ==========================================
+  // Named months
+  // ==========================================
+
+  const months = {
+    january: 0,
+    jan: 0,
+    february: 1,
+    feb: 1,
+    march: 2,
+    mar: 2,
+    april: 3,
+    apr: 3,
+    may: 4,
+    june: 5,
+    jun: 5,
+    july: 6,
+    jul: 6,
+    august: 7,
+    aug: 7,
+    september: 8,
+    sep: 8,
+    sept: 8,
+    october: 9,
+    oct: 9,
+    november: 10,
+    nov: 10,
+    december: 11,
+    dec: 11,
+  };
+
+  const monthPattern = new RegExp(
+      "\\b(january|jan|february|feb|march|mar|april|apr|may|june|jun|" +
+    "july|jul|august|aug|september|sep|sept|october|oct|november|" +
+    "nov|december|dec)(?:\\s+(\\d{4}))?\\b",
+      "i",
+  );
+  const match = text.match(monthPattern);
+
+  if (match) {
+    const monthName = match[1].toLowerCase();
+    const monthIndex = months[monthName];
+
+    const requestedYear = match[2] ?
+      Number(match[2]) :
+      currentYear;
+
+    if (
+      Number.isInteger(monthIndex) &&
+      Number.isInteger(requestedYear)
+    ) {
+      const start = new Date(
+          Date.UTC(requestedYear, monthIndex, 1),
+      );
+
+      const end = new Date(
+          Date.UTC(requestedYear, monthIndex + 1, 1),
+      );
+
+      const displayMonth = start.toLocaleString("en-US", {
+        month: "long",
+        timeZone: "UTC",
+      });
+
+      return {
+        label: `${displayMonth} ${requestedYear}`,
+        startDate: start.toISOString().slice(0, 10),
+        endDate: end.toISOString().slice(0, 10),
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Calculates spending for a specific date range.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @param {Object} dateRange - Date range.
+ * @return {Object} Spending result.
+ */
+function calculateSpendingForDateRange(receipts, dateRange) {
+  if (!dateRange) {
+    return {
+      total: 0,
+      purchaseCount: 0,
+      highestPurchase: null,
+    };
+  }
+
+  const filteredReceipts = filterReceiptsByDateRange(
+      receipts,
+      dateRange.startDate,
+      dateRange.endDate,
+  );
+
+  const total = filteredReceipts.reduce(
+      (sum, receipt) => sum + parseAmount(receipt.amount),
+      0,
+  );
+
+  const highestPurchase = filteredReceipts.reduce(
+      (highest, receipt) => {
+        if (
+          !highest ||
+          parseAmount(receipt.amount) >
+            parseAmount(highest.amount)
+        ) {
+          return receipt;
+        }
+
+        return highest;
+      },
+      null,
+  );
+
+  return {
+    total: Number(total.toFixed(2)),
+    purchaseCount: filteredReceipts.length,
+    highestPurchase,
+  };
+}
+
 // ==========================================
 // Existing OCR function — unchanged
 // ==========================================
@@ -331,7 +534,7 @@ exports.askBillvora = onRequest(
         const receipts = receiptsSnapshot.docs.map((doc) => {
           const data = doc.data();
 
-       return {
+          return {
             productName: data.productName || "",
             storeName: data.storeName || "",
             purchaseDate: data.purchaseDate || "",
@@ -386,8 +589,7 @@ exports.askBillvora = onRequest(
             }
           }
 
-
-           return {
+          return {
             productName: data.productName || "",
             storeName: data.storeName || "",
             category: data.category || "",
@@ -400,7 +602,7 @@ exports.askBillvora = onRequest(
         });
 
         // ==========================================
-        // Spending Intelligence
+        // Overall Spending Intelligence
         // ==========================================
 
         const spendingSummary = calculateSpending(receipts);
@@ -426,6 +628,21 @@ exports.askBillvora = onRequest(
           calculateSpending(currentMonthReceipts);
 
         // ==========================================
+        // Natural-language spending date range
+        // ==========================================
+
+        const spendingDateRange =
+          resolveSpendingDateRange(trimmedMessage);
+
+        const spendingAnalysis =
+          spendingDateRange ?
+            calculateSpendingForDateRange(
+                receipts,
+                spendingDateRange,
+            ) :
+            null;
+
+        // ==========================================
         // AI context
         // ==========================================
 
@@ -433,6 +650,8 @@ exports.askBillvora = onRequest(
           currentDate,
           spendingSummary,
           currentMonthSpending,
+          spendingDateRange,
+          spendingAnalysis,
           receipts,
           warranties,
         };
@@ -475,32 +694,50 @@ IMPORTANT RULES:
 
 8. For current-month spending questions, use currentMonthSpending.
 
-9. Do not invent, estimate, or approximate spending totals.
+9. When spendingDateRange is present, spendingAnalysis is the
+   authoritative server-side calculation for that requested period.
 
-10. For warranty questions, use the warranty data provided in the
+10. Never recalculate, guess, estimate, or invent a spending total
+    when spendingAnalysis is available.
+
+11. For spending period questions, use:
+    - spendingAnalysis.total
+    - spendingAnalysis.purchaseCount
+    - spendingAnalysis.highestPurchase
+    as the authoritative result.
+
+12. If spendingAnalysis is null, do not assume a date range that was
+    not detected.
+
+13. If spendingAnalysis.purchaseCount is 0, clearly say that there
+    are no purchases recorded for that period.
+
+14. For warranty questions, use the warranty data provided in the
     context.
 
-11. The warranty expiryStatus and daysRemaining fields are
+15. The warranty expiryStatus and daysRemaining fields are
     calculated server-side and must be treated as authoritative.
 
-12. If expiryStatus is "expired", clearly say that the warranty
+16. If expiryStatus is "expired", clearly say that the warranty
     has already expired.
 
-13. If expiryStatus is "expires_today", clearly say that the
+17. If expiryStatus is "expires_today", clearly say that the
     warranty expires today.
 
-14. If expiryStatus is "active", use daysRemaining to describe
+18. If expiryStatus is "active", use daysRemaining to describe
     how many days remain when relevant.
 
-15. If expiryStatus is "unknown", do not guess the warranty status.
+19. If expiryStatus is "unknown", do not guess the warranty status.
 
-16. For return-window questions, use the receipt return fields
+20. For return-window questions, use the receipt return fields
     provided in the context.
 
-17. You can answer general knowledge questions normally, even when
+21. You can answer general knowledge questions normally, even when
     they are unrelated to Billvora purchases.
 
-18. Be concise, friendly, and helpful.
+22. Be concise, friendly, and helpful.
+
+23. Never reveal internal Firestore document IDs or receipt IDs.
 
 Billvora user data context:
 ${JSON.stringify(context)}
