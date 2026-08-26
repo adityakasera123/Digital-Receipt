@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { auth } from '../firebase/firebase';
 
 const ASK_BILLVORA_URL =
   'https://us-central1-billvora-e91e7.cloudfunctions.net/askBillvora';
@@ -18,10 +19,19 @@ function useAskBillvora() {
     setError('');
 
     try {
+      const user = auth.currentUser;
+
+      if (!user) {
+        throw new Error('Please sign in to use Ask Billvora.');
+      }
+
+      const idToken = await user.getIdToken();
+
       const response = await fetch(ASK_BILLVORA_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           message: trimmedMessage,
