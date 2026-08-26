@@ -7,31 +7,176 @@ const vision = require("@google-cloud/vision");
 const path = require("path");
 const {GoogleGenAI} = require("@google/genai");
 
+// ==========================================
 // Firebase Admin
+// ==========================================
+
 initializeApp();
 
 const adminAuth = getAuth();
 const db = getFirestore();
 
+// ==========================================
 // Existing Vision OCR setup
+// ==========================================
+
 const client = new vision.ImageAnnotatorClient({
   keyFilename: path.join(__dirname, "billvora-vision.json"),
 });
 
+// ==========================================
 // Gemini secret
+// ==========================================
+
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
+// ==========================================
+// Spending Intelligence Helpers
+// ==========================================
+
+/**
+ * Checks whether a value uses YYYY-MM-DD format.
+ *
+ * @param {string} value - Date value to validate.
+ * @return {boolean} Whether the value is a valid date string.
+ */
+function isValidDate(value) {
+  if (!value || typeof value !== "string") {
+    return false;
+  }
+
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+/**
+ * Converts a receipt amount into a safe numeric value.
+ *
+ * @param {number|string} value - Receipt amount.
+ * @return {number} Parsed amount or zero.
+ */
+function parseAmount(value) {
+  const amount = Number(value);
+
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+/**
+ * Returns the current server date in YYYY-MM-DD format.
+ *
+ * @return {string} Current server date.
+ */
+function getCurrentDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Calculates overall spending statistics for receipts.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @return {Object} Spending summary.
+ */
+function calculateSpending(receipts) {
+  const validReceipts = receipts.filter(
+      (receipt) => isValidDate(receipt.purchaseDate),
+  );
+
+  const total = validReceipts.reduce(
+      (sum, receipt) => sum + parseAmount(receipt.amount),
+      0,
+  );
+
+  const highestPurchase = validReceipts.reduce(
+      (highest, receipt) => {
+        if (
+          !highest ||
+          parseAmount(receipt.amount) >
+            parseAmount(highest.amount)
+        ) {
+          return receipt;
+        }
+
+        return highest;
+      },
+      null,
+  );
+
+  return {
+    total: Number(total.toFixed(2)),
+    purchaseCount: validReceipts.length,
+    highestPurchase,
+  };
+}
+
+/**
+ * Filters receipts by a purchase-date range.
+ *
+ * The start date is inclusive and the end date is exclusive.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @param {string} startDate - Inclusive start date.
+ * @param {string} endDate - Exclusive end date.
+ * @return {Array<Object>} Receipts within the date range.
+ */
+function filterReceiptsByDateRange(
+    receipts,
+    startDate,
+    endDate,
+) {
+  return receipts.filter((receipt) => {
+    const purchaseDate = receipt.purchaseDate;
+
+    if (!isValidDate(purchaseDate)) {
+      return false;
+    }
+
+    return (
+      purchaseDate >= startDate &&
+      purchaseDate < endDate
+    );
+  });
+}
+
+/**
+ * Calculates the first day of the next month.
+ *
+ * @param {string} currentDate - Current date in YYYY-MM-DD format.
+ * @return {string} First day of the next month.
+ */
+function getNextMonthStart(currentDate) {
+  const year = Number(currentDate.slice(0, 4));
+  const month = Number(currentDate.slice(5, 7));
+
+  const nextMonthDate = new Date(
+      Date.UTC(year, month, 1),
+  );
+
+  const nextYear = nextMonthDate.getUTCFullYear();
+
+  const nextMonth = String(
+      nextMonthDate.getUTCMonth() + 1,
+  ).padStart(2, "0");
+
+  return `${nextYear}-${nextMonth}-01`;
+}
+
+// ==========================================
 // Existing OCR function — unchanged
+// ==========================================
+
 exports.ocrReceipt = onRequest(async (req, res) => {
   try {
     if (req.method !== "POST") {
-      return res.status(405).json({error: "Method not allowed"});
+      return res.status(405).json({
+        error: "Method not allowed",
+      });
     }
 
     const {imageBase64} = req.body;
 
     if (!imageBase64) {
-      return res.status(400).json({error: "Missing imageBase64"});
+      return res.status(400).json({
+        error: "Missing imageBase64",
+      });
     }
 
     const [result] = await client.documentTextDetection({
@@ -58,23 +203,42 @@ exports.ocrReceipt = onRequest(async (req, res) => {
   }
 });
 
+// ==========================================
 // Ask Billvora AI assistant
+// ==========================================
+
 exports.askBillvora = onRequest(
     {
       secrets: [geminiApiKey],
     },
     async (req, res) => {
+      // ==========================================
       // CORS
-      res.set("Access-Control-Allow-Origin", "*");
-      res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-      res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      // ==========================================
 
+      res.set("Access-Control-Allow-Origin", "*");
+      res.set(
+          "Access-Control-Allow-Methods",
+          "POST, OPTIONS",
+      );
+      res.set(
+          "Access-Control-Allow-Headers",
+          "Content-Type, Authorization",
+      );
+
+      // ==========================================
       // Browser preflight
+      // ==========================================
+
       if (req.method === "OPTIONS") {
         return res.status(204).send("");
       }
 
       try {
+        // ==========================================
+        // Request method
+        // ==========================================
+
         if (req.method !== "POST") {
           return res.status(405).json({
             success: false,
@@ -85,10 +249,13 @@ exports.askBillvora = onRequest(
         // ==========================================
         // Firebase Authentication
         // ==========================================
+
         const authorization = req.get("Authorization");
 
-        if (!authorization ||
-            !authorization.startsWith("Bearer ")) {
+        if (
+          !authorization ||
+          !authorization.startsWith("Bearer ")
+        ) {
           return res.status(401).json({
             success: false,
             error: "Authentication required.",
@@ -104,12 +271,16 @@ exports.askBillvora = onRequest(
           });
         }
 
-        const decodedToken = await adminAuth.verifyIdToken(idToken);
+        const decodedToken = await adminAuth.verifyIdToken(
+            idToken,
+        );
+
         const userId = decodedToken.uid;
 
         // ==========================================
         // Validate message
         // ==========================================
+
         const {message} = req.body || {};
 
         if (!message || typeof message !== "string") {
@@ -138,6 +309,7 @@ exports.askBillvora = onRequest(
         // ==========================================
         // Fetch ONLY current user's receipts
         // ==========================================
+
         const receiptsSnapshot = await db
             .collection("receipts")
             .where("userId", "==", userId)
@@ -146,6 +318,7 @@ exports.askBillvora = onRequest(
         // ==========================================
         // Fetch ONLY current user's warranties
         // ==========================================
+
         const warrantiesSnapshot = await db
             .collection("warranties")
             .where("userId", "==", userId)
@@ -154,6 +327,7 @@ exports.askBillvora = onRequest(
         // ==========================================
         // Build safe receipt context
         // ==========================================
+
         const receipts = receiptsSnapshot.docs.map((doc) => {
           const data = doc.data();
 
@@ -178,10 +352,8 @@ exports.askBillvora = onRequest(
         // ==========================================
         // Build safe warranty context
         // ==========================================
-        // ==========================================
-        // Build safe warranty context
-        // ==========================================
-        const currentDate = new Date().toISOString().slice(0, 10);
+
+        const currentDate = getCurrentDate();
 
         const warranties = warrantiesSnapshot.docs.map((doc) => {
           const data = doc.data();
@@ -191,12 +363,18 @@ exports.askBillvora = onRequest(
           let daysRemaining = null;
 
           if (expiryDate) {
-            const todayMs = Date.parse(`${currentDate}T00:00:00Z`);
-            const expiryMs = Date.parse(`${expiryDate}T00:00:00Z`);
+            const todayMs = Date.parse(
+                `${currentDate}T00:00:00Z`,
+            );
+
+            const expiryMs = Date.parse(
+                `${expiryDate}T00:00:00Z`,
+            );
 
             if (!Number.isNaN(expiryMs)) {
               daysRemaining = Math.round(
-                  (expiryMs - todayMs) / (1000 * 60 * 60 * 24),
+                  (expiryMs - todayMs) /
+                  (1000 * 60 * 60 * 24),
               );
 
               if (daysRemaining < 0) {
@@ -224,12 +402,46 @@ exports.askBillvora = onRequest(
         });
 
         // ==========================================
+        // Spending Intelligence
+        // ==========================================
+
+        const spendingSummary = calculateSpending(receipts);
+
+        // ==========================================
+        // Current month spending
+        // ==========================================
+
+        const currentMonthStart =
+          `${currentDate.slice(0, 8)}01`;
+
+        const nextMonthStart =
+          getNextMonthStart(currentDate);
+
+        const currentMonthReceipts =
+          filterReceiptsByDateRange(
+              receipts,
+              currentMonthStart,
+              nextMonthStart,
+          );
+
+        const currentMonthSpending =
+          calculateSpending(currentMonthReceipts);
+
+        // ==========================================
         // AI context
         // ==========================================
+
         const context = {
+          currentDate,
+          spendingSummary,
+          currentMonthSpending,
           receipts,
           warranties,
         };
+
+        // ==========================================
+        // AI system instruction
+        // ==========================================
 
         const systemInstruction = `
 You are Ask Billvora, the personal purchase intelligence
@@ -261,19 +473,36 @@ IMPORTANT RULES:
    tokens, API keys, secrets, database credentials, or security
    information.
 
-7. For calculations such as total spending, use the receipt amounts
-   provided in the context and calculate carefully.
+7. For overall spending questions, use spendingSummary.
 
-8. For warranty questions, use the warranty data provided in the
-   context.
+8. For current-month spending questions, use currentMonthSpending.
 
-9. For return-window questions, use the receipt return fields
-   provided in the context.
+9. Do not invent, estimate, or approximate spending totals.
 
-10. You can answer general knowledge questions normally, even when
+10. For warranty questions, use the warranty data provided in the
+    context.
+
+11. The warranty expiryStatus and daysRemaining fields are
+    calculated server-side and must be treated as authoritative.
+
+12. If expiryStatus is "expired", clearly say that the warranty
+    has already expired.
+
+13. If expiryStatus is "expires_today", clearly say that the
+    warranty expires today.
+
+14. If expiryStatus is "active", use daysRemaining to describe
+    how many days remain when relevant.
+
+15. If expiryStatus is "unknown", do not guess the warranty status.
+
+16. For return-window questions, use the receipt return fields
+    provided in the context.
+
+17. You can answer general knowledge questions normally, even when
     they are unrelated to Billvora purchases.
 
-11. Be concise, friendly, and helpful.
+18. Be concise, friendly, and helpful.
 
 Billvora user data context:
 ${JSON.stringify(context)}
@@ -282,6 +511,7 @@ ${JSON.stringify(context)}
         // ==========================================
         // Gemini
         // ==========================================
+
         const ai = new GoogleGenAI({
           apiKey: geminiApiKey.value(),
         });
@@ -294,7 +524,8 @@ ${JSON.stringify(context)}
               parts: [
                 {
                   text:
-                  `${systemInstruction}\n\nUser question:\n${trimmedMessage}`,
+                    `${systemInstruction}\n\n` +
+                    `User question:\n${trimmedMessage}`,
                 },
               ],
             },
@@ -309,10 +540,15 @@ ${JSON.stringify(context)}
       } catch (error) {
         console.error("Ask Billvora Error:", error);
 
+        // ==========================================
+        // Authentication errors
+        // ==========================================
+
         if (error.code === "auth/id-token-expired") {
           return res.status(401).json({
             success: false,
-            error: "Your session has expired. Please sign in again.",
+            error:
+              "Your session has expired. Please sign in again.",
           });
         }
 
@@ -322,6 +558,10 @@ ${JSON.stringify(context)}
             error: "Invalid authentication token.",
           });
         }
+
+        // ==========================================
+        // Generic error
+        // ==========================================
 
         return res.status(500).json({
           success: false,
