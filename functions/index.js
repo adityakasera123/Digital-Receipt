@@ -270,11 +270,13 @@ function resolveSpendingDateRange(message, now = new Date()) {
   };
 
   const monthPattern = new RegExp(
-      "\\b(january|jan|february|feb|march|mar|april|apr|may|june|jun|" +
-    "july|jul|august|aug|september|sep|sept|october|oct|november|" +
-    "nov|december|dec)(?:\\s+(\\d{4}))?\\b",
+      "\\b(january|jan|february|feb|march|mar|april|apr|may|" +
+      "june|jun|july|jul|august|aug|september|sep|sept|" +
+      "october|oct|november|nov|december|dec)" +
+      "(?:\\s+(\\d{4}))?\\b",
       "i",
   );
+
   const match = text.match(monthPattern);
 
   if (match) {
@@ -360,6 +362,389 @@ function calculateSpendingForDateRange(receipts, dateRange) {
     purchaseCount: filteredReceipts.length,
     highestPurchase,
   };
+}
+
+// ==========================================
+// Category Intelligence Helpers
+// ==========================================
+
+/**
+ * Filters receipts by category.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @param {string} category - Category to match.
+ * @return {Array<Object>} Matching receipts.
+ */
+function filterReceiptsByCategory(receipts, category) {
+  const normalizedCategory =
+    category.trim().toLowerCase();
+
+  return receipts.filter((receipt) => {
+    const receiptCategory =
+      typeof receipt.category === "string" ?
+        receipt.category.trim().toLowerCase() :
+        "";
+
+    return receiptCategory === normalizedCategory;
+  });
+}
+
+/**
+ * Calculates spending for a category.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @param {string} category - Category to calculate.
+ * @return {Object} Category spending result.
+ */
+function calculateCategorySpending(receipts, category) {
+  const filteredReceipts =
+    filterReceiptsByCategory(
+        receipts,
+        category,
+    );
+
+  return calculateSpending(filteredReceipts);
+}
+
+/**
+ * Resolves a known Billvora category from a user message.
+ *
+ * @param {string} message - User's question.
+ * @return {string|null} Detected category.
+ */
+function resolveSpendingCategory(message) {
+  if (!message || typeof message !== "string") {
+    return null;
+  }
+
+  const text = message.trim().toLowerCase();
+
+  const categoryAliases = {
+    Fashion: [
+      "fashion",
+      "clothing",
+      "clothes",
+      "apparel",
+      "dress",
+    ],
+
+    Electronics: [
+      "electronics",
+      "electronic",
+      "electronical",
+      "electoronic",
+      "electornic",
+      "electronic item",
+      "electronics item",
+      "gadget",
+      "gadgets",
+    ],
+
+    Grocery: [
+      "grocery",
+      "groceries",
+      "grocery shopping",
+      "kirana",
+    ],
+
+    Home: [
+      "home",
+      "household",
+      "home items",
+      "household items",
+    ],
+
+    Beauty: [
+      "beauty",
+      "cosmetics",
+      "cosmetic",
+      "makeup",
+    ],
+
+    Health: [
+      "health",
+      "medical",
+      "medicine",
+      "medicines",
+    ],
+
+    Travel: [
+      "travel",
+      "travelling",
+      "trip",
+    ],
+
+    Food: [
+      "food",
+      "restaurant",
+      "restaurants",
+      "dining",
+    ],
+
+    Shopping: [
+      "shopping",
+      "shopping items",
+    ],
+
+    Other: [
+      "other",
+      "others",
+    ],
+  };
+
+  for (const [category, aliases] of Object.entries(
+      categoryAliases,
+  )) {
+    for (const alias of aliases) {
+      if (text.includes(alias)) {
+        return category;
+      }
+    }
+  }
+
+  return null;
+}
+
+// ==========================================
+// Merchant Intelligence
+// ==========================================
+
+/**
+ * Aggregates spending by merchant/store.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @return {Array<Object>} Merchant spending summary.
+ */
+function calculateMerchantSpending(receipts) {
+  const merchantMap = {};
+
+  receipts.forEach((receipt) => {
+    const storeName =
+      typeof receipt.storeName === "string" ?
+        receipt.storeName.trim() :
+        "";
+
+    if (!storeName) {
+      return;
+    }
+
+    const normalizedStore = storeName.toLowerCase();
+
+    if (!merchantMap[normalizedStore]) {
+      merchantMap[normalizedStore] = {
+        storeName,
+        total: 0,
+        purchaseCount: 0,
+        highestPurchase: null,
+      };
+    }
+
+    const merchant = merchantMap[normalizedStore];
+    const amount = parseAmount(receipt.amount);
+
+    merchant.total += amount;
+    merchant.purchaseCount += 1;
+
+    if (
+      !merchant.highestPurchase ||
+      amount >
+        parseAmount(merchant.highestPurchase.amount)
+    ) {
+      merchant.highestPurchase = receipt;
+    }
+  });
+
+  return Object.values(merchantMap)
+      .map((merchant) => ({
+        ...merchant,
+        total: Number(merchant.total.toFixed(2)),
+      }))
+      .sort((a, b) => b.total - a.total);
+}
+
+/**
+ * Finds a merchant mentioned by the user.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @param {string} message - User's question.
+ * @return {string|null} Matching merchant name.
+ */
+function resolveMerchantQuery(receipts, message) {
+  if (!message || typeof message !== "string") {
+    return null;
+  }
+
+  const text = message.trim().toLowerCase();
+
+  const merchants = [
+    ...new Set(
+        receipts
+            .map((receipt) => receipt.storeName)
+            .filter(
+                (storeName) =>
+                  typeof storeName === "string" &&
+                  storeName.trim(),
+            ),
+    ),
+  ];
+
+  merchants.sort(
+      (a, b) => b.length - a.length,
+  );
+
+  for (const merchant of merchants) {
+    if (
+      text.includes(
+          merchant.trim().toLowerCase(),
+      )
+    ) {
+      return merchant;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Returns merchant-specific spending information.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @param {string} merchantName - Merchant name.
+ * @return {Object|null} Merchant spending result.
+ */
+function getMerchantSpending(
+    receipts,
+    merchantName,
+) {
+  if (!merchantName) {
+    return null;
+  }
+
+  const normalizedMerchant =
+    merchantName.trim().toLowerCase();
+
+  const merchantReceipts = receipts.filter(
+      (receipt) =>
+        typeof receipt.storeName === "string" &&
+        receipt.storeName.trim().toLowerCase() ===
+          normalizedMerchant,
+  );
+
+  if (merchantReceipts.length === 0) {
+    return null;
+  }
+
+  const total = merchantReceipts.reduce(
+      (sum, receipt) =>
+        sum + parseAmount(receipt.amount),
+      0,
+  );
+
+  const highestPurchase =
+    merchantReceipts.reduce(
+        (highest, receipt) => {
+          if (
+            !highest ||
+            parseAmount(receipt.amount) >
+              parseAmount(highest.amount)
+          ) {
+            return receipt;
+          }
+
+          return highest;
+        },
+        null,
+    );
+
+  return {
+    storeName:
+      merchantReceipts[0].storeName,
+    total: Number(total.toFixed(2)),
+    purchaseCount: merchantReceipts.length,
+    highestPurchase,
+  };
+}
+
+/**
+ * Checks whether the user is asking for merchant ranking.
+ *
+ * @param {string} message - User's question.
+ * @return {boolean} Whether this is a top-merchant question.
+ */
+function isMerchantRankingQuestion(message) {
+  if (!message || typeof message !== "string") {
+    return false;
+  }
+
+  const text = message.trim().toLowerCase();
+
+  const rankingWords = [
+    "top",
+    "highest",
+    "maximum",
+    "most",
+    "sabse zyada",
+    "zyada",
+  ];
+
+  const merchantWords = [
+    "store",
+    "stores",
+    "merchant",
+    "merchants",
+    "seller",
+    "sellers",
+    "shop",
+    "shops",
+    "dukaan",
+    "dukaan par",
+  ];
+
+  const hasRankingWord = rankingWords.some(
+      (word) => text.includes(word),
+  );
+
+  const hasMerchantWord = merchantWords.some(
+      (word) => text.includes(word),
+  );
+
+  return hasRankingWord && hasMerchantWord;
+}
+
+/**
+ * Detects whether the user wants multiple top merchants.
+ *
+ * @param {string} message - User's question.
+ * @return {number} Requested merchant count.
+ */
+function getRequestedMerchantCount(message) {
+  if (!message || typeof message !== "string") {
+    return 1;
+  }
+
+  const text = message.trim().toLowerCase();
+
+  const numberMatch = text.match(
+      /\b(?:top|first)\s+(\d+)\b/,
+  );
+
+  if (numberMatch) {
+    const count = Number(numberMatch[1]);
+
+    if (Number.isInteger(count) && count > 0) {
+      return Math.min(count, 10);
+    }
+  }
+
+  if (
+    text.includes("top 3") ||
+    text.includes("three stores") ||
+    text.includes("3 stores")
+  ) {
+    return 3;
+  }
+
+  return 1;
 }
 
 // ==========================================
@@ -474,9 +859,8 @@ exports.askBillvora = onRequest(
           });
         }
 
-        const decodedToken = await adminAuth.verifyIdToken(
-            idToken,
-        );
+        const decodedToken =
+          await adminAuth.verifyIdToken(idToken);
 
         const userId = decodedToken.uid;
 
@@ -557,55 +941,58 @@ exports.askBillvora = onRequest(
 
         const currentDate = getCurrentDate();
 
-        const warranties = warrantiesSnapshot.docs.map((doc) => {
-          const data = doc.data();
-          const expiryDate = data.expiryDate || "";
+        const warranties =
+          warrantiesSnapshot.docs.map((doc) => {
+            const data = doc.data();
+            const expiryDate = data.expiryDate || "";
 
-          let expiryStatus = "unknown";
-          let daysRemaining = null;
+            let expiryStatus = "unknown";
+            let daysRemaining = null;
 
-          if (expiryDate) {
-            const todayMs = Date.parse(
-                `${currentDate}T00:00:00Z`,
-            );
-
-            const expiryMs = Date.parse(
-                `${expiryDate}T00:00:00Z`,
-            );
-
-            if (!Number.isNaN(expiryMs)) {
-              daysRemaining = Math.round(
-                  (expiryMs - todayMs) /
-                  (1000 * 60 * 60 * 24),
+            if (expiryDate) {
+              const todayMs = Date.parse(
+                  `${currentDate}T00:00:00Z`,
               );
 
-              if (daysRemaining < 0) {
-                expiryStatus = "expired";
-              } else if (daysRemaining === 0) {
-                expiryStatus = "expires_today";
-              } else {
-                expiryStatus = "active";
+              const expiryMs = Date.parse(
+                  `${expiryDate}T00:00:00Z`,
+              );
+
+              if (!Number.isNaN(expiryMs)) {
+                daysRemaining = Math.round(
+                    (expiryMs - todayMs) /
+                    (1000 * 60 * 60 * 24),
+                );
+
+                if (daysRemaining < 0) {
+                  expiryStatus = "expired";
+                } else if (daysRemaining === 0) {
+                  expiryStatus = "expires_today";
+                } else {
+                  expiryStatus = "active";
+                }
               }
             }
-          }
 
-          return {
-            productName: data.productName || "",
-            storeName: data.storeName || "",
-            category: data.category || "",
-            purchaseDate: data.purchaseDate || "",
-            warrantyDuration: data.warrantyDuration || "",
-            expiryDate,
-            expiryStatus,
-            daysRemaining,
-          };
-        });
+            return {
+              productName: data.productName || "",
+              storeName: data.storeName || "",
+              category: data.category || "",
+              purchaseDate: data.purchaseDate || "",
+              warrantyDuration:
+                data.warrantyDuration || "",
+              expiryDate,
+              expiryStatus,
+              daysRemaining,
+            };
+          });
 
         // ==========================================
         // Overall Spending Intelligence
         // ==========================================
 
-        const spendingSummary = calculateSpending(receipts);
+        const spendingSummary =
+          calculateSpending(receipts);
 
         // ==========================================
         // Current month spending
@@ -643,6 +1030,60 @@ exports.askBillvora = onRequest(
             null;
 
         // ==========================================
+        // Category Intelligence
+        // ==========================================
+
+        const spendingCategory =
+          resolveSpendingCategory(trimmedMessage);
+
+        const categorySpending =
+          spendingCategory ?
+            calculateCategorySpending(
+                receipts,
+                spendingCategory,
+            ) :
+            null;
+
+        // ==========================================
+        // Merchant Intelligence
+        // ==========================================
+
+        const merchantSpending =
+          calculateMerchantSpending(receipts);
+
+        const merchantQuery =
+          resolveMerchantQuery(
+              receipts,
+              trimmedMessage,
+          );
+
+        const merchantResult =
+          merchantQuery ?
+            getMerchantSpending(
+                receipts,
+                merchantQuery,
+            ) :
+            null;
+
+        const merchantRankingQuestion =
+          isMerchantRankingQuestion(
+              trimmedMessage,
+          );
+
+        const requestedMerchantCount =
+          merchantRankingQuestion ?
+            getRequestedMerchantCount(
+                trimmedMessage,
+            ) :
+            1;
+
+        const topMerchants =
+          merchantSpending.slice(
+              0,
+              requestedMerchantCount,
+          );
+
+        // ==========================================
         // AI context
         // ==========================================
 
@@ -652,6 +1093,14 @@ exports.askBillvora = onRequest(
           currentMonthSpending,
           spendingDateRange,
           spendingAnalysis,
+          spendingCategory,
+          categorySpending,
+          merchantSpending,
+          merchantQuery,
+          merchantResult,
+          merchantRankingQuestion,
+          requestedMerchantCount,
+          topMerchants,
           receipts,
           warranties,
         };
@@ -676,8 +1125,8 @@ IMPORTANT RULES:
 2. Never claim to know personal purchase information that is not
    present in the provided context.
 
-3. Never invent receipt, warranty, amount, date, store, or product
-   information.
+3. Never invent receipt, warranty, amount, date, store, category,
+   or product information.
 
 4. If the provided context does not contain the requested
    information, clearly say that the information is not available
@@ -706,38 +1155,76 @@ IMPORTANT RULES:
     - spendingAnalysis.highestPurchase
     as the authoritative result.
 
-12. If spendingAnalysis is null, do not assume a date range that was
-    not detected.
+12. If spendingAnalysis is null, do not assume a date range that
+    was not detected.
 
 13. If spendingAnalysis.purchaseCount is 0, clearly say that there
     are no purchases recorded for that period.
 
-14. For warranty questions, use the warranty data provided in the
+14. When spendingCategory is present, categorySpending is the
+    authoritative server-side calculation for that category.
+
+15. Never guess or estimate category spending.
+
+16. For category spending questions, use the exact total,
+    purchase count, and highest purchase from categorySpending.
+
+17. If categorySpending.purchaseCount is 0, clearly say that no
+    purchases were found for that category.
+
+18. For warranty questions, use the warranty data provided in the
     context.
 
-15. The warranty expiryStatus and daysRemaining fields are
+19. The warranty expiryStatus and daysRemaining fields are
     calculated server-side and must be treated as authoritative.
 
-16. If expiryStatus is "expired", clearly say that the warranty
+20. If expiryStatus is "expired", clearly say that the warranty
     has already expired.
 
-17. If expiryStatus is "expires_today", clearly say that the
+21. If expiryStatus is "expires_today", clearly say that the
     warranty expires today.
 
-18. If expiryStatus is "active", use daysRemaining to describe
+22. If expiryStatus is "active", use daysRemaining to describe
     how many days remain when relevant.
 
-19. If expiryStatus is "unknown", do not guess the warranty status.
+23. If expiryStatus is "unknown", do not guess the warranty status.
 
-20. For return-window questions, use the receipt return fields
+24. For return-window questions, use the receipt return fields
     provided in the context.
 
-21. You can answer general knowledge questions normally, even when
+25. For a specific merchant/store question, use merchantResult
+    when merchantQuery is present.
+
+26. merchantResult is the authoritative server-side calculation
+    for a specific merchant.
+
+27. Never calculate, guess, estimate, or invent merchant totals
+    when merchantResult is available.
+
+28. For top merchant questions, use topMerchants.
+
+29. topMerchants is already sorted by total spending from highest
+    to lowest.
+
+30. If the user asks for the top merchant, use the first item in
+    topMerchants.
+
+31. If the user asks for multiple top merchants, use the items
+    already provided in topMerchants in their existing order.
+
+32. If merchantSpending is empty, clearly say that no merchant
+    spending data is available.
+
+33. Never reveal internal Firestore document IDs or receipt IDs.
+
+34. Preserve the actual storeName from Billvora data.
+
+35. Do not invent, rename, or alter merchant names.
+
+36. You can answer general knowledge questions normally, even when
     they are unrelated to Billvora purchases.
 
-22. Be concise, friendly, and helpful.
-
-23. Never reveal internal Firestore document IDs or receipt IDs.
+37. Be concise, friendly, and helpful.
 
 Billvora user data context:
 ${JSON.stringify(context)}
