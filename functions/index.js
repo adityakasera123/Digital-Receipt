@@ -331,8 +331,7 @@ exports.askBillvora = onRequest(
         const receipts = receiptsSnapshot.docs.map((doc) => {
           const data = doc.data();
 
-          return {
-            id: doc.id,
+       return {
             productName: data.productName || "",
             storeName: data.storeName || "",
             purchaseDate: data.purchaseDate || "",
@@ -387,9 +386,8 @@ exports.askBillvora = onRequest(
             }
           }
 
-          return {
-            id: doc.id,
-            receiptId: data.receiptId || "",
+
+           return {
             productName: data.productName || "",
             storeName: data.storeName || "",
             category: data.category || "",
