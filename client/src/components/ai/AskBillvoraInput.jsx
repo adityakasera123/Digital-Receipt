@@ -1,8 +1,18 @@
-import { useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { ArrowUp } from 'lucide-react';
 
-function AskBillvoraInput({ onSend, disabled = false }) {
+const AskBillvoraInput = forwardRef(function AskBillvoraInput(
+  { onSend, disabled = false },
+  ref
+) {
   const [message, setMessage] = useState('');
+  const textareaRef = useRef(null);
+
+  useEffect(() => {
+    if (!disabled) {
+      textareaRef.current?.focus();
+    }
+  }, [disabled]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -15,6 +25,10 @@ function AskBillvoraInput({ onSend, disabled = false }) {
 
     onSend(trimmedMessage);
     setMessage('');
+
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+    });
   };
 
   const handleKeyDown = (event) => {
@@ -27,10 +41,19 @@ function AskBillvoraInput({ onSend, disabled = false }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex items-end gap-2 border-t border-default bg-surface p-3 sm:p-4"
+      className="flex shrink-0 items-end gap-2 border-t border-default bg-surface p-3 sm:p-4"
     >
       <div className="min-w-0 flex-1">
         <textarea
+          ref={(element) => {
+            textareaRef.current = element;
+
+            if (typeof ref === 'function') {
+              ref(element);
+            } else if (ref) {
+              ref.current = element;
+            }
+          }}
           value={message}
           onChange={(event) => setMessage(event.target.value)}
           onKeyDown={handleKeyDown}
@@ -53,6 +76,6 @@ function AskBillvoraInput({ onSend, disabled = false }) {
       </button>
     </form>
   );
-}
+});
 
 export default AskBillvoraInput;
