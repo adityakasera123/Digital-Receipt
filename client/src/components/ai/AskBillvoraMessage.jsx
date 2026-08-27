@@ -1,3 +1,5 @@
+import ReactMarkdown from 'react-markdown';
+
 function AskBillvoraMessage({ role, content }) {
   const isUser = role === 'user';
 
@@ -14,7 +16,11 @@ function AskBillvoraMessage({ role, content }) {
             : 'border border-default bg-surface-secondary text-primary'
         }`}
       >
-        {content}
+        {isUser ? (
+          content
+        ) : (
+          <ReactMarkdown>{content}</ReactMarkdown>
+        )}
       </div>
     </div>
   );
