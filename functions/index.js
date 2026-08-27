@@ -1200,6 +1200,188 @@ function isPaymentMethodRankingQuestion(message) {
 
 
 // ==========================================
+// Return-Window Intelligence
+// ==========================================
+
+/**
+ * Calculates the deterministic return-window status
+ * for a receipt.
+ *
+ * @param {Object} receipt - Receipt record.
+ * @param {string} currentDate - Current server date.
+ * @return {string} Return-window status.
+ */
+function calculateReturnWindowStatus(receipt, currentDate) {
+  if (!receipt || !receipt.returnTracking) {
+    return "unavailable";
+  }
+
+  if (
+    !isValidDate(receipt.returnEndDate) ||
+    !isValidDate(currentDate)
+  ) {
+    return "unknown";
+  }
+
+  if (currentDate <= receipt.returnEndDate) {
+    return "active";
+  }
+
+  return "expired";
+}
+
+
+/**
+ * Resolves a return-related product or store query.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @param {string} message - User's question.
+ * @return {Object} Resolved return query.
+ */
+function resolveReturnQuery(receipts, message) {
+  const productName =
+    resolveProductQuery(receipts, message);
+
+  const storeName =
+    resolveMerchantQuery(receipts, message);
+
+  return {
+    productName,
+    storeName,
+  };
+}
+
+
+/**
+ * Returns deterministic return-window information
+ * for a specific product or store.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @param {Object} returnQuery - Resolved return query.
+ * @param {string} currentDate - Current server date.
+ * @return {Object|null} Return-window result.
+ */
+function getReturnWindowResult(
+    receipts,
+    returnQuery,
+    currentDate,
+) {
+  if (!returnQuery) {
+    return null;
+  }
+
+  const {
+    productName,
+    storeName,
+  } = returnQuery;
+
+  if (!productName && !storeName) {
+    return null;
+  }
+
+  const matchingReceipts = receipts.filter((receipt) => {
+    const productMatches =
+      productName &&
+      typeof receipt.productName === "string" &&
+      receipt.productName.trim().toLowerCase() ===
+        productName.trim().toLowerCase();
+
+    const storeMatches =
+      storeName &&
+      typeof receipt.storeName === "string" &&
+      receipt.storeName.trim().toLowerCase() ===
+        storeName.trim().toLowerCase();
+
+    if (productName && storeName) {
+      return productMatches && storeMatches;
+    }
+
+    return productMatches || storeMatches;
+  });
+
+  if (matchingReceipts.length === 0) {
+    return null;
+  }
+
+  const results = matchingReceipts.map((receipt) => ({
+    productName: receipt.productName || "",
+    storeName: receipt.storeName || "",
+    purchaseDate: receipt.purchaseDate || "",
+    returnTracking: Boolean(receipt.returnTracking),
+    returnType: receipt.returnType || "",
+    returnStartDate: receipt.returnStartDate || "",
+    returnEndDate: receipt.returnEndDate || "",
+    returnWindowStatus:
+      calculateReturnWindowStatus(
+          receipt,
+          currentDate,
+      ),
+  }));
+
+  return {
+    productName: productName || null,
+    storeName: storeName || null,
+    purchaseCount: results.length,
+    purchases: results,
+  };
+}
+
+/**
+ * Returns all purchases whose return window is
+ * currently active.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @param {string} currentDate - Current server date.
+ * @return {Array<Object>} Active return purchases.
+ */
+function getReturnablePurchases(receipts, currentDate) {
+  return receipts
+      .map((receipt) => ({
+        productName: receipt.productName || "",
+        storeName: receipt.storeName || "",
+        purchaseDate: receipt.purchaseDate || "",
+        returnEndDate: receipt.returnEndDate || "",
+        returnWindowStatus:
+          calculateReturnWindowStatus(
+              receipt,
+              currentDate,
+          ),
+      }))
+      .filter(
+          (receipt) =>
+            receipt.returnWindowStatus === "active",
+      );
+}
+
+/**
+ * Returns all purchases whose return window has
+ * expired.
+ *
+ * @param {Array<Object>} receipts - User receipt records.
+ * @param {string} currentDate - Current server date.
+ * @return {Array<Object>} Expired return purchases.
+ */
+function getExpiredReturnPurchases(receipts, currentDate) {
+  return receipts
+      .map((receipt) => ({
+        productName: receipt.productName || "",
+        storeName: receipt.storeName || "",
+        purchaseDate: receipt.purchaseDate || "",
+        returnEndDate: receipt.returnEndDate || "",
+        returnWindowStatus:
+          calculateReturnWindowStatus(
+              receipt,
+              currentDate,
+          ),
+      }))
+      .filter(
+          (receipt) =>
+            receipt.returnWindowStatus === "expired",
+      );
+}
+
+
+// ==========================================
 // Existing OCR function — unchanged
 // ==========================================
 
@@ -1633,6 +1815,36 @@ exports.askBillvora = onRequest(
 
 
         // ==========================================
+        // Return-Window Intelligence
+        // ==========================================
+
+        const returnQuery =
+  resolveReturnQuery(
+      receipts,
+      trimmedMessage,
+  );
+
+        const returnResult =
+  getReturnWindowResult(
+      receipts,
+      returnQuery,
+      currentDate,
+  );
+
+        const returnablePurchases =
+  getReturnablePurchases(
+      receipts,
+      currentDate,
+  );
+
+        const expiredReturnPurchases =
+  getExpiredReturnPurchases(
+      receipts,
+      currentDate,
+  );
+
+
+        // ==========================================
         // AI context
         // ==========================================
 
@@ -1662,6 +1874,10 @@ exports.askBillvora = onRequest(
           paymentRankingQuestion,
           mostUsedPaymentMethod,
           highestSpendingPaymentMethod,
+          returnQuery,
+          returnResult,
+          returnablePurchases,
+          expiredReturnPurchases,
           receipts,
           warranties,
         };
@@ -1881,6 +2097,46 @@ PAYMENT INTELLIGENCE RULES:
 
 10. Never reveal internal Firestore document IDs
     or implementation details.
+
+    RETURN-WINDOW INTELLIGENCE RULES:
+
+1. For return-window questions, treat the server-side
+   return intelligence in the context as authoritative.
+
+2. Never independently calculate whether a purchase is
+   still returnable.
+
+3. Never invent or estimate a return deadline or
+   return duration.
+
+4. When returnResult is available, use its
+   returnWindowStatus and purchase data as the
+   authoritative result for the matching purchase.
+
+5. A returnWindowStatus of "active" means the stored
+   return window is currently active.
+
+6. A returnWindowStatus of "expired" means the stored
+   return window has expired.
+
+7. A returnWindowStatus of "unavailable" means return
+   information is not being tracked for that purchase.
+
+8. A returnWindowStatus of "unknown" means the stored
+   return information is insufficient to determine
+   eligibility. Do not guess.
+
+9. For questions asking which purchases are still
+   returnable, use returnablePurchases.
+
+10. For questions asking which purchases can no longer
+    be returned, use expiredReturnPurchases.
+
+11. Preserve the actual productName, storeName, and
+    returnEndDate from the provided Billvora context.
+
+12. Never reveal internal Firestore document IDs or
+    implementation details.
 
 Billvora user data context:
 ${JSON.stringify(context)}
