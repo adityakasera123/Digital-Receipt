@@ -105,3 +105,14 @@ body {
     border-color 0.25s ease,
     box-shadow 0.25s ease;
 }
+
+/* =========================
+   Landing Page
+   Always Dark
+========================= */
+
+.landing-page {
+  min-height: 100vh;
+  background: #050505;
+  color: #ffffff;
+}

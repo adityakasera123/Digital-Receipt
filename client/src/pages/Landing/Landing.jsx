@@ -10,10 +10,10 @@ import WhyBillvora from "./WhyBillvora";
 
 function Landing() {
   return (
-    <div className="min-h-screen text-white">
+    <div className="landing-page min-h-screen text-white">
       <Navbar />
       <Hero />
-      <Features/>
+      <Features />
       <HowItWorks />
       <WhyBillvora />
       <ReceiptProblems />

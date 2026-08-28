@@ -1,4 +1,30 @@
 /* =========================
+   Landing Page
+   Always Dark
+========================= */
+
+.landing-page {
+  --bg-primary: #050505;
+  --bg-secondary: #111214;
+  --border-color: #232428;
+
+  --text-primary: #FFFFFF;
+  --text-secondary: #A1A1AA;
+
+  --accent-primary: #7EF0C2;
+  --accent-secondary: #57D9AC;
+
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --error: #EF4444;
+
+  --shadow-card: 0px 10px 40px rgba(0, 0, 0, 0.25);
+}
+
+
+
+
+/* =========================
    Light Theme (Default)
 ========================= */
 :root {
