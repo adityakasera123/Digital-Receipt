@@ -2,25 +2,69 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
     <link rel="icon" type="image/png" href="./public/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
+    <meta name="theme-color" content="#080909" />
+
     <title>Billvora Beta</title>
+
+    <!-- Prevent theme flash before React loads -->
+    <script>
+      (function () {
+        try {
+          const theme = localStorage.getItem("billvora-theme") || "system";
+
+          const systemDark = window.matchMedia(
+            "(prefers-color-scheme: dark)"
+          ).matches;
+
+          const resolvedTheme =
+            theme === "system"
+              ? systemDark
+                ? "dark"
+                : "light"
+              : theme;
+
+          if (resolvedTheme === "dark") {
+            document.documentElement.classList.add("dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+          }
+        } catch (error) {
+          // Keep default rendering if localStorage is unavailable.
+        }
+      })();
+    </script>
+
     <link
-  rel="preconnect"
-  href="https://fonts.googleapis.com"
-/>
-<link
-  rel="preconnect"
-  href="https://fonts.gstatic.com"
-  crossorigin
-/>
-<link
-  href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap"
-  rel="stylesheet"
-/>
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
   </head>
+
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+
+    <script
+      type="module"
+      src="/src/main.jsx"
+    ></script>
   </body>
 </html>

@@ -1,0 +1,158 @@
+/* =================================
+   PAGE LOADER
+================================= */
+
+.page-loader {
+  position: fixed;
+  inset: 0;
+
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(126, 240, 194, 0.05),
+      transparent 38%
+    ),
+    #080909;
+}
+
+/* =================================
+   BRAND POSITION
+
+   This moves the complete BILLVORA
+   slightly lower on the screen.
+================================= */
+
+.page-loader__brand {
+  width: min(95vw, 1500px);
+
+  /* Normal position slightly lower */
+  margin-top: 8vh;
+
+  transform-origin: center center;
+
+  will-change: transform, opacity;
+}
+
+.page-loader__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.page-loader__text {
+  font-family: "Manrope", sans-serif;
+
+  font-size: 220px;
+  font-weight: 800;
+
+  letter-spacing: -0.06em;
+}
+
+/* =================================
+   DARK BASE TEXT
+================================= */
+
+.page-loader__text--base {
+  fill: #252727;
+}
+
+/* =================================
+   WHITE WAVE REVEAL
+================================= */
+
+.page-loader__wave {
+  transform: translateY(400px);
+
+  transition:
+    transform 3s cubic-bezier(0.65, 0, 0.35, 1);
+
+  will-change: transform;
+}
+
+.page-loader.is-revealing .page-loader__wave {
+  transform: translateY(-400px);
+}
+
+/* =================================
+   CINEMATIC ZOOM
+
+   Important:
+   margin-top keeps the starting
+   position lower.
+
+   translateY moves even lower
+   during zoom.
+================================= */
+
+.page-loader.is-zooming .page-loader__brand {
+  animation:
+    billvoraLoaderZoom
+    2.4s
+    cubic-bezier(0.76, 0, 0.24, 1)
+    forwards;
+}
+
+@keyframes billvoraLoaderZoom {
+  0% {
+    transform: translateY(0px) scale(1);
+    opacity: 1;
+  }
+
+  25% {
+    transform: translateY(15px) scale(1.1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: translateY(45px) scale(1.7);
+    opacity: 1;
+  }
+
+  75% {
+    transform: translateY(90px) scale(3.3);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(150px) scale(6.5);
+    opacity: 0;
+  }
+}
+
+/* =================================
+   MOBILE
+================================= */
+
+@media (max-width: 768px) {
+  .page-loader__brand {
+    width: 145vw;
+    margin-top: 6vh;
+  }
+
+  .page-loader__text {
+    font-size: 110px;
+  }
+}
+
+/* =================================
+   ACCESSIBILITY
+================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .page-loader__wave {
+    transition-duration: 0.01ms;
+  }
+
+  .page-loader.is-zooming .page-loader__brand {
+    animation-duration: 0.01ms;
+  }
+}
