@@ -12,8 +12,10 @@ import WhyBillvora from "./WhyBillvora";
 
 import PageLoader from "./components/PageLoader";
 
+const ENABLE_PAGE_LOADER = false;
+
 function Landing() {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(ENABLE_PAGE_LOADER);
 
   return (
     <>
