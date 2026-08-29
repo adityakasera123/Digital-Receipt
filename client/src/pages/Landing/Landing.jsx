@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Navbar from "../../components/layout/Navbar";
 import CTA from "./CTA";
@@ -7,8 +7,6 @@ import Features from "./Features";
 import Footer from "./Footer";
 import Hero from "./Hero";
 import HowItWorks from "./HowItWorks";
-import ReceiptProblems from "./ReceiptProblems";
-import WhyBillvora from "./WhyBillvora";
 
 import PageLoader from "./components/PageLoader";
 import BillvoraStory from "./BillvoraStory";
@@ -16,28 +14,44 @@ import BillvoraStory from "./BillvoraStory";
 const ENABLE_PAGE_LOADER = true;
 
 function Landing() {
-  const [isLoading, setIsLoading] = useState(ENABLE_PAGE_LOADER);
+  const [isLoading, setIsLoading] = useState(() => {
+    if (!ENABLE_PAGE_LOADER) return false;
+
+    // Back/Forward navigation → loader nahi
+    const navigationEntry = performance.getEntriesByType("navigation")[0];
+
+    if (navigationEntry?.type === "back_forward") {
+      return false;
+    }
+
+    // Fresh load ya refresh → loader chalega
+    return true;
+  });
 
   return (
     <>
+      {/* LOADER */}
       {isLoading && (
-        <PageLoader onComplete={() => setIsLoading(false)} />
+        <PageLoader
+          onComplete={() => {
+            setIsLoading(false);
+          }}
+        />
       )}
 
-      <div
-        className={`min-h-screen bg-[#050505] text-white transition-opacity duration-700 ${
-          isLoading ? "opacity-0" : "opacity-100"
-        }`}
-      >
-        <Navbar />
-        <Hero />
-        <Features />
-        <HowItWorks />
-        <BillvoraStory/>
-        <FAQ />
-        <CTA />
-        <Footer />
-      </div>
+      {/* PAGE */}
+      {!isLoading && (
+        <div className="min-h-screen bg-[#050505] text-white">
+          <Navbar />
+          <Hero />
+          <Features />
+          <HowItWorks />
+          <BillvoraStory />
+          <FAQ />
+          <CTA />
+          <Footer />
+        </div>
+      )}
     </>
   );
 }
