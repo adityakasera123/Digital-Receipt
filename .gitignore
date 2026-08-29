@@ -69,4 +69,5 @@ node_modules/
 .dataconnect
 
 
-functions/billvora-vision.json
+functions/billvora-vision.json.DS_Store
+client/src.zip
