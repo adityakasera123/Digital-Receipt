@@ -11,6 +11,7 @@ import ReceiptProblems from "./ReceiptProblems";
 import WhyBillvora from "./WhyBillvora";
 
 import PageLoader from "./components/PageLoader";
+import BillvoraStory from "./BillvoraStory";
 
 const ENABLE_PAGE_LOADER = false;
 
@@ -32,8 +33,7 @@ function Landing() {
         <Hero />
         <Features />
         <HowItWorks />
-        <WhyBillvora />
-        <ReceiptProblems />
+        <BillvoraStory/>
         <FAQ />
         <CTA />
         <Footer />
