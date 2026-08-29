@@ -71,3 +71,4 @@ node_modules/
 
 functions/billvora-vision.json.DS_Store
 client/src.zip
+.DS_Store
