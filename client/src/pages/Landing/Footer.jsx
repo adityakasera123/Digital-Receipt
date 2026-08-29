@@ -1,16 +1,18 @@
+import { Link } from "react-router-dom";
+
 function Footer() {
   const productLinks = [
-    "Dashboard",
-    "Receipts",
-    "Warranty",
-    "Analytics",
+    { name: "Dashboard", to: "/dashboard" },
+    { name: "Receipts", to: "/receipts" },
+    { name: "Warranty", to: "/warranties" },
+    { name: "Analytics", to: "/analytics" },
   ];
 
   const companyLinks = [
-    "About",
-    "Contact",
-    "Privacy",
-    "Terms",
+    { name: "About", to: "/about" },
+    { name: "Contact", to: "/contact" },
+    { name: "Privacy", to: "/privacy" },
+    { name: "Terms", to: "/terms" },
   ];
 
   return (
@@ -20,7 +22,7 @@ function Footer() {
       <div className="absolute left-1/2 top-0 h-52 w-52 -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[120px]" />
 
       {/* Watermark */}
-      <h1 className="pointer-events-none absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap text-[120px] font-bold tracking-[0.4em] text-white/[0.03] select-none lg:text-[180px]">
+      <h1 className="pointer-events-none absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap text-[120px] font-bold tracking-[0.4em] text-white/[0.045] select-none lg:text-[180px]">
         BILLVORA
       </h1>
 
@@ -43,15 +45,17 @@ function Footer() {
           {/* Brand */}
           <div>
 
-            <h2 className="text-5xl font-bold tracking-tight text-white">
-              BILLVORA
-            </h2>
+            <Link to="/">
+              <h2 className="text-5xl font-bold tracking-tight text-white transition hover:text-zinc-200">
+                BILLVORA
+              </h2>
+            </Link>
 
             <p className="mt-3 text-lg text-zinc-400">
               Your Digital Purchase Vault
             </p>
 
-            <div className="mt-10 space-y-2 text-zinc-300 leading-8">
+            <div className="mt-10 space-y-2 leading-8 text-zinc-300">
 
               <p>Every receipt.</p>
               <p>Every warranty.</p>
@@ -78,12 +82,13 @@ function Footer() {
               <div className="flex flex-wrap gap-3">
 
                 {productLinks.map((item) => (
-                  <button
-                    key={item}
-                    className="rounded-full border border-white/10 px-5 py-2 text-sm text-zinc-300 transition hover:border-emerald-400 hover:text-white"
+                  <Link
+                    key={item.name}
+                    to={item.to}
+                    className="rounded-full border border-white/10 px-5 py-2 text-sm text-zinc-300 transition duration-300 hover:-translate-y-0.5 hover:border-emerald-400 hover:bg-emerald-400/5 hover:text-white"
                   >
-                    {item}
-                  </button>
+                    {item.name}
+                  </Link>
                 ))}
 
               </div>
@@ -100,13 +105,13 @@ function Footer() {
               <div className="grid grid-cols-2 gap-4">
 
                 {companyLinks.map((item) => (
-                  <a
-                    href="#"
-                    key={item}
-                    className="text-zinc-400 transition hover:text-white"
+                  <Link
+                    to={item.to}
+                    key={item.name}
+                    className="text-zinc-400 transition duration-300 hover:translate-x-1 hover:text-white"
                   >
-                    {item}
-                  </a>
+                    {item.name}
+                  </Link>
                 ))}
 
               </div>
@@ -125,15 +130,28 @@ function Footer() {
 
           <div className="flex gap-8 text-zinc-400">
 
-            <a href="#" className="hover:text-white">
+            <a
+              href="https://github.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition hover:text-white"
+            >
               GitHub
             </a>
 
-            <a href="#" className="hover:text-white">
+            <a
+              href="https://www.linkedin.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition hover:text-white"
+            >
               LinkedIn
             </a>
 
-            <a href="#" className="hover:text-white">
+            <a
+              href="mailto:contact@billvora.com"
+              className="transition hover:text-white"
+            >
               Email
             </a>
 
