@@ -37,6 +37,7 @@ jobs:
       - name: Build Billvora
         working-directory: client
         env:
+          VITE_BASE_PATH: /Digital-Receipt/
           VITE_GOOGLE_VISION_API_KEY: ${{ secrets.VITE_GOOGLE_VISION_API_KEY }}
         run: |
           npm run build
