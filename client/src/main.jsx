@@ -8,7 +8,7 @@ import ThemeProvider from './context/ThemeContext';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename="/Digital-Receipt">
       <ThemeProvider>
         <AuthProvider>
           <App />
