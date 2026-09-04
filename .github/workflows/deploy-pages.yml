@@ -36,6 +36,8 @@ jobs:
 
       - name: Build Billvora
         working-directory: client
+        env:
+          VITE_GOOGLE_VISION_API_KEY: ${{ secrets.VITE_GOOGLE_VISION_API_KEY }}
         run: npm run build
 
       - name: Setup Pages
